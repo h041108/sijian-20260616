@@ -1,0 +1,258 @@
+{
+  "id": "share_1781514489188_2obcj5",
+  "topic": "银行客户投诉的处理流程是什么",
+  "subject": "mathematics",
+  "grade": "高三",
+  "nodes": [
+    {
+      "id": "N1",
+      "label": "投诉处理流程",
+      "depth": 0,
+      "shape": "sphere",
+      "color": "#3182CE",
+      "content": "银行客户从提出投诉到问题解决与改进的完整闭环流程",
+      "parentIds": [],
+      "anchors": [
+        {
+          "id": "A1-1",
+          "label": "投诉受理标准",
+          "domain": "银行",
+          "profession": "客服专员",
+          "parameters": "首次响应时间≤2分钟，工单生成时间≤30秒",
+          "nodeId": "N1",
+          "relevanceScore": 0.9
+        },
+        {
+          "id": "A1-2",
+          "label": "处理时效目标",
+          "domain": "银行",
+          "profession": "运营经理",
+          "parameters": "全流程平均处理时间≤72小时，复杂投诉≤5个工作日",
+          "nodeId": "N1",
+          "relevanceScore": 0.8
+        }
+      ],
+      "metadata": {
+        "createdBy": "teacher",
+        "createdAt": "2026-06-15T09:03:10.207Z",
+        "version": 1
+      }
+    },
+    {
+      "id": "N2",
+      "label": "受理登记",
+      "depth": 1,
+      "shape": "box",
+      "color": "#38A169",
+      "content": "记录投诉人信息、投诉内容、渠道来源，生成唯一投诉编号",
+      "parentIds": [],
+      "anchors": [
+        {
+          "id": "A2-1",
+          "label": "多渠道接入",
+          "domain": "银行",
+          "profession": "客服中心",
+          "parameters": "电话、网银、手机银行、微信、网点等5种渠道，自动归集至同一平台",
+          "nodeId": "N2",
+          "relevanceScore": 0.9
+        },
+        {
+          "id": "A2-2",
+          "label": "信息录入规范",
+          "domain": "银行",
+          "profession": "录入员",
+          "parameters": "必填字段包括：客户姓名、证件号、投诉类别（10大类）、发生时间、期望结果，缺失字段需在2小时内补充",
+          "nodeId": "N2",
+          "relevanceScore": 0.85
+        }
+      ],
+      "metadata": {
+        "createdBy": "teacher",
+        "createdAt": "2026-06-15T09:03:10.207Z",
+        "version": 1
+      }
+    },
+    {
+      "id": "N3",
+      "label": "调查分析",
+      "depth": 1,
+      "shape": "cylinder",
+      "color": "#D53F8C",
+      "content": "客服部门或专门调查组对投诉事件进行核实、分析原因、收集证据",
+      "parentIds": [],
+      "anchors": [
+        {
+          "id": "A3-1",
+          "label": "调查时限",
+          "domain": "银行",
+          "profession": "投诉调查员",
+          "parameters": "常规投诉调查时限48小时，复杂投诉可延长至72小时，需报主管审批",
+          "nodeId": "N3",
+          "relevanceScore": 0.95
+        },
+        {
+          "id": "A3-2",
+          "label": "投诉分类代码",
+          "domain": "银行",
+          "profession": "质量分析师",
+          "parameters": "按《银行业消费者投诉分类标准》分为12大类，如服务态度、产品收益、系统故障等",
+          "nodeId": "N3",
+          "relevanceScore": 0.8
+        }
+      ],
+      "metadata": {
+        "createdBy": "teacher",
+        "createdAt": "2026-06-15T09:03:10.207Z",
+        "version": 1
+      }
+    },
+    {
+      "id": "N4",
+      "label": "处理解决",
+      "depth": 1,
+      "shape": "torus",
+      "color": "#ED8936",
+      "content": "根据调查结果制定解决方案，并与客户协商达成一致",
+      "parentIds": [],
+      "anchors": [
+        {
+          "id": "A4-1",
+          "label": "解决方案类型",
+          "domain": "银行",
+          "profession": "产品经理",
+          "parameters": "包括道歉、解释、赔偿（单笔上限5000元）、业务调整、人员培训等5种",
+          "nodeId": "N4",
+          "relevanceScore": 0.9
+        },
+        {
+          "id": "A4-2",
+          "label": "客户协商机制",
+          "domain": "银行",
+          "profession": "客服主管",
+          "parameters": "协商不超过3轮，每轮时限24小时，若未达成则升级至高级主管",
+          "nodeId": "N4",
+          "relevanceScore": 0.85
+        }
+      ],
+      "metadata": {
+        "createdBy": "teacher",
+        "createdAt": "2026-06-15T09:03:10.207Z",
+        "version": 1
+      }
+    },
+    {
+      "id": "N5",
+      "label": "反馈归档",
+      "depth": 1,
+      "shape": "sphere",
+      "color": "#805AD5",
+      "content": "将处理结果告知客户，确认满意度，并将投诉记录归档",
+      "parentIds": [],
+      "anchors": [
+        {
+          "id": "A5-1",
+          "label": "客户满意度评分",
+          "domain": "银行",
+          "profession": "客服专员",
+          "parameters": "处理完成后24小时内发送满意度调查，评分采用5分制，目标平均≥4.0",
+          "nodeId": "N5",
+          "relevanceScore": 0.9
+        },
+        {
+          "id": "A5-2",
+          "label": "归档保存期限",
+          "domain": "银行",
+          "profession": "档案管理员",
+          "parameters": "投诉记录电子归档保存5年，录音保存1年，定期销毁需经合规部审批",
+          "nodeId": "N5",
+          "relevanceScore": 0.85
+        }
+      ],
+      "metadata": {
+        "createdBy": "teacher",
+        "createdAt": "2026-06-15T09:03:10.207Z",
+        "version": 1
+      }
+    },
+    {
+      "id": "N6",
+      "label": "改进预防",
+      "depth": 1,
+      "shape": "box",
+      "color": "#4C51BF",
+      "content": "分析投诉根因，制定改进措施，防止同类问题再次发生",
+      "parentIds": [],
+      "anchors": [
+        {
+          "id": "A6-1",
+          "label": "根本原因分析",
+          "domain": "银行",
+          "profession": "质量改进团队",
+          "parameters": "每月汇总投诉数据，对前3大类投诉进行根因分析，输出RCA报告",
+          "nodeId": "N6",
+          "relevanceScore": 0.9
+        },
+        {
+          "id": "A6-2",
+          "label": "投诉率KPI",
+          "domain": "银行",
+          "profession": "运营总监",
+          "parameters": "年度投诉率目标≤0.5%（按每万笔交易计），环比下降5%",
+          "nodeId": "N6",
+          "relevanceScore": 0.8
+        }
+      ],
+      "metadata": {
+        "createdBy": "teacher",
+        "createdAt": "2026-06-15T09:03:10.207Z",
+        "version": 1
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "E1",
+      "source": "N1",
+      "target": "N2",
+      "weight": 0.9
+    },
+    {
+      "id": "E2",
+      "source": "N2",
+      "target": "N3",
+      "weight": 0.8
+    },
+    {
+      "id": "E3",
+      "source": "N3",
+      "target": "N4",
+      "weight": 0.9
+    },
+    {
+      "id": "E4",
+      "source": "N4",
+      "target": "N5",
+      "weight": 0.85
+    },
+    {
+      "id": "E5",
+      "source": "N5",
+      "target": "N6",
+      "weight": 0.7
+    },
+    {
+      "id": "E6",
+      "source": "N6",
+      "target": "N1",
+      "weight": 0.6
+    }
+  ],
+  "frameType": "pipeline",
+  "domainType": "business",
+  "password": null,
+  "expireAt": "2026-06-22T09:08:09.189Z",
+  "publisher": "张一",
+  "createdAt": "2026-06-15T09:08:09.189Z",
+  "views": 0,
+  "viewLog": []
+}

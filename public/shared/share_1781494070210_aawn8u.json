@@ -1,0 +1,253 @@
+{
+  "id": "share_1781494070210_aawn8u",
+  "topic": "客户投诉处理流程",
+  "subject": "mathematics",
+  "grade": "高三",
+  "nodes": [
+    {
+      "id": "N0",
+      "label": "投诉处理流程",
+      "depth": 0,
+      "shape": "cylinder",
+      "color": "#3182CE",
+      "content": "从接收投诉到闭环的全过程管理，包含分析、解决、反馈四个阶段",
+      "parentIds": [],
+      "anchors": [],
+      "metadata": {
+        "createdBy": "teacher",
+        "createdAt": "2026-06-15T01:38:35.589Z",
+        "version": 1
+      }
+    },
+    {
+      "id": "N1",
+      "label": "投诉接收",
+      "depth": 1,
+      "shape": "sphere",
+      "color": "#D53F8C",
+      "content": "记录客户投诉基本信息，包括时间、渠道、内容、客户资料等",
+      "parentIds": [],
+      "anchors": [
+        {
+          "id": "A1",
+          "label": "客服记录投诉",
+          "domain": "客服中心",
+          "profession": "客服专员",
+          "parameters": "日均处理150起，平均记录耗时3分钟，CRM系统字段12个",
+          "nodeId": "N1",
+          "relevanceScore": 0.9
+        }
+      ],
+      "metadata": {
+        "createdBy": "teacher",
+        "createdAt": "2026-06-15T01:38:35.590Z",
+        "version": 1
+      }
+    },
+    {
+      "id": "N2",
+      "label": "投诉分析",
+      "depth": 1,
+      "shape": "box",
+      "color": "#805AD5",
+      "content": "对投诉内容进行根因分析、分类分级、影响评估",
+      "parentIds": [],
+      "anchors": [],
+      "metadata": {
+        "createdBy": "teacher",
+        "createdAt": "2026-06-15T01:38:35.590Z",
+        "version": 1
+      }
+    },
+    {
+      "id": "N3",
+      "label": "解决方案",
+      "depth": 1,
+      "shape": "torus",
+      "color": "#38A169",
+      "content": "制定即时补救措施和长期改进方案",
+      "parentIds": [],
+      "anchors": [
+        {
+          "id": "A4",
+          "label": "即时赔偿方案",
+          "domain": "零售",
+          "profession": "客户关系经理",
+          "parameters": "退款或补偿，平均金额50美元，执行后客户保留率提升至92%",
+          "nodeId": "N3",
+          "relevanceScore": 0.85
+        }
+      ],
+      "metadata": {
+        "createdBy": "teacher",
+        "createdAt": "2026-06-15T01:38:35.590Z",
+        "version": 1
+      }
+    },
+    {
+      "id": "N4",
+      "label": "反馈跟进",
+      "depth": 1,
+      "shape": "sphere",
+      "color": "#F6E05E",
+      "content": "实施解决方案后向客户反馈，并跟踪满意度及流程优化",
+      "parentIds": [],
+      "anchors": [
+        {
+          "id": "A5",
+          "label": "回访满意度",
+          "domain": "金融",
+          "profession": "客户体验专员",
+          "parameters": "48h内回访，样本量≥500，满意度从4.2→4.5（5分制），NPS提升10点",
+          "nodeId": "N4",
+          "relevanceScore": 0.95
+        },
+        {
+          "id": "A6",
+          "label": "闭环优化周期",
+          "domain": "物流",
+          "profession": "运营经理",
+          "parameters": "从投诉到优化方案落地平均30天，每月减少同类投诉15%",
+          "nodeId": "N4",
+          "relevanceScore": 0.8
+        }
+      ],
+      "metadata": {
+        "createdBy": "teacher",
+        "createdAt": "2026-06-15T01:38:35.590Z",
+        "version": 1
+      }
+    },
+    {
+      "id": "N5",
+      "label": "投诉分类",
+      "depth": 2,
+      "shape": "cylinder",
+      "color": "#D69E2E",
+      "content": "按严重程度（1-5级）和类型（产品、服务、物流）进行分类",
+      "parentIds": [],
+      "anchors": [
+        {
+          "id": "A2",
+          "label": "分级响应机制",
+          "domain": "电商",
+          "profession": "投诉主管",
+          "parameters": "1级（轻微）占60%→24h响应，5级（重大）占5%→2h升级至总监",
+          "nodeId": "N5",
+          "relevanceScore": 0.95
+        },
+        {
+          "id": "A7",
+          "label": "分类准确率",
+          "domain": "电信",
+          "profession": "数据标注员",
+          "parameters": "基于历史数据训练模型，分类准确率92%，人工复核率10%",
+          "nodeId": "N5",
+          "relevanceScore": 0.7
+        }
+      ],
+      "metadata": {
+        "createdBy": "teacher",
+        "createdAt": "2026-06-15T01:38:35.590Z",
+        "version": 1
+      }
+    },
+    {
+      "id": "N6",
+      "label": "根因分析",
+      "depth": 2,
+      "shape": "box",
+      "color": "#ED8936",
+      "content": "使用5Why法或鱼骨图找出根本原因，确定责任部门和改进点",
+      "parentIds": [],
+      "anchors": [
+        {
+          "id": "A3",
+          "label": "根因识别率",
+          "domain": "制造业",
+          "profession": "质量工程师",
+          "parameters": "使用鱼骨图分析，平均耗时2h，成功定位根因率85%，降低重复投诉30%",
+          "nodeId": "N6",
+          "relevanceScore": 0.9
+        }
+      ],
+      "metadata": {
+        "createdBy": "teacher",
+        "createdAt": "2026-06-15T01:38:35.591Z",
+        "version": 1
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "E1",
+      "source": "N0",
+      "target": "N1",
+      "weight": 0.5
+    },
+    {
+      "id": "E2",
+      "source": "N0",
+      "target": "N2",
+      "weight": 0.4
+    },
+    {
+      "id": "E3",
+      "source": "N0",
+      "target": "N3",
+      "weight": 0.3
+    },
+    {
+      "id": "E4",
+      "source": "N0",
+      "target": "N4",
+      "weight": 0.2
+    },
+    {
+      "id": "E5",
+      "source": "N1",
+      "target": "N5",
+      "weight": 0.6
+    },
+    {
+      "id": "E6",
+      "source": "N2",
+      "target": "N6",
+      "weight": 0.7
+    },
+    {
+      "id": "E7",
+      "source": "N2",
+      "target": "N3",
+      "weight": 0.5
+    },
+    {
+      "id": "E8",
+      "source": "N3",
+      "target": "N4",
+      "weight": 0.8
+    },
+    {
+      "id": "E9",
+      "source": "N4",
+      "target": "N0",
+      "weight": 0.3
+    },
+    {
+      "id": "E10",
+      "source": "N5",
+      "target": "N2",
+      "weight": 0.4
+    },
+    {
+      "id": "E11",
+      "source": "N6",
+      "target": "N3",
+      "weight": 0.6
+    }
+  ],
+  "frameType": "pipeline",
+  "domainType": "business",
+  "createdAt": "2026-06-15T03:27:50.210Z",
+  "views": 0
+}

@@ -1,0 +1,122 @@
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  --background: #faf8f5;
+  --foreground: #1a1a2e;
+}
+
+/* ─── 全局 ───────────────────────────────── */
+body {
+  background: linear-gradient(160deg, #faf8f5 0%, #f3f0eb 30%, #f8f5f2 70%, #faf8f5 100%);
+  color: var(--foreground);
+  font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── 动画 ───────────────────────────────── */
+@keyframes pageFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.page-enter { animation: pageFadeIn 0.5s ease-out; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fadeInUp 0.4s ease-out; }
+
+@keyframes nodeExpand {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.animate-node-in { animation: nodeExpand 0.45s ease-out; }
+
+/* ─── 滚动条 ─────────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar { width: 5px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #d4d0c8;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #b8b3a8; }
+
+/* ─── 亮色卡片 ───────────────────────────── */
+.card-light {
+  background: #ffffff;
+  border: 1px solid #e8e5df;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 4px 16px rgba(0,0,0,0.04);
+}
+
+/* ─── 品牌渐变文字 ───────────────────────── */
+.text-brand {
+  background: linear-gradient(135deg, #5b5f97 0%, #8b7e74 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── 主按钮 ─────────────────────────────── */
+.btn-primary {
+  background: linear-gradient(135deg, #5b5f97 0%, #7c6f8d 100%);
+  color: #fff;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(91,95,151,0.15);
+}
+.btn-primary:hover {
+  box-shadow: 0 4px 20px rgba(91,95,151,0.3);
+  transform: translateY(-1px);
+}
+.btn-primary:disabled {
+  opacity: 0.4;
+  box-shadow: none;
+  transform: none;
+}
+
+/* ─── 用户消息气泡 ───────────────────────── */
+.bubble-user {
+  background: linear-gradient(145deg, #5b5f97 0%, #6b6499 60%, #8b7e74 100%);
+  color: #ffffff;
+  border-radius: 18px 18px 6px 18px;
+  box-shadow: 0 2px 12px rgba(91,95,151,0.18);
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* ─── AI 消息气泡 ────────────────────────── */
+.bubble-ai {
+  background: #f3f2f0;
+  color: #2d2d3a;
+  border-radius: 18px 18px 18px 6px;
+  border: 1px solid #e8e5df;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* ─── 输入框 ─────────────────────────────── */
+.input-light {
+  background: #f7f6f3;
+  border: 1px solid #e8e5df;
+  color: #1a1a2e;
+  transition: all 0.25s ease;
+}
+.input-light::placeholder { color: #b0aca3; }
+.input-light:focus {
+  outline: none;
+  border-color: #5b5f97;
+  box-shadow: 0 0 0 3px rgba(91,95,151,0.1);
+  background: #ffffff;
+}
+
+/* ─── 通用过渡 ───────────────────────────── */
+.transition-all { transition: all 0.3s ease; }

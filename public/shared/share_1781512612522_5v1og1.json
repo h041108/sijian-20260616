@@ -1,0 +1,36 @@
+{
+  "id": "share_1781512612522_5v1og1",
+  "topic": "三角函数的正弦定理",
+  "subject": "mathematics",
+  "grade": "高三",
+  "nodes": [
+    {
+      "id": "n1",
+      "label": "正弦定理",
+      "content": "a/sinA=b/sinB=c/sinC=2R",
+      "shape": "box",
+      "color": "#4C51BF",
+      "depth": 0,
+      "parentIds": [],
+      "anchors": [],
+      "metadata": {
+        "createdBy": "ai",
+        "createdAt": "",
+        "version": 1
+      }
+    }
+  ],
+  "edges": [],
+  "frameType": "tree",
+  "domainType": "mathematics",
+  "password": "1234",
+  "expireAt": "2026-06-22T08:36:52.522Z",
+  "publisher": "张老师",
+  "createdAt": "2026-06-15T08:36:52.524Z",
+  "views": 1,
+  "viewLog": [
+    {
+      "time": "2026-06-15T08:36:52.981Z"
+    }
+  ]
+}

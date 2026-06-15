@@ -1,0 +1,53 @@
+{
+  "id": "share_1781508607948_ut1kc1",
+  "topic": "太阳系知识空间",
+  "subject": "physics",
+  "grade": "高三",
+  "nodes": [
+    {
+      "id": "n1",
+      "label": "太阳系",
+      "content": "包含8大行星",
+      "shape": "sphere",
+      "color": "#E53E3E",
+      "depth": 0,
+      "parentIds": [],
+      "anchors": [],
+      "metadata": {
+        "createdBy": "ai",
+        "createdAt": "",
+        "version": 1
+      }
+    },
+    {
+      "id": "n2",
+      "label": "木星",
+      "content": "最大的行星",
+      "shape": "sphere",
+      "color": "#D69E2E",
+      "depth": 1,
+      "parentIds": [
+        "n1"
+      ],
+      "anchors": [],
+      "metadata": {
+        "createdBy": "ai",
+        "createdAt": "",
+        "version": 1
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "n1",
+      "target": "n2",
+      "edgeType": "abstract",
+      "weight": 0.9
+    }
+  ],
+  "frameType": "orbital",
+  "domainType": "physics",
+  "createdAt": "2026-06-15T07:30:07.949Z",
+  "views": 0
+}
