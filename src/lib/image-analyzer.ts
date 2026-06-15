@@ -1,27 +1,9 @@
-// 图片分析：先用 tesseract.js 做真实 OCR 提取文字
-// 如果 OCR 失败，用降级的像素结构分析
-import Tesseract from "tesseract.js"
+// 图片分析：像素结构分析 + 尺寸/亮度比检测
 
 export async function analyzeImageInBrowser(file: File): Promise<string> {
   const dataUrl = await new Promise<string>(resolve => {
     const r = new FileReader(); r.onload = () => resolve(r.result as string); r.readAsDataURL(file)
   })
-
-  // ── 方法1：Tesseract.js OCR（真实文字识别） ──
-  try {
-    const { data } = await Tesseract.recognize(dataUrl, "chi_sim+eng", {
-      logger: () => {}, // 静默
-    })
-
-    const text = data.text?.trim()
-    if (text && text.length > 20) {
-      return formatOcrResult(file, text, data.confidence)
-    }
-  } catch {
-    // OCR 失败，降级
-  }
-
-  // ── 方法2：像素结构分析（降级，不含虚假内容） ──
   return analyzePixelStructure(dataUrl, file)
 }
 
