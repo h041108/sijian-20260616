@@ -55,7 +55,7 @@ E: id|源id|目标id|权重
 - N行(节点，1-5个)：从对话中提取核心概念。depth 从0开始。shape 从 sphere/box/cylinder/torus 随机选，颜色从 #E53E3E #D53F8C #805AD5 #553C9A #4C51BF #3182CE #00B5D8 #319795 #38A169 #68D391 #9AE6B4 #D69E2E #F6E05E #ED8936 #DD6B20 #8B4513 中选
 - A行(锚点，每个节点最多2个)：该概念在真实世界的应用。参数必须有具体数字或案例。没有确切知识就不要硬编，宁缺毋滥。
 - E行(边，关联时输出)：概念之间的关系。
-- 11种框架(f)：tree(层级树)|network(关系网)|helix(双螺旋)|strata(分层剖面)|orbital(轨道)|pipeline(流程)|lens(透镜)|cycle(循环)|spectrum(连续谱)|matrix(矩阵)|diffusion(涟漪扩散)。不确定选tree。
+- 11种框架(f)：请根据对话的实际逻辑结构选择最匹配的框架——不要总选tree！tree(层级树)|network(关系网)|helix(双螺旋)|strata(分层剖面)|orbital(轨道)|pipeline(流程)|lens(透镜)|cycle(循环)|spectrum(连续谱)|matrix(矩阵)|diffusion(涟漪扩散)。
 - 46种领域(d)：physics|chemistry|astronomy|geology|meteorology|oceanography|materials|biology|genetics|medicine|neuroscience|ecology|evolution|nutrition|history|economics|sociology|political|anthropology|law|education|linguistics|mathematics|logic|philosophy|literature|art|music|architecture|design|tech|ai|computerscience|software|engineering|telecom|cybersecurity|robotics|cooking|gardening|sports|craft|navigation|firstaid|timemanagement|finance|general。不确定选general。
 - 每个概念节点必须至少带1个锚点。但只在你有确切知识时给出——参数要具体，不要空洞描述。`
 
