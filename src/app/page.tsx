@@ -13,6 +13,8 @@ import AuthBar from "@/components/AuthBar"
 import { getCurrentUser, loginAs, logout, updateUserRole, UserRole, SijianUser } from "@/lib/sijian-user"
 import { getLineInfo } from "@/lib/thinking-lines"
 import ParentReportView from "@/components/ParentReportView"
+import { saveCognitionLog, FullCognitionSnapshot } from "@/lib/cognition"
+import CognitionPanel from "@/components/CognitionPanel"
 import type {
   ChatMessage, MindNode, MindEdge, MindSpaceState,
   Position, DomainType, FrameType,
@@ -215,6 +217,22 @@ export default function Home() {
                   domainType: event.domain_type || "general",
                 } : m
               ))
+
+              // 记录认知日志
+              if (event.cognition) {
+                const cog = event.cognition as FullCognitionSnapshot
+                saveCognitionLog({
+                  timestamp: new Date().toISOString(),
+                  userId: user?.id || "anonymous",
+                  state: cog.l1.state,
+                  intent: cog.l2.intent,
+                  emotion: cog.l3.emotion,
+                  cognitiveLoad: cog.l3.cognitiveLoad,
+                  dominantLines: cog.l1.dominantLines,
+                  messageLength: content.length,
+                  sessionId: sessionIdRef.current,
+                })
+              }
 
               // 更新 domain/frame
               if (event.domain_type) setDomainType(event.domain_type)
@@ -577,6 +595,9 @@ ${analysis}
           />
         </div>
       </div>
+
+      {/* ═══ 意识面板 ═══ */}
+      <CognitionPanel />
 
       {/* ═══ 家长思维报告弹窗 ═══ */}
       {showReport && (

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { chat, chatStream } from "@/lib/deepseek"
 import { deepSearch } from "@/lib/search"
 import { detectThinkingLines } from "@/lib/thinking-lines"
+import { fullCognitionAnalysis } from "@/lib/cognition"
 import type { FrameType } from "@/lib/types"
 
 // ─── 思维线路 → 框架类型映射 ───────────────────
@@ -180,8 +181,47 @@ export async function POST(req: NextRequest) {
 
     // ── 流式模式：SSE ──
     if (stream) {
+      const cognition = fullCognitionAnalysis(lastUserMsg, thinkingLines)
       const s = await chatStream(enhancedMessages, existingNodes || [], imageData || null)
-      return new Response(s, {
+
+      // Wrap stream to inject cognition in the final "done" event
+      const reader = s.getReader()
+      const wrapped = new ReadableStream({
+        async start(controller) {
+          const decoder = new TextDecoder()
+          let buf = ""
+          while (true) {
+            const { done, value } = await reader.read()
+            if (value) {
+              const text = decoder.decode(value, { stream: !done })
+              buf += text
+              // Check and rewrite "done" events
+              const lines = buf.split("\n\n")
+              buf = lines.pop() || ""
+              for (const chunk of lines) {
+                if (chunk.startsWith("data: ") && chunk.includes('"type":"done"')) {
+                  try {
+                    const json = JSON.parse(chunk.slice(6))
+                    json.cognition = cognition
+                    controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(json)}\n\n`))
+                  } catch {
+                    controller.enqueue(new TextEncoder().encode(chunk + "\n\n"))
+                  }
+                } else {
+                  controller.enqueue(new TextEncoder().encode(chunk + "\n\n"))
+                }
+              }
+            }
+            if (done) {
+              if (buf.trim()) controller.enqueue(new TextEncoder().encode(buf))
+              controller.close()
+              break
+            }
+          }
+        },
+      })
+
+      return new Response(wrapped, {
         headers: {
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-cache",
@@ -194,7 +234,8 @@ export async function POST(req: NextRequest) {
     const result = await chat(enhancedMessages, existingNodes || [], imageData || null)
     const resolvedFrame = resolveFrameType(thinkingLines, result.mindSpaceUpdate?.frameType as string)
     if (result.mindSpaceUpdate) result.mindSpaceUpdate.frameType = resolvedFrame as any
-    return NextResponse.json({ ...result, thinkingLines })
+    const cognition = fullCognitionAnalysis(lastUserMsg, thinkingLines)
+    return NextResponse.json({ ...result, thinkingLines, cognition })
   } catch (error) {
     console.error("Chat API error:", error)
     return NextResponse.json({ error: "AI 服务暂时不可用，请稍后重试。" }, { status: 500 })
