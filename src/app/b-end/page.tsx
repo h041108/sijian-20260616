@@ -59,6 +59,7 @@ type RoleType = "education" | "enterprise"
 export default function BEndPage() {
   const [activeTool, setActiveTool] = useState<ToolId>("knowledge")
   const [role, setRole] = useState<RoleType>("education")
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [topic, setTopic] = useState("")
   const [subject, setSubject] = useState("mathematics")
   const [grade, setGrade] = useState("高三")
@@ -164,8 +165,14 @@ export default function BEndPage() {
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "#f8f7f4" }} onPaste={handlePaste}>
+      {/* ── 移动端遮罩 ── */}
+      {sidebarOpen && (
+        <div className="md:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setSidebarOpen(false)} />
+      )}
+
       {/* ── 左侧导航 ── */}
-      <aside className="w-[220px] shrink-0 flex flex-col border-r" style={{ background: "#1A1A2E", borderColor: "#2A2A45" }}>
+      <aside className={`${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 fixed md:relative z-50 md:z-0 w-[220px] shrink-0 flex flex-col border-r h-full transition-transform duration-250`}
+        style={{ background: "#1A1A2E", borderColor: "#2A2A45" }}>
         {/* Logo */}
         <div className="px-5 py-4 border-b" style={{ borderColor: "#2A2A45" }}>
           <h1 className="text-base font-bold" style={{ color: "#F1F1F6" }}>推信 · 思见</h1>
@@ -215,14 +222,23 @@ export default function BEndPage() {
           <a href="/" className="flex items-center gap-2 text-xs hover:opacity-80 transition-opacity" style={{ color: "#8888A0" }}>
             <span>←</span> 返回首页
           </a>
+          <button onClick={() => setSidebarOpen(false)}
+            className="md:hidden mt-2 w-full text-center text-xs py-1.5 rounded-lg border text-gray-400 hover:text-white transition-all"
+            style={{ borderColor: "#2A2A45" }}>
+            收起菜单 ✕
+          </button>
         </div>
       </aside>
 
       {/* ── 右侧工作区 ── */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* 顶部信息栏 */}
-        <div className="shrink-0 px-6 py-3 border-b flex items-center justify-between" style={{ background: "#fff", borderColor: "#e8e5df" }}>
+        <div className="shrink-0 px-4 md:px-6 py-3 border-b flex items-center justify-between" style={{ background: "#fff", borderColor: "#e8e5df" }}>
           <div className="flex items-center gap-3">
+            <button onClick={() => setSidebarOpen(true)}
+              className="md:hidden text-lg text-gray-500 hover:text-gray-800">
+              ☰
+            </button>
             <h2 className="text-sm font-semibold text-gray-800">{toolLabel}</h2>
             {shareUrl && (
               <button onClick={copyShare} className="text-[11px] bg-green-50 hover:bg-green-100 text-green-700 px-2.5 py-1 rounded-lg border border-green-200 transition-colors">

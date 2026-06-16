@@ -376,27 +376,67 @@ ${analysis}
     setChatList(loadAllChats())
   }, [])
 
-  // ── 渲染 ────────────────────────────────────────
+  // ── 移动端标签切换 ──────────────────────────
+  const [mobileTab, setMobileTab] = useState<"mind" | "chat">("chat")
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
+
+  const headerLinks = (
+    <>
+      <a href="/pricing"
+        className="text-xs text-gray-500 hover:text-gray-800 transition-all px-2 py-1 rounded-lg border border-[#a5d6a7] hover:bg-[#c8e6c9] whitespace-nowrap">
+        定价
+      </a>
+      <a href="/b-end"
+        className="text-xs text-gray-500 hover:text-gray-800 transition-all px-2 py-1 rounded-lg border border-[#a5d6a7] hover:bg-[#c8e6c9] whitespace-nowrap">
+        B端
+      </a>
+      <SharedList />
+      <button onClick={handleNewSession}
+        className="text-xs text-gray-500 hover:text-gray-800 transition-all px-2 py-1 rounded-lg border border-[#a5d6a7] hover:bg-[#c8e6c9] whitespace-nowrap">
+        新对话
+      </button>
+    </>
+  )
 
   return (
-    <div className="flex h-screen page-enter">
-      {/* 左侧 思维空间 — 浅蓝色 */}
-      <div className="w-1/2 min-w-0 h-full flex flex-col" style={{ background: "#e8f4f8" }}>
+    <div className="flex flex-col md:flex-row h-screen page-enter">
 
-        {/* 话题空间归档栏 */}
+      {/* ═══ 移动端顶部栏 ═══ */}
+      <div className="md:hidden shrink-0 px-3 py-2 border-b border-[#c8e6c9] flex items-center justify-between bg-white/90">
+        <div>
+          <h1 className="text-sm font-bold text-gray-900">推信 · 思见</h1>
+        </div>
+        <div className="flex items-center gap-1">
+          <AuthBar user={user} onLogin={handleLogin} onLogout={handleLogout} onRoleChange={handleRoleChange} />
+          <button onClick={() => setShowMobileMenu(!showMobileMenu)}
+            className="text-xs text-gray-500 px-2 py-1 rounded-lg border border-[#a5d6a7]">
+            {showMobileMenu ? "✕" : "☰"}
+          </button>
+        </div>
+      </div>
+      {/* 移动端下拉菜单 */}
+      {showMobileMenu && (
+        <div className="md:hidden shrink-0 px-3 py-2 border-b border-[#c8e6c9] bg-white flex items-center gap-2 overflow-x-auto">
+          {headerLinks}
+        </div>
+      )}
+
+      {/* ═══ 左侧 思维空间 ═══ */}
+      <div className={`${mobileTab === "mind" ? "flex" : "hidden"} md:flex md:w-1/2 min-w-0 h-full flex-col`}
+        style={{ background: "#e8f4f8" }}>
+
+        {/* 话题归档 */}
         {topicArchive.length > 0 && (
-          <div className="shrink-0 px-4 py-2 flex items-center gap-2 overflow-x-auto border-b border-[#c8dce8] bg-white/50">
-            <span className="text-[10px] text-gray-400 shrink-0">📂 话题:</span>
+          <div className="shrink-0 px-3 md:px-4 py-1.5 flex items-center gap-1.5 overflow-x-auto border-b border-[#c8dce8] bg-white/50">
+            <span className="text-[10px] text-gray-400 shrink-0">📂</span>
             {topicArchive.map((topic, i) => (
               <button key={i}
                 onClick={() => {
-                  setNodes(topic.nodes)
-                  setEdges(topic.edges)
-                  setDomainType(topic.domain as DomainType)
-                  setFrameType(topic.frame as FrameType)
+                  setNodes(topic.nodes); setEdges(topic.edges)
+                  setDomainType(topic.domain as DomainType); setFrameType(topic.frame as FrameType)
                   setTopicArchive(arch => arch.filter((_, j) => j !== i))
                 }}
-                className="shrink-0 text-[11px] px-2.5 py-1 rounded-full bg-white border border-[#c8dce8] hover:border-blue-300 hover:bg-blue-50 transition-all text-gray-600">
+                className="shrink-0 text-[10px] md:text-[11px] px-2 py-0.5 rounded-full bg-white border border-[#c8dce8] hover:border-blue-300 hover:bg-blue-50 transition-all text-gray-600">
                 {topic.topic}
               </button>
             ))}
@@ -404,75 +444,60 @@ ${analysis}
         )}
 
         <div className="flex-1 min-h-0">
-
-        <MindTransit
-          nodes={nodes}
-          edges={edges}
-          domainType={domainType}
-          frameType={frameType}
-          thinkingLines={thinkingLines}
-          onNodeClick={handleNodeClick}
-          onNodePositionChange={handleNodePositionChange}
-          onExport={handleExport}
-        />
-
-        <NodeDetail
-          node={selectedNode}
-          onClose={() => setSelectedNode(null)}
-        />
-
+          <MindTransit
+            nodes={nodes} edges={edges}
+            domainType={domainType} frameType={frameType}
+            thinkingLines={thinkingLines}
+            onNodeClick={handleNodeClick}
+            onNodePositionChange={handleNodePositionChange}
+            onExport={handleExport}
+          />
+          <NodeDetail node={selectedNode} onClose={() => setSelectedNode(null)} />
         </div>
       </div>
 
-      {/* 右侧聊天面板 — 浅绿色 */}
-      <div className="w-1/2 min-w-0 h-full border-l border-[#c8e6c9] flex flex-col" style={{ background: "#e8f5e9" }}>
-        {/* 品牌 */}
-        <div className="px-5 py-3.5 border-b border-[#c8e6c9] flex items-center justify-between shrink-0 bg-white/60 backdrop-blur-sm">
+      {/* ═══ 右侧聊天面板 ═══ */}
+      <div className={`${mobileTab === "chat" ? "flex" : "hidden"} md:flex md:w-1/2 min-w-0 h-full md:border-l border-[#c8e6c9] flex-col`}
+        style={{ background: "#e8f5e9" }}>
+
+        {/* 品牌 — 桌面端 */}
+        <div className="hidden md:flex px-5 py-3.5 border-b border-[#c8e6c9] items-center justify-between shrink-0 bg-white/60 backdrop-blur-sm">
           <div>
-            <h1 className="text-lg font-bold text-gray-900 tracking-tight">
-              推信 · 思见
-            </h1>
+            <h1 className="text-lg font-bold text-gray-900 tracking-tight">推信 · 思见</h1>
             <p className="text-[11px] text-gray-500 mt-0.5">所思即所见</p>
           </div>
           <div className="flex items-center gap-2">
-            <AuthBar
-              user={user}
-              onLogin={handleLogin}
-              onLogout={handleLogout}
-              onRoleChange={handleRoleChange}
-            />
-            <a
-              href="/pricing"
-              className="text-xs text-gray-500 hover:text-gray-800 transition-all px-3 py-1.5 rounded-xl border border-[#a5d6a7] hover:bg-[#c8e6c9]"
-            >
-              定价
-            </a>
-            <a
-              href="/b-end"
-              className="text-xs text-gray-500 hover:text-gray-800 transition-all px-3 py-1.5 rounded-xl border border-[#a5d6a7] hover:bg-[#c8e6c9]"
-            >
-              B端工作台
-            </a>
-            <SharedList />
-            <button
-              onClick={handleNewSession}
-              className="text-xs text-gray-500 hover:text-gray-800 transition-all px-3 py-1.5 rounded-xl border border-[#a5d6a7] hover:bg-[#c8e6c9]"
-            >
-              新对话
-            </button>
+            <AuthBar user={user} onLogin={handleLogin} onLogout={handleLogout} onRoleChange={handleRoleChange} />
+            {headerLinks}
           </div>
         </div>
 
         {/* 聊天 */}
         <div className="flex-1 min-h-0">
           <ChatPanel
-            messages={messages}
-            onSend={handleSend}
-            onFileSelect={handleFileSelect}
-            loading={loading}
+            messages={messages} onSend={handleSend} onFileSelect={handleFileSelect} loading={loading}
           />
         </div>
       </div>
+
+      {/* ═══ 移动端底部标签栏 ═══ */}
+      <div className="md:hidden shrink-0 h-14 border-t border-[#c8e6c9] bg-white flex items-stretch">
+        <button onClick={() => { setMobileTab("mind"); setShowMobileMenu(false) }}
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-all ${
+            mobileTab === "mind" ? "text-blue-600 bg-blue-50" : "text-gray-400"
+          }`}>
+          <span className="text-lg">🚇</span>
+          <span className="text-[10px] font-medium">思维空间</span>
+        </button>
+        <button onClick={() => { setMobileTab("chat"); setShowMobileMenu(false) }}
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-all ${
+            mobileTab === "chat" ? "text-green-600 bg-green-50" : "text-gray-400"
+          }`}>
+          <span className="text-lg">💬</span>
+          <span className="text-[10px] font-medium">对话</span>
+        </button>
+      </div>
+
     </div>
   )
 }
