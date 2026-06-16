@@ -546,7 +546,7 @@ ${analysis}
           ═══════════════════════════════════════════ */}
 
       {/* 左侧 思维空间 */}
-      <div className="hidden md:flex md:w-[55%] min-w-0 h-full flex-col" style={{ background: "#e8f4f8" }}>
+      <div className="hidden md:flex md:w-[38.2%] min-w-0 h-full flex-col" style={{ background: "#e8f4f8" }}>
         {topicArchive.length > 0 && (
           <div className="shrink-0 px-4 py-2 flex items-center gap-2 overflow-x-auto border-b border-[#c8dce8] bg-white/50">
             <span className="text-[10px] text-gray-400 shrink-0">📂 话题:</span>
@@ -577,7 +577,7 @@ ${analysis}
       </div>
 
       {/* 右侧 聊天 */}
-      <div className="hidden md:flex md:w-[45%] min-w-0 h-full border-l border-[#c8e6c9] flex-col"
+      <div className="hidden md:flex md:w-[61.8%] min-w-0 h-full border-l border-[#c8e6c9] flex-col"
         style={{ background: "#e8f5e9" }}>
         <div className="px-5 py-3.5 border-b border-[#c8e6c9] flex items-center justify-between shrink-0 bg-white/60 backdrop-blur-sm">
           <div>
