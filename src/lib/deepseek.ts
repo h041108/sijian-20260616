@@ -113,6 +113,125 @@ export async function chat(
   return { message: reply, mindSpaceUpdate: { nodes: space.nodes, edges: space.edges, frameType: space.frameType as any }, domain_type: (space.domainType || "general") as any }
 }
 
+// ─── 流式对话 + 结构提取 ──────────────────────────
+// SSE 事件格式: data: {"type":"token","content":"..."}
+//              data: {"type":"done","message":"...","mindSpaceUpdate":{...},"domain_type":"..."}
+
+export async function chatStream(
+  messages: { role: "user" | "assistant"; content: string }[],
+  existingNodes: { id: string; label: string; content: string }[] = [],
+  imageData?: string | null,
+): Promise<ReadableStream<Uint8Array>> {
+  void imageData
+
+  return new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder()
+      const emit = (data: object) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
+      }
+
+      try {
+        // ── 第1轮：流式对话 ──
+        const convRes = await fetch(`${DEEPSEEK_API_BASE}/chat/completions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${DEEPSEEK_API_KEY}` },
+          body: JSON.stringify({
+            model: DEEPSEEK_MODEL, max_tokens: 4096, stream: true,
+            messages: [{ role: "system", content: CONVERSATION_PROMPT }, ...messages.map(m => ({ role: m.role, content: m.content }))],
+            temperature: 0.7,
+          }),
+        })
+
+        if (!convRes.ok) {
+          emit({ type: "error", content: `AI 服务异常 (${convRes.status})` })
+          controller.close()
+          return
+        }
+
+        let fullReply = ""
+        const reader = convRes.body?.getReader()
+        if (!reader) {
+          emit({ type: "error", content: "流式读取失败" })
+          controller.close()
+          return
+        }
+
+        const decoder = new TextDecoder()
+        let buffer = ""
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split("\n")
+          buffer = lines.pop() || ""
+
+          for (const line of lines) {
+            const trimmed = line.trim()
+            if (!trimmed || !trimmed.startsWith("data: ")) continue
+            const jsonStr = trimmed.slice(6)
+            if (jsonStr === "[DONE]") continue
+            try {
+              const parsed = JSON.parse(jsonStr)
+              const token = parsed.choices?.[0]?.delta?.content
+              if (token) {
+                fullReply += token
+                emit({ type: "token", content: token })
+              }
+            } catch { /* skip malformed SSE */ }
+          }
+        }
+
+        // ── 第2轮：结构提取 ──
+        const lastUserMsg = messages[messages.length - 1]?.content || ""
+        const nodeContext = existingNodes.length > 0
+          ? `已有节点：${JSON.stringify(existingNodes.map(n => ({ id: n.id, label: n.label })))}`
+          : ""
+
+        const extractRes = await fetch(`${DEEPSEEK_API_BASE}/chat/completions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${DEEPSEEK_API_KEY}` },
+          body: JSON.stringify({
+            model: DEEPSEEK_MODEL, max_tokens: 2048,
+            messages: [
+              { role: "system", content: EXTRACT_PROMPT + nodeContext },
+              { role: "user", content: `用户说：${lastUserMsg}\n\n思见回复：${fullReply}` },
+            ],
+            temperature: 0.3,
+          }),
+        })
+
+        const extractData = await extractRes.json()
+        const extractRaw = extractData.choices?.[0]?.message?.content || ""
+        const space = parseExtract(extractRaw)
+
+        if (space.nodes.length === 0) {
+          const locals = localExtract(fullReply, lastUserMsg)
+          emit({
+            type: "done",
+            message: fullReply,
+            mindSpaceUpdate: { nodes: locals.nodes, edges: locals.edges, frameType: locals.frameType },
+            domain_type: locals.domainType || "general",
+          })
+        } else {
+          emit({
+            type: "done",
+            message: fullReply,
+            mindSpaceUpdate: { nodes: space.nodes, edges: space.edges, frameType: space.frameType },
+            domain_type: space.domainType || "general",
+          })
+        }
+      } catch (err) {
+        emit({ type: "error", content: "AI 服务暂时不可用，请稍后重试。" })
+      } finally {
+        controller.close()
+      }
+    },
+  })
+}
+
 // ─── 解析提取结果 ──────────────────────────────
 
 function parseExtract(raw: string): ExtractResult {

@@ -149,9 +149,8 @@ export default function Home() {
     setShowHistory(false)
   }, [])
 
-  // ── 发送消息（队列模式：可连续输入） ─────────────
+  // ── 发送消息（流式 + 队列：可连续输入）──
 
-  // 真正的发送逻辑，用 ref 避免闭包过期
   const sendOne = useCallback(async (content: string, imageData?: string) => {
     const msgs = messagesRef.current
     const nds = nodesRef.current
@@ -160,69 +159,115 @@ export default function Home() {
       id: genId(), sessionId: sessionIdRef.current,
       role: "user", content, createdAt: new Date().toISOString(),
     }
-
     setMessages((prev) => [...prev, userMsg])
+
+    // 创建 AI 消息占位
+    const aiMsgId = genId()
+    setMessages((prev) => [...prev, {
+      id: aiMsgId, sessionId: sessionIdRef.current,
+      role: "assistant", content: "", createdAt: new Date().toISOString(),
+    }])
 
     try {
       const apiMessages = [...msgs, userMsg].map((m) => ({ role: m.role, content: m.content }))
       const res = await fetch("/api/chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages, existingNodes: nds.map(n => ({ id: n.id, label: n.label, content: n.content })), imageData: imageData || null }),
+        body: JSON.stringify({ messages: apiMessages, existingNodes: nds.map(n => ({ id: n.id, label: n.label, content: n.content })), imageData: imageData || null, stream: true }),
       })
-      const data = await res.json()
 
-      if (data.error) {
-        setMessages((prev) => [...prev, { id: genId(), sessionId: sessionIdRef.current, role: "assistant", content: data.error, createdAt: new Date().toISOString() }])
-      } else {
-        const update = data.mindSpaceUpdate as MindSpaceState
-        if (data.domain_type) setDomainType(data.domain_type)
-        if (data.mindSpaceUpdate?.frameType) setFrameType(data.mindSpaceUpdate.frameType)
-        if (data.thinkingLines) setThinkingLines(data.thinkingLines)
+      if (!res.ok || !res.body) {
+        setMessages((prev) => prev.map(m => m.id === aiMsgId ? { ...m, content: "抱歉，连接出了点问题。" } : m))
+        return
+      }
 
-        setMessages((prev) => [...prev, {
-          id: genId(), sessionId: sessionIdRef.current, role: "assistant",
-          content: data.message, mindSpace: update, domainType: data.domain_type || "general",
-          createdAt: new Date().toISOString(),
-        }])
+      // 读取 SSE 流
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ""
+      let fullContent = ""
 
-        if (update.nodes?.length) {
-          setNodes((prev) => {
-            // 新话题检测
-            const newLabels = update.nodes.map((n: MindNode) => n.label)
-            const anyOverlap = newLabels.some((l: string) => new Set(prev.map(n => n.label)).has(l))
-            const isNewTopic = prev.length > 0 && !anyOverlap
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
 
-            if (isNewTopic) {
-              const lastTopic = messagesRef.current.filter(m => m.role === "user").pop()?.content?.slice(0, 30) || "对话"
-              setTopicArchive(arch => [...arch, {
-                topic: lastTopic, nodes: [...prev], edges: [...edgesRef.current],
-                domain: domainType, frame: frameType,
-                time: new Date().toISOString()
-              }])
+        const lines = buffer.split("\n")
+        buffer = lines.pop() || ""
+
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed || !trimmed.startsWith("data: ")) continue
+          const jsonStr = trimmed.slice(6)
+
+          try {
+            const event = JSON.parse(jsonStr)
+            if (event.type === "token") {
+              fullContent += event.content
+              setMessages((prev) => prev.map(m =>
+                m.id === aiMsgId ? { ...m, content: fullContent } : m
+              ))
+            } else if (event.type === "done") {
+              fullContent = event.message
+              setMessages((prev) => prev.map(m =>
+                m.id === aiMsgId ? {
+                  ...m, content: event.message,
+                  mindSpace: event.mindSpaceUpdate,
+                  domainType: event.domain_type || "general",
+                } : m
+              ))
+
+              // 更新 domain/frame
+              if (event.domain_type) setDomainType(event.domain_type)
+              if (event.mindSpaceUpdate?.frameType) setFrameType(event.mindSpaceUpdate.frameType)
+
+              // 更新思维空间
+              const update = event.mindSpaceUpdate
+              if (update?.nodes?.length) {
+                setNodes((prev) => {
+                  const newLabels = update.nodes.map((n: MindNode) => n.label)
+                  const anyOverlap = newLabels.some((l: string) => new Set(prev.map(n => n.label)).has(l))
+                  const isNewTopic = prev.length > 0 && !anyOverlap
+
+                  if (isNewTopic) {
+                    const lastTopic = messagesRef.current.filter(m => m.role === "user").pop()?.content?.slice(0, 30) || "对话"
+                    setTopicArchive(arch => [...arch, {
+                      topic: lastTopic, nodes: [...prev], edges: [...edgesRef.current],
+                      domain: domainType, frame: frameType, time: new Date().toISOString()
+                    }])
+                  }
+
+                  const base = isNewTopic ? [] : [...prev]
+                  for (const nn of update.nodes) {
+                    const existingIdx = base.findIndex((n) => n.id === nn.id)
+                    if (existingIdx >= 0) base[existingIdx] = { ...base[existingIdx], ...nn, position: base[existingIdx].position }
+                    else base.push({ ...nn, position: normalizePosition(nn.position) })
+                  }
+                  return layoutNodes(base)
+                })
+              }
+              if (update?.edges?.length) {
+                setEdges((prev) => {
+                  const keys = new Set(prev.map((e) => `${e.source}→${e.target}`))
+                  return [...prev, ...update.edges.filter((e: MindEdge) => !keys.has(`${e.source}→${e.target}`))]
+                })
+              }
+            } else if (event.type === "error") {
+              setMessages((prev) => prev.map(m =>
+                m.id === aiMsgId ? { ...m, content: event.content } : m
+              ))
             }
-
-            const base = isNewTopic ? [] : [...prev]
-            for (const nn of update.nodes) {
-              const existingIdx = base.findIndex((n) => n.id === nn.id)
-              if (existingIdx >= 0) base[existingIdx] = { ...base[existingIdx], ...nn, position: base[existingIdx].position }
-              else base.push({ ...nn, position: normalizePosition(nn.position) })
-            }
-            return layoutNodes(base)
-          })
-        }
-        if (update.edges?.length) {
-          setEdges((prev) => {
-            const keys = new Set(prev.map((e) => `${e.source}→${e.target}`))
-            return [...prev, ...update.edges.filter((e: MindEdge) => !keys.has(`${e.source}→${e.target}`))]
-          })
+          } catch { /* skip malformed event */ }
         }
       }
+
+      // Ensure message is not empty
+      setMessages((prev) => prev.map(m =>
+        m.id === aiMsgId && !m.content ? { ...m, content: "…" } : m
+      ))
     } catch {
-      setMessages((prev) => [...prev, {
-        id: genId(), sessionId: sessionIdRef.current, role: "assistant",
-        content: "抱歉，连接似乎出了点问题，请稍后再试。",
-        createdAt: new Date().toISOString(),
-      }])
+      setMessages((prev) => prev.map(m =>
+        m.id === aiMsgId ? { ...m, content: "抱歉，连接似乎出了点问题，请稍后再试。" } : m
+      ))
     }
   }, [])
 
