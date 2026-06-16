@@ -12,6 +12,7 @@ import SharedList from "@/components/SharedList"
 import AuthBar from "@/components/AuthBar"
 import { getCurrentUser, loginAs, logout, updateUserRole, UserRole, SijianUser } from "@/lib/sijian-user"
 import { getLineInfo } from "@/lib/thinking-lines"
+import ParentReportView from "@/components/ParentReportView"
 import type {
   ChatMessage, MindNode, MindEdge, MindSpaceState,
   Position, DomainType, FrameType,
@@ -379,6 +380,7 @@ ${analysis}
 
   // ── 移动端状态 ────────────────────────────
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [showReport, setShowReport] = useState(false)
   const [mindExpanded, setMindExpanded] = useState(false)
 
   const headerLinks = (
@@ -417,6 +419,10 @@ ${analysis}
       <div className="md:hidden shrink-0 px-4 py-2 border-b border-gray-200 flex items-center justify-between bg-white/95 backdrop-blur-sm safe-top">
         <h1 className="text-[15px] font-bold text-gray-900">思见</h1>
         <div className="flex items-center gap-1.5">
+          <button onClick={() => setShowReport(true)}
+            className="text-xs font-medium text-purple-600 hover:bg-purple-50 px-2 py-1 rounded-lg transition-all">
+            📋 报告
+          </button>
           <AuthBar user={user} onLogin={handleLogin} onLogout={handleLogout} onRoleChange={handleRoleChange} />
           <button onClick={() => setShowMobileMenu(!showMobileMenu)}
             className="text-gray-500 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100">
@@ -551,6 +557,24 @@ ${analysis}
           />
         </div>
       </div>
+
+      {/* ═══ 家长思维报告弹窗 ═══ */}
+      {showReport && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex flex-col justify-end md:justify-center"
+          onClick={() => setShowReport(false)}>
+          <div className="bg-white rounded-t-2xl md:rounded-2xl md:max-w-lg md:mx-auto w-full max-h-[85vh] overflow-y-auto shadow-2xl"
+            onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm px-4 py-3 border-b flex items-center justify-between rounded-t-2xl">
+              <span className="text-sm font-semibold text-gray-700">📋 思维报告</span>
+              <button onClick={() => setShowReport(false)}
+                className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+            </div>
+            <div className="p-2">
+              <ParentReportView />
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )
