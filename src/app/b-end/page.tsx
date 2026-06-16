@@ -14,10 +14,11 @@ import ReportsView from "@/components/ReportsView"
 import SettingsView from "@/components/SettingsView"
 import EnterpriseAICapability from "@/components/EnterpriseAICapability"
 import ClassroomHeatmapView from "@/components/ClassroomHeatmapView"
+import InstitutionManager from "@/components/InstitutionManager"
 
 // ─── 导航配置 ────────────────────────────────────
 
-type ToolId = "knowledge" | "solve" | "training" | "metro" | "content" | "experiment" | "ai_capability" | "heatmap" | "dashboard" | "members" | "reports" | "settings"
+type ToolId = "knowledge" | "solve" | "training" | "metro" | "content" | "experiment" | "ai_capability" | "heatmap" | "institution" | "dashboard" | "members" | "reports" | "settings"
 
 interface NavSection {
   label: string
@@ -32,6 +33,7 @@ const NAV_SECTIONS: NavSection[] = [
       { id: "solve", icon: "✏️", label: "解题引擎", role: "edu" },
       { id: "training", icon: "🧠", label: "思维训练", role: "all" },
       { id: "heatmap", icon: "🌡️", label: "课堂热力", role: "edu" },
+      { id: "institution", icon: "🏫", label: "机构SaaS", role: "edu" },
       { id: "metro", icon: "🚇", label: "思维地铁", role: "all" },
       { id: "content", icon: "🎬", label: "内容策略", role: "enterprise" },
       { id: "experiment", icon: "🧪", label: "验证实验", role: "enterprise" },
@@ -428,6 +430,9 @@ export default function BEndPage() {
 
             {/* ── 课堂热力图 ── */}
             {activeTool === "heatmap" && <ClassroomHeatmapView />}
+
+            {/* ── 机构SaaS ── */}
+            {activeTool === "institution" && <InstitutionManager />}
 
             {/* ── 思维地铁 ── */}
             {activeTool === "metro" && (

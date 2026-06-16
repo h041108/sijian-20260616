@@ -108,7 +108,7 @@ export function generateMockWechatLogin(): SijianUser {
 
 // ─── 用户管理 ──────────────────────────────────────
 
-function loadUsers(): SijianUser[] {
+export function loadUsers(): SijianUser[] {
   try { const r = localStorage.getItem(USERS_KEY); return r ? JSON.parse(r) : [] } catch { return [] }
 }
 function saveUsers(users: SijianUser[]) { localStorage.setItem(USERS_KEY, JSON.stringify(users)) }
