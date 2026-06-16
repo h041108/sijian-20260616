@@ -407,7 +407,7 @@ ${analysis}
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-dvh page-enter">
+    <div className="flex flex-col md:flex-row h-dvh overflow-hidden page-enter">
 
       {/* ═══════════════════════════════════════════
           移动端布局：上下分区

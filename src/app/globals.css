@@ -18,18 +18,12 @@ body {
   background: linear-gradient(160deg, #faf8f5 0%, #f3f0eb 30%, #f8f5f2 70%, #faf8f5 100%);
   color: var(--foreground);
   font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
-  overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── 移动端全局适配 ─────────────────────── */
 @media (max-width: 767px) {
-  body {
-    overflow: hidden;
-    -webkit-overflow-scrolling: touch;
-  }
-  input, textarea, select { font-size: 16px !important; } /* 防止iOS缩放 */
+  input, textarea, select { font-size: 16px !important; }
 }
 
 /* ─── 动画 ───────────────────────────────── */

@@ -9,7 +9,7 @@ const bPlans = [PLANS.teacher, PLANS.org_standard, PLANS.org_flagship] as Plan[]
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen" style={{ background: "linear-gradient(160deg, #faf8f5 0%, #f3f0eb 50%, #f8f5f2 100%)" }}>
+    <div className="min-h-screen overflow-y-auto" style={{ background: "linear-gradient(160deg, #faf8f5 0%, #f3f0eb 50%, #f8f5f2 100%)" }}>
       {/* 顶部 */}
       <div className="border-b border-[#e8e5df] bg-white/70 backdrop-blur-sm px-6 py-4 flex items-center justify-between">
         <div>
