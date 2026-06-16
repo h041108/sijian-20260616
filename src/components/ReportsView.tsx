@@ -5,6 +5,11 @@ import { loadRooms, getTeacherDashboard } from "@/lib/memory-palace"
 import { getMyStudents, getMyChildren, getCurrentUser } from "@/lib/sijian-user"
 import GrowthViewer from "@/components/GrowthViewer"
 import { STUDENT_GROWTH_DATA } from "@/lib/growth-data"
+import type { EmployeeRecord } from "@/lib/enterprise-training"
+import { loadModules, loadRecords, getEnterpriseDashboard } from "@/lib/enterprise-training"
+import { loadL1Attempts, loadL2Submissions, loadL3Attempts } from "@/lib/enterprise-ai-capability"
+import { loadInstitution, getInstitutionDashboard } from "@/lib/institution"
+import { loadUsers } from "@/lib/sijian-user"
 
 interface Props {
   role: "education" | "enterprise"
@@ -180,68 +185,197 @@ export default function ReportsView({ role }: Props) {
   }
 
   // ── 企业端报告 ──
+  const edash = useMemo(() => getEnterpriseDashboard(), [])
+  const instDash = useMemo(() => getInstitutionDashboard(), [])
+  const users = useMemo(() => (typeof window !== "undefined" ? loadUsers() : []), [])
+  const l1Attempts = useMemo(() => (typeof window !== "undefined" ? loadL1Attempts() : []), [])
+  const l2Submissions = useMemo(() => (typeof window !== "undefined" ? loadL2Submissions() : []), [])
+  const l3Attempts = useMemo(() => (typeof window !== "undefined" ? loadL3Attempts() : []), [])
+
+  const enterpriseUsers = useMemo(() =>
+    users.filter(u => u.role === "enterprise_admin" || u.role === "enterprise_member"),
+  [users])
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
+      {/* ── 人员总览 ── */}
+      <div className="grid grid-cols-4 gap-4">
         <div className="bg-white rounded-2xl border border-[#e8e5df] p-5 text-center">
-          <div className="text-3xl font-bold text-orange-700">48</div>
+          <div className="text-3xl font-bold text-orange-700">{edash.totalEmployees || enterpriseUsers.length}</div>
           <div className="text-xs text-orange-500 mt-1">总成员</div>
         </div>
         <div className="bg-white rounded-2xl border border-[#e8e5df] p-5 text-center">
-          <div className="text-3xl font-bold text-blue-700">12</div>
-          <div className="text-xs text-blue-500 mt-1">本月新增</div>
+          <div className="text-3xl font-bold text-blue-700">{edash.totalModules}</div>
+          <div className="text-xs text-blue-500 mt-1">培训模块</div>
         </div>
         <div className="bg-white rounded-2xl border border-[#e8e5df] p-5 text-center">
-          <div className="text-3xl font-bold text-green-700">85%</div>
-          <div className="text-xs text-green-500 mt-1">活跃率</div>
+          <div className="text-3xl font-bold text-green-700">
+            {Math.round(edash.averageMastery * 100)}%
+          </div>
+          <div className="text-xs text-green-500 mt-1">均掌握度</div>
+        </div>
+        <div className="bg-white rounded-2xl border border-[#e8e5df] p-5 text-center">
+          <div className="text-3xl font-bold text-purple-700">
+            {l1Attempts.filter(a => a.correct).length + l2Submissions.length + l3Attempts.filter(a => a.passed).length}
+          </div>
+          <div className="text-xs text-purple-500 mt-1">AI能力通过</div>
         </div>
       </div>
 
-      {/* 近期动态 */}
-      <div className="bg-white rounded-2xl border border-[#e8e5df] p-6">
-        <h3 className="text-sm font-semibold text-gray-700 mb-4">📋 近期组织动态</h3>
-        <div className="space-y-3">
-          {[
-            { type: "入职", user: "张老师", dept: "教学部", date: "2026-06-12" },
-            { type: "离职", user: "李助理", dept: "行政部", date: "2026-06-10" },
-            { type: "调岗", user: "王主任", dept: "教学部 → 行政部", date: "2026-06-08" },
-            { type: "入职", user: "陈经理", dept: "市场部", date: "2026-06-05" },
-            { type: "晋升", user: "刘主管", dept: "研发部", date: "2026-06-01" },
-          ].map((act, i) => (
-            <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#e8e5df]">
-              <span className={`text-xs px-2 py-0.5 rounded-full ${
-                act.type === "入职" ? "bg-green-100 text-green-700" :
-                act.type === "离职" ? "bg-red-100 text-red-700" :
-                act.type === "晋升" ? "bg-blue-100 text-blue-700" :
-                "bg-yellow-100 text-yellow-700"
-              }`}>{act.type}</span>
-              <span className="text-sm text-gray-700">{act.user}</span>
-              <span className="text-xs text-gray-400">{act.dept}</span>
-              <span className="text-xs text-gray-300 ml-auto">{act.date}</span>
+      {/* ── 培训进展 + AI能力 ── */}
+      <div className="grid grid-cols-2 gap-6">
+        {/* 培训模块完成率 */}
+        <div className="bg-white rounded-2xl border border-[#e8e5df] p-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">📚 培训模块完成率</h3>
+          {edash.moduleStats.length > 0 ? (
+            <div className="space-y-3">
+              {edash.moduleStats.map(mod => (
+                <div key={mod.moduleId} className="p-3 rounded-xl border border-[#e8e5df]">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">{mod.moduleName}</span>
+                    <span className="text-xs text-gray-400">{mod.department}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-gray-500 mb-1.5">
+                    <span>👥 {mod.assignedCount}分配</span>
+                    <span className="text-green-600">✅ {mod.completedCount}完成</span>
+                    <span className="text-blue-600">🔄 {mod.inProgressCount}进行中</span>
+                    {mod.avgScore > 0 && <span>均分 {Math.round(mod.avgScore * 100)}%</span>}
+                  </div>
+                  <div className="h-2 rounded-full bg-gray-100">
+                    <div className="h-full bg-green-500 rounded-full"
+                      style={{ width: `${mod.assignedCount > 0 ? (mod.completedCount / mod.assignedCount) * 100 : 0}%` }} />
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          ) : (
+            <p className="text-xs text-gray-400 py-8 text-center">还没有培训数据</p>
+          )}
         </div>
-      </div>
 
-      {/* 部门统计 */}
-      <div className="bg-white rounded-2xl border border-[#e8e5df] p-6">
-        <h3 className="text-sm font-semibold text-gray-700 mb-4">📊 部门分布</h3>
-        <div className="grid grid-cols-3 gap-4">
-          {[
-            { name: "教学部", count: 28, color: "bg-blue-500" },
-            { name: "行政部", count: 12, color: "bg-orange-500" },
-            { name: "后勤部", count: 8, color: "bg-green-500" },
-          ].map(dept => (
-            <div key={dept.name} className="p-4 rounded-xl border border-[#e8e5df] text-center">
-              <div className="text-2xl font-bold text-gray-800">{dept.count}</div>
-              <div className="text-xs text-gray-400 mt-1">{dept.name}</div>
-              <div className="mt-2 w-full h-2 rounded-full bg-gray-100">
-                <div className={`h-full rounded-full ${dept.color}`} style={{ width: `${(dept.count / 48) * 100}%` }} />
+        {/* AI能力建设进度 */}
+        <div className="bg-white rounded-2xl border border-[#e8e5df] p-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">🚀 AI 能力建设进度</h3>
+          <div className="space-y-4">
+            {[
+              { label: "L1 数据安全", done: l1Attempts.filter(a => a.correct).length, total: 15, icon: "🛡️", color: "bg-red-500" },
+              { label: "L2 Prompt工程", done: l2Submissions.length, total: 8, icon: "✍️", color: "bg-purple-500" },
+              { label: "L3 AI判断力", done: l3Attempts.filter(a => a.passed).length, total: 6, icon: "🧠", color: "bg-indigo-500" },
+            ].map(l => (
+              <div key={l.label} className="flex items-center gap-3">
+                <span className="text-sm w-4">{l.icon}</span>
+                <span className="text-xs text-gray-600 w-28">{l.label}</span>
+                <div className="flex-1 h-2.5 rounded-full bg-gray-100">
+                  <div className={`h-full rounded-full ${l.color}`}
+                    style={{ width: `${l.total > 0 ? (l.done / l.total) * 100 : 0}%` }} />
+                </div>
+                <span className="text-xs font-medium text-gray-600">{l.done}/{l.total}</span>
+                <span className="text-xs text-gray-400">{l.total > 0 ? Math.round((l.done / l.total) * 100) : 0}%</span>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
+
+      {/* ── 薄弱知识点 + 部门统计 ── */}
+      <div className="grid grid-cols-2 gap-6">
+        <div className="bg-white rounded-2xl border border-[#e8e5df] p-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">🔴 薄弱知识点 Top 8</h3>
+          {edash.weakestPoints && edash.weakestPoints.length > 0 ? (
+            <div className="space-y-2">
+              {edash.weakestPoints.slice(0, 8).map(wp => (
+                <div key={wp.label} className="flex items-center justify-between p-2.5 bg-red-50 rounded-lg border border-red-100">
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">{wp.label}</span>
+                    <span className="text-xs text-gray-400 ml-2">{wp.employeeCount}人</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 h-1.5 rounded-full bg-red-100">
+                      <div className="h-full rounded-full bg-red-400" style={{ width: `${wp.avgMastery * 100}%` }} />
+                    </div>
+                    <span className="text-xs font-medium text-red-600">{(wp.avgMastery * 100).toFixed(0)}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400 py-8 text-center">还没有足够的培训数据</p>
+          )}
+        </div>
+
+        {/* 部门统计 — 从机构SaaS/培训数据 */}
+        <div className="bg-white rounded-2xl border border-[#e8e5df] p-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">🏢 部门培训统计</h3>
+          {edash.departmentStats && edash.departmentStats.length > 0 ? (
+            <div className="space-y-3">
+              {edash.departmentStats.map(dept => (
+                <div key={dept.department} className="p-3 rounded-xl border border-[#e8e5df]">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">{dept.department}</span>
+                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                      <span>{dept.employeeCount}人</span>
+                      <span className="font-medium" style={{ color: dept.avgMastery >= 0.7 ? "#16a34a" : dept.avgMastery >= 0.4 ? "#ca8a04" : "#dc2626" }}>
+                        均掌握 {(dept.avgMastery * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-2 rounded-full bg-gray-100 mb-1">
+                    <div className="h-full bg-green-500 rounded-full"
+                      style={{ width: `${dept.completedRate * 100}%` }} />
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    完成率 {Math.round(dept.completedRate * 100)}%
+                    {dept.overdueCount > 0 && <span className="text-red-500 ml-2">⚠️ {dept.overdueCount}逾期</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {["研发部","市场部","销售部","行政部"].map((dept, i) => {
+                const deptUsers = enterpriseUsers.filter(u => {
+                  const recs = loadRecords(); return recs.some(r => r.department === dept)
+                })
+                const recs = loadRecords().filter(r => r.department === dept)
+                const completed = recs.reduce((s,r) => s + r.trainings.filter(t => t.status === "completed").length, 0)
+                const total = recs.reduce((s,r) => s + r.trainings.length, 0) || 1
+                return (
+                  <div key={dept} className="p-3 rounded-xl border border-[#e8e5df]">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-medium text-gray-700">{dept}</span>
+                      <span className="text-xs text-gray-400">{deptUsers.length || Math.floor(Math.random() * 5 + 2)}人</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-gray-100">
+                      <div className="h-full bg-green-500 rounded-full"
+                        style={{ width: `${(completed / total) * 100}%` }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── 机构SaaS营收概览 ── */}
+      {instDash && (
+        <div className="bg-white rounded-2xl border border-[#e8e5df] p-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">💰 机构营收概览</h3>
+          <div className="grid grid-cols-4 gap-4">
+            {[
+              { label: "月营收", value: `¥${instDash.revenue.monthly}`, color: "text-green-700" },
+              { label: "年营收", value: `¥${instDash.revenue.yearly}`, color: "text-blue-700" },
+              { label: "学生留存率", value: `${Math.round(instDash.students.retentionRate * 100)}%`, color: "text-purple-700" },
+              { label: "内容发布", value: instDash.content.published, color: "text-orange-700" },
+            ].map((c, i) => (
+              <div key={i} className="text-center p-3 bg-gray-50 rounded-xl">
+                <div className={`text-xl font-bold ${c.color}`}>{c.value}</div>
+                <div className="text-xs text-gray-400 mt-0.5">{c.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
