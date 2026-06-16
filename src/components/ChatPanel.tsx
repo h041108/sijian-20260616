@@ -206,15 +206,14 @@ export default function ChatPanel({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="说说你的想法……  (Ctrl+V 粘贴图片)"
+            placeholder="说说你的想法……  AI 回复中也可以继续输入"
             rows={1}
             className="flex-1 resize-none rounded-2xl input-light px-4 py-2.5 text-[14px]"
-            disabled={loading}
           />
           <button
             type="submit"
-            disabled={!input.trim() || loading}
-            className="shrink-0 rounded-2xl btn-primary px-5 py-2.5 text-[14px] font-medium"
+            disabled={!input.trim()}
+            className="shrink-0 rounded-2xl btn-primary px-5 py-2.5 text-[14px] font-medium disabled:opacity-40"
           >
             发送
           </button>

@@ -71,6 +71,17 @@ export default function Home() {
   const [showHistory, setShowHistory] = useState(false)
   const sessionIdRef = useRef(genId())
 
+  // 消息队列：loading 期间用户可继续输入，消息排队处理
+  const messagesRef = useRef(messages)
+  const nodesRef = useRef(nodes)
+  const edgesRef = useRef(edges)
+  const loadingRef = useRef(false)
+  const queueRef = useRef<{ content: string; imageData?: string }[]>([])
+  useEffect(() => { messagesRef.current = messages }, [messages])
+  useEffect(() => { nodesRef.current = nodes }, [nodes])
+  useEffect(() => { edgesRef.current = edges }, [edges])
+  useEffect(() => { loadingRef.current = loading }, [loading])
+
   // ── 用户状态 ─────────────────────────────────
   const [user, setUser] = useState<SijianUser | null>(null)
 
@@ -138,135 +149,99 @@ export default function Home() {
     setShowHistory(false)
   }, [])
 
-  // ── 发送消息 ────────────────────────────────────
+  // ── 发送消息（队列模式：可连续输入） ─────────────
 
-  const handleSend = useCallback(
-    async (content: string, imageData?: string) => {
-      // 内测期间：不做任何使用限制
+  // 真正的发送逻辑，用 ref 避免闭包过期
+  const sendOne = useCallback(async (content: string, imageData?: string) => {
+    const msgs = messagesRef.current
+    const nds = nodesRef.current
 
-      const userMsg: ChatMessage = {
-        id: genId(),
-        sessionId: sessionIdRef.current,
-        role: "user",
-        content,
-        createdAt: new Date().toISOString(),
-      }
+    const userMsg: ChatMessage = {
+      id: genId(), sessionId: sessionIdRef.current,
+      role: "user", content, createdAt: new Date().toISOString(),
+    }
 
-      setMessages((prev) => [...prev, userMsg])
-      setLoading(true)
+    setMessages((prev) => [...prev, userMsg])
 
-      try {
-        const apiMessages = [...messages, userMsg].map((m) => ({
-          role: m.role,
-          content: m.content,
-        }))
+    try {
+      const apiMessages = [...msgs, userMsg].map((m) => ({ role: m.role, content: m.content }))
+      const res = await fetch("/api/chat", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: apiMessages, existingNodes: nds.map(n => ({ id: n.id, label: n.label, content: n.content })), imageData: imageData || null }),
+      })
+      const data = await res.json()
 
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: apiMessages,
-            existingNodes: nodes.map((n) => ({
-              id: n.id,
-              label: n.label,
-              content: n.content,
-            })),
-            imageData: imageData || null,
-          }),
-        })
+      if (data.error) {
+        setMessages((prev) => [...prev, { id: genId(), sessionId: sessionIdRef.current, role: "assistant", content: data.error, createdAt: new Date().toISOString() }])
+      } else {
+        const update = data.mindSpaceUpdate as MindSpaceState
+        if (data.domain_type) setDomainType(data.domain_type)
+        if (data.mindSpaceUpdate?.frameType) setFrameType(data.mindSpaceUpdate.frameType)
+        if (data.thinkingLines) setThinkingLines(data.thinkingLines)
 
-        const data = await res.json()
+        setMessages((prev) => [...prev, {
+          id: genId(), sessionId: sessionIdRef.current, role: "assistant",
+          content: data.message, mindSpace: update, domainType: data.domain_type || "general",
+          createdAt: new Date().toISOString(),
+        }])
 
-        if (data.error) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: genId(),
-              sessionId: sessionIdRef.current,
-              role: "assistant",
-              content: data.error,
-              createdAt: new Date().toISOString(),
-            },
-          ])
-        } else {
-          const update = data.mindSpaceUpdate as MindSpaceState
+        if (update.nodes?.length) {
+          setNodes((prev) => {
+            // 新话题检测
+            const newLabels = update.nodes.map((n: MindNode) => n.label)
+            const anyOverlap = newLabels.some((l: string) => new Set(prev.map(n => n.label)).has(l))
+            const isNewTopic = prev.length > 0 && !anyOverlap
 
-          // 提取领域类型和框架类型
-          if (data.domain_type) setDomainType(data.domain_type)
-          if (data.mindSpaceUpdate?.frameType) setFrameType(data.mindSpaceUpdate.frameType)
-          if (data.thinkingLines) setThinkingLines(data.thinkingLines)
+            if (isNewTopic) {
+              const lastTopic = messagesRef.current.filter(m => m.role === "user").pop()?.content?.slice(0, 30) || "对话"
+              setTopicArchive(arch => [...arch, {
+                topic: lastTopic, nodes: [...prev], edges: [...edgesRef.current],
+                domain: domainType, frame: frameType,
+                time: new Date().toISOString()
+              }])
+            }
 
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: genId(),
-              sessionId: sessionIdRef.current,
-              role: "assistant",
-              content: data.message,
-              mindSpace: update,
-              domainType: data.domain_type || "general",
-              createdAt: new Date().toISOString(),
-            },
-          ])
-
-          // 更新思维空间：检测是否为新话题
-          if (update.nodes?.length) {
-            setNodes((prev) => {
-              // 新话题检测：新节点标签与旧节点标签无任何重叠 → 替换
-              const oldLabels = new Set(prev.map(n => n.label))
-              const newLabels = update.nodes.map((n: MindNode) => n.label)
-              const anyOverlap = newLabels.some((l: string) => oldLabels.has(l))
-              const isNewTopic = prev.length > 0 && !anyOverlap
-
-              // 新话题切换时，先把旧话题存到档
-              if (isNewTopic) {
-                const lastTopic = messages.filter(m => m.role === "user").pop()?.content?.slice(0, 30) || "对话"
-                setTopicArchive(arch => [...arch, {
-                  topic: lastTopic, nodes: [...prev], edges: [...edges],
-                  domain: domainType, frame: frameType,
-                  time: new Date().toISOString()
-                }])
-              }
-
-              const base = isNewTopic ? [] : [...prev]
-
-              for (const nn of update.nodes) {
-                const existingIdx = base.findIndex((n) => n.id === nn.id)
-                if (existingIdx >= 0) {
-                  base[existingIdx] = { ...base[existingIdx], ...nn, position: base[existingIdx].position }
-                } else {
-                  base.push({ ...nn, position: normalizePosition(nn.position) })
-                }
-              }
-              return layoutNodes(base)
-            })
-          }
-
-          if (update.edges?.length) {
-            setEdges((prev) => {
-              const existingKeys = new Set(prev.map((e) => `${e.source}→${e.target}`))
-              const toAdd = update.edges.filter((e) => !existingKeys.has(`${e.source}→${e.target}`))
-              return [...prev, ...toAdd]
-            })
-          }
+            const base = isNewTopic ? [] : [...prev]
+            for (const nn of update.nodes) {
+              const existingIdx = base.findIndex((n) => n.id === nn.id)
+              if (existingIdx >= 0) base[existingIdx] = { ...base[existingIdx], ...nn, position: base[existingIdx].position }
+              else base.push({ ...nn, position: normalizePosition(nn.position) })
+            }
+            return layoutNodes(base)
+          })
         }
-      } catch {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: genId(),
-            sessionId: sessionIdRef.current,
-            role: "assistant",
-            content: "抱歉，连接似乎出了点问题，请稍后再试。",
-            createdAt: new Date().toISOString(),
-          },
-        ])
-      } finally {
-        setLoading(false)
+        if (update.edges?.length) {
+          setEdges((prev) => {
+            const keys = new Set(prev.map((e) => `${e.source}→${e.target}`))
+            return [...prev, ...update.edges.filter((e: MindEdge) => !keys.has(`${e.source}→${e.target}`))]
+          })
+        }
       }
-    },
-    [messages, nodes],
-  )
+    } catch {
+      setMessages((prev) => [...prev, {
+        id: genId(), sessionId: sessionIdRef.current, role: "assistant",
+        content: "抱歉，连接似乎出了点问题，请稍后再试。",
+        createdAt: new Date().toISOString(),
+      }])
+    }
+  }, [])
+
+  // 队列处理器
+  const processQueue = useCallback(async () => {
+    const q = queueRef.current
+    if (q.length === 0) { setLoading(false); return }
+    const next = q.shift()!
+    await sendOne(next.content, next.imageData)
+    processQueue()
+  }, [sendOne])
+
+  const handleSend = useCallback((content: string, imageData?: string) => {
+    queueRef.current.push({ content, imageData })
+    if (!loadingRef.current) {
+      setLoading(true)
+      processQueue()
+    }
+  }, [processQueue])
 
   // ── 节点操作 ────────────────────────────────────
 
