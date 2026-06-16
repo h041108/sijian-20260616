@@ -458,10 +458,10 @@ ${analysis}
         </div>
       )}
 
-      {/* ── 移动端：思维空间（紧凑版，~1/3）── */}
+      {/* ── 移动端：思维空间 38.2% / 聊天 61.8% 黄金分割 ── */}
       {nodes.length > 0 && (
         <div className={`md:hidden shrink-0 border-b border-[#c8dce8] bg-white transition-all duration-300 ${
-          mindExpanded ? "h-[55vh]" : "h-[28vh]"
+          mindExpanded ? "h-[55vh]" : "h-[38.2vh]"
         }`}>
           {/* 折叠栏 */}
           <div className="flex items-center justify-between px-4 py-1.5 bg-[#e8f4f8]/60">
