@@ -815,7 +815,102 @@ export function removeWorkflowNode(workflowId: string, nodeId: string): void {
 
 export function loadDecisions(): DecisionRecord[] {
   if (typeof window === "undefined") return []
-  try { const r = localStorage.getItem(L5_DECISIONS_KEY); return r ? JSON.parse(r) : [] } catch { return [] }
+  try {
+    const r = localStorage.getItem(L5_DECISIONS_KEY)
+    if (!r) {
+      // 种子数据
+      seedDecisions()
+      const r2 = localStorage.getItem(L5_DECISIONS_KEY)
+      return r2 ? JSON.parse(r2) : []
+    }
+    return JSON.parse(r)
+  } catch { return [] }
+}
+
+export function seedDecisions(): void {
+  const now = new Date()
+  const daysAgo = (d: number) => new Date(now.getTime() - d * 86400000).toISOString()
+  const seeds: DecisionRecord[] = [
+    {
+      id: "dec_seed_1", title: "是否自研AI客服系统", description: "公司客户量增长后客服压力增大，需决定自研AI客服还是购买SaaS方案", decider: "张总", department: "研发部",
+      options: [
+        { label: "自研AI客服", pros: ["深度定制", "长期成本低", "数据不外流"], cons: ["开发周期6个月", "需招3名AI工程师", "维护成本不确定"], chosen: true },
+        { label: "购买SaaS", pros: ["即开即用", "成本可预测"], cons: ["数据托管到第三方", "定制化受限"], chosen: false },
+        { label: "人机混合", pros: ["渐进式迁移", "风险可控"], cons: ["效率提升有限"], chosen: false },
+      ],
+      assumptions: ["假设用户量会持续每月15%增长", "假设团队有足够的AI工程化能力", "假设SaaS厂商的SLA能达标"],
+      unknownFactors: ["竞品也在自研类似系统，但进度未知", "AI客服的合规要求明年可能有变化"],
+      aiInput: "AI分析：对比三种方案的3年TCO，自研在第14个月开始成本低于SaaS，但前提是用户量确实持续增长。AI建议分两步走：先买SaaS跑通流程，同时启动自研。",
+      decisionDate: daysAgo(45), reviewDate: daysAgo(10), outcome: "正确",
+      lessons: ["用户增长确实达到了预期——当初的假设是对的，但下一个决策不能总基于'假设会继续增长'", "AI建议'分两步走'当时没听，直接跳进了自研——如果当初先买SaaS试水可以少踩很多坑", "低估了AI工程化的人才获取难度，招聘周期比预期长了2个月"],
+    },
+    {
+      id: "dec_seed_2", title: "市场部预算调整", description: "Q1营销ROI下滑，需要重新分配预算到内容和渠道", decider: "刘总", department: "市场部",
+      options: [
+        { label: "加大内容营销", pros: ["长期品牌价值", "用户信任度高"], cons: ["见效慢", "需要优质内容团队"], chosen: true },
+        { label: "加大付费投放", pros: ["效果立竿见影", "数据可追踪"], cons: ["成本持续上升", "用户质量下降"], chosen: false },
+        { label: "维持现状", pros: ["不需要变动"], cons: ["ROI继续下滑"], chosen: false },
+      ],
+      assumptions: ["假设内容营销能在3个月内提升转化率20%", "假设团队能够产出足够的高质量内容", "竞品的投放成本会继续上升"],
+      unknownFactors: ["内容营销团队刚组建，能力边界不清", "AI内容工具的效率提升能否弥补人力不足"],
+      aiInput: "AI提供了过去3年同行业的内容vs投放ROI对比数据，结论是在目标受众为B端决策者时，内容的6个月ROI是投放的2.3倍。",
+      decisionDate: daysAgo(21), reviewDate: daysAgo(3), outcome: "部分正确",
+      lessons: ["内容营销的转化确实在提升，但速度比预计慢——过于乐观地估计了3个月的时间窗口，实际上需要6个月", "AI提供的'2.3倍'数据被我们当成了确定性结论，实际上那个数据的置信区间很宽——以后用AI的数据需要追问置信度", "忽略了竞品也在加大内容投入这个变量"],
+    },
+    {
+      id: "dec_seed_3", title: "远程办公政策延续", description: "疫情期间实施的远程办公政策需要在今年Q2做正式评估和决策", decider: "王总", department: "行政部",
+      options: [
+        { label: "全面远程", pros: ["降低办公成本60%", "人才不受地域限制"], cons: ["团队凝聚力下滑", "协作效率参差"], chosen: false },
+        { label: "混合办公", pros: ["兼顾效率和灵活性", "保留办公室文化"], cons: ["管理复杂度增加", "需要更好的协作工具"], chosen: true },
+        { label: "恢复全员到岗", pros: ["回到熟悉的模式"], cons: ["已流失大量远程人才", "员工抵触强烈"], chosen: false },
+      ],
+      assumptions: ["假设员工对混合办公的满意度最高", "假设协作工具能弥补远程的效率损失", "假设不需要额外招聘远程管理岗位"],
+      unknownFactors: ["同行业主流做法是全面远程还是混合？信息不足", "明年的劳动法规对远程办公可能有新要求"],
+      decisionDate: daysAgo(14),
+      outcome: "待评估",
+      lessons: [],
+    },
+    {
+      id: "dec_seed_4", title: "客户A的定制化需求", description: "头部客户A要求大量定制化功能，需要在交付速度和产品主线的完整性之间做权衡", decider: "陈总", department: "研发部",
+      options: [
+        { label: "接受全量定制", pros: ["年合同额500万", "标杆客户效应"], cons: ["打乱产品路线图", "后续维护成本高", "团队可能长期被绑架"], chosen: false },
+        { label: "拒绝定制，坚持产品化", pros: ["保持产品主线清晰", "规模化优势"], cons: ["失去大客户", "可能被竞品抢走"], chosen: false },
+        { label: "部分接受", pros: ["保留关键需求", "大部分功能产品化"], cons: ["谈判周期长", "客户可能不满意"], chosen: true },
+      ],
+      assumptions: ["假设选择'部分接受'能让客户满意", "假设这部分定制不会超过20%的研发资源", "假设其他客户也需要类似的功能"],
+      unknownFactors: ["客户的真实底线是什么——不接受全量定制是否会走？", "竞品能提供到什么程度的定制"],
+      aiInput: "AI分析了客户A的历史需求变更频率（月均3.2次），警告如果接受全量定制，6个月内可能被拖入需求黑洞。建议设置'定制需求总量上限'为研发资源的25%。",
+      decisionDate: daysAgo(7),
+      outcome: "待评估",
+      lessons: [],
+    },
+    {
+      id: "dec_seed_5", title: "是否参加行业展会", description: "年度行业展会参展费用40万，需要评估ROI", decider: "李总", department: "市场部",
+      options: [
+        { label: "全额参展", pros: ["品牌曝光最大化", "获取销售线索"], cons: ["成本40万", "团队抽调5人2周"], chosen: false },
+        { label: "小展位参展", pros: ["成本可控", "保持存在感"], cons: ["效果有限", "竞争不过大展位"], chosen: true },
+        { label: "不参展", pros: ["省下预算做线上营销"], cons: ["行业存在感下降", "错过线下交流机会"], chosen: false },
+      ],
+      assumptions: ["假设小展位的线索获取效率不低于大展位的60%", "假设线上渠道能弥补线下曝光不足", "假设参展期间有足够的销售跟进人员"],
+      unknownFactors: ["今年参展的主要竞品数量和质量未知", "展会主办方今年的推广力度"],
+      decisionDate: daysAgo(1),
+      outcome: "待评估",
+      lessons: [],
+    },
+  ]
+  localStorage.setItem(L5_DECISIONS_KEY, JSON.stringify(seeds))
+
+  // 同时播种知识流数据
+  const seedFlows: KnowledgeFlowMetric[] = [
+    { fromTeam: "市场部", toTeam: "研发部", topic: "客户A的定制需求反馈", flowType: "会议传递", frequency: 3, quality: 0.7, delay: 2 },
+    { fromTeam: "研发部", toTeam: "市场部", topic: "新功能上线通知", flowType: "文档流转", frequency: 6, quality: 0.85, delay: 0 },
+    { fromTeam: "研发部", toTeam: "行政部", topic: "远程协作工具评估报告", flowType: "AI辅助", frequency: 1, quality: 0.9, delay: 0 },
+    { fromTeam: "市场部", toTeam: "行政部", topic: "展会参展决策", flowType: "主动分享", frequency: 1, quality: 0.6, delay: 3 },
+    { fromTeam: "研发部", toTeam: "研发部", topic: "AI客服自研技术方案", flowType: "AI辅助", frequency: 4, quality: 0.95, delay: 0 },
+    { fromTeam: "市场部", toTeam: "市场部", topic: "内容营销ROI分析", flowType: "AI辅助", frequency: 2, quality: 0.75, delay: 1 },
+    { fromTeam: "研发部", toTeam: "研发部", topic: "技术架构评审", flowType: "会议传递", frequency: 8, quality: 0.8, delay: 1 },
+  ]
+  localStorage.setItem(L5_FLOWS_KEY, JSON.stringify(seedFlows))
 }
 function saveDecisions(decisions: DecisionRecord[]) {
   if (typeof window === "undefined") return
@@ -858,58 +953,121 @@ export function getOrgCognitionReport(): OrgCognitionReport {
   const decisions = loadDecisions()
   const flows = loadKnowledgeFlows()
 
+  // ── 思维框架分布 — 从决策假设中提取 ──
   const frameworks = new Map<string, number>()
   const biases = new Map<string, number>()
   for (const d of decisions) {
     for (const a of d.assumptions) {
-      const fw = a.includes("SWOT") ? "SWOT" : a.includes("ROI") ? "ROI分析" : a.includes("竞品") ? "竞品对标" : a.includes("用户") ? "用户调研" : "经验判断"
-      frameworks.set(fw, (frameworks.get(fw) || 0) + 1)
+      // Framework detection
+      if (a.includes("SWOT")) frameworks.set("SWOT", (frameworks.get("SWOT") || 0) + 1)
+      else if (a.includes("ROI") || a.includes("投入") || a.includes("成本")) frameworks.set("成本收益", (frameworks.get("成本收益") || 0) + 1)
+      else if (a.includes("竞品") || a.includes("对手")) frameworks.set("竞品分析", (frameworks.get("竞品分析") || 0) + 1)
+      else if (a.includes("用户") || a.includes("客户") || a.includes("需求")) frameworks.set("用户洞察", (frameworks.get("用户洞察") || 0) + 1)
+      else if (a.includes("数据") || a.includes("数字") || a.includes("指标")) frameworks.set("数据分析", (frameworks.get("数据分析") || 0) + 1)
+      else if (a.includes("风险") || a.includes("最坏")) frameworks.set("风险预判", (frameworks.get("风险预判") || 0) + 1)
+      else if (a.includes("假设") || a.includes("如果")) frameworks.set("假设推演", (frameworks.get("假设推演") || 0) + 1)
+      else if (a.includes("趋势") || a.includes("未来")) frameworks.set("趋势判断", (frameworks.get("趋势判断") || 0) + 1)
+      else frameworks.set("经验判断", (frameworks.get("经验判断") || 0) + 1)
     }
-    // 从复盘教训中提取偏见
+    // 从复盘教训中提取认知偏差
     for (const l of d.lessons) {
-      if (l.includes("乐观") || l.includes("过于自信")) biases.set("过度乐观", (biases.get("过度乐观") || 0) + 1)
-      if (l.includes("确认") || l.includes("只看了")) biases.set("确认偏差", (biases.get("确认偏差") || 0) + 1)
-      if (l.includes("跟风") || l.includes("别人")) biases.set("从众效应", (biases.get("从众效应") || 0) + 1)
+      if (l.includes("乐观") || l.includes("过于自信") || l.includes("高估")) biases.set("过度乐观", (biases.get("过度乐观") || 0) + 1)
+      if (l.includes("确认") || l.includes("只看了") || l.includes("忽略反例")) biases.set("确认偏差", (biases.get("确认偏差") || 0) + 1)
+      if (l.includes("跟风") || l.includes("别人") || l.includes("大家都在")) biases.set("从众效应", (biases.get("从众效应") || 0) + 1)
+      if (l.includes("太快") || l.includes("急了") || l.includes("匆忙")) biases.set("急躁决策", (biases.get("急躁决策") || 0) + 1)
+      if (l.includes("惯性") || l.includes("一直这样") || l.includes("照旧")) biases.set("路径依赖", (biases.get("路径依赖") || 0) + 1)
+      if (l.includes("没考虑") || l.includes("忽略了") || l.includes("没想到")) biases.set("盲点遗漏", (biases.get("盲点遗漏") || 0) + 1)
     }
   }
 
-  // 团队认知
-  const teamMap = new Map<string, { count: number; totalSpeed: number; reversals: number }>()
+  // ── 团队认知 — 从真实决策数据推导 ──
+  const teamData = new Map<string, { count: number; reversals: number; assumptions: string[]; lessons: string[]; outcomeCorrect: number; aiInputs: number }>()
   for (const d of decisions) {
-    if (!teamMap.has(d.department)) teamMap.set(d.department, { count: 0, totalSpeed: 0, reversals: 0 })
-    const t = teamMap.get(d.department)!
+    if (!teamData.has(d.department)) {
+      teamData.set(d.department, { count: 0, reversals: 0, assumptions: [], lessons: [], outcomeCorrect: 0, aiInputs: 0 })
+    }
+    const t = teamData.get(d.department)!
     t.count++
     if (d.outcome === "错误") t.reversals++
+    if (d.outcome === "正确") t.outcomeCorrect++
+    t.assumptions.push(...d.assumptions)
+    t.lessons.push(...d.lessons)
+    if (d.aiInput) t.aiInputs++
   }
 
-  // AI依赖度
-  const aiTasks = new Map<string, number>()
-  const humanTasks = new Map<string, number>()
+  const teamCognition = Array.from(teamData.entries()).map(([teamName, data]) => {
+    // 思维深度 = (假设数量 + 复盘深度) / 决策数，规范化到 0-1
+    const avgAssumptions = data.count > 0 ? data.assumptions.length / data.count : 0
+    const avgLessons = data.count > 0 ? data.lessons.length / data.count : 0
+    const thinkingDepth = Math.min(0.95, (avgAssumptions * 0.15 + avgLessons * 0.2) + 0.2) // 0.2 baseline
+
+    // 决策速度 = 基于假设复杂度推算（假设越多→思考越慢→速度越低）
+    const decisionSpeed = Math.max(1, 14 - (avgAssumptions * 3) + Math.max(0, 2 - avgLessons) * 3)
+
+    return {
+      teamName,
+      averageThinkingDepth: thinkingDepth,
+      decisionSpeed,
+      reversalRate: data.count > 0 ? data.reversals / data.count : 0,
+    }
+  })
+
+  // ── AI 依赖度 — 从真实知识流记录 + 决策记录推导 ──
+  const aiTaskTotals = new Map<string, number>()
+  const humanTaskTotals = new Map<string, number>()
   for (const f of flows) {
-    aiTasks.set(f.topic, (aiTasks.get(f.topic) || 0) + (f.flowType === "AI辅助" ? 1 : 0))
-    humanTasks.set(f.topic, (humanTasks.get(f.topic) || 0) + (f.flowType !== "AI辅助" ? 1 : 0))
+    aiTaskTotals.set(f.topic, (aiTaskTotals.get(f.topic) || 0) + (f.flowType === "AI辅助" ? 1 : 0))
+    humanTaskTotals.set(f.topic, (humanTaskTotals.get(f.topic) || 0) + (f.flowType !== "AI辅助" ? 1 : 0))
   }
-  const totalTasks = [...aiTasks.values()].reduce((s, v) => s + v, 0) + [...humanTasks.values()].reduce((s, v) => s + v, 0)
+  // Also count AI involvement from decisions
+  const aiInDecisions = decisions.filter(d => d.aiInput).length
+
+  const totalTasks = [...aiTaskTotals.values()].reduce((s, v) => s + v, 0) +
+                     [...humanTaskTotals.values()].reduce((s, v) => s + v, 0)
+
+  const highDependencyTasks = Array.from(aiTaskTotals.entries())
+    .filter(([, v]) => v >= 1)
+    .map(([task, v]) => ({ task, aiReliance: v }))
+  const humanOnlyTasks = Array.from(humanTaskTotals.entries())
+    .filter(([, v]) => v >= 1)
+    .map(([task, v]) => ({ task, count: v }))
+
+  // 协作比例：知识流中AI辅助的比例 + 决策中AI参与的比例
+  const flowAICollabRatio = totalTasks > 0
+    ? [...aiTaskTotals.values()].reduce((s, v) => s + v, 0) / totalTasks
+    : 0
+  const decisionAIRatio = decisions.length > 0 ? aiInDecisions / decisions.length : 0
+  const collaborationRatio = flowAICollabRatio > 0
+    ? flowAICollabRatio
+    : decisionAIRatio
+
+  // ── 创新指数 — 从数据真实计算 ──
+  // 创新 = 思维框架多样性 × 决策复盘率 × (1 - 错误重复率)
+  const frameworkCount = frameworks.size
+  const reviewRate = decisions.length > 0
+    ? decisions.filter(d => d.reviewDate).length / decisions.length
+    : 0
+  const innovationIndex = Math.min(0.95,
+    (frameworkCount / 5) * 0.4 + reviewRate * 0.4 +
+    (decisions.length > 0 ? Math.min(1, decisions.filter(d => d.outcome === "正确").length / decisions.length) : 0.3) * 0.2
+  )
 
   return {
     decisionHistory: decisions,
     knowledgeFlows: flows,
     cognitiveDiversity: {
       frameworksInUse: Array.from(frameworks.entries()).map(([name, count]) => ({ name, count })),
-      dominantBias: Array.from(biases.entries()).map(([bias, prevalence]) => ({ bias, prevalence: prevalence / decisions.length })),
-      innovationIndex: decisions.length > 0 ? Math.min(1, (frameworks.size / Math.max(decisions.length, 1)) * 3) : 0.3,
+      dominantBias: Array.from(biases.entries())
+        .map(([bias, prevalence]) => ({ bias, prevalence: decisions.length > 0 ? prevalence / decisions.length : 0 }))
+        .filter(b => b.prevalence > 0),
+      innovationIndex,
     },
     aiDependency: {
-      highDependencyTasks: Array.from(aiTasks.entries()).filter(([, v]) => v > 3).map(([task, v]) => ({ task, aiReliance: v })),
-      humanOnlyTasks: Array.from(humanTasks.entries()).filter(([, v]) => v > 2).map(([task, v]) => ({ task, count: v })),
-      collaborationRatio: totalTasks > 0 ? [...aiTasks.values()].reduce((s, v) => s + v, 0) / totalTasks : 0,
+      highDependencyTasks,
+      humanOnlyTasks,
+      collaborationRatio,
     },
-    teamCognition: Array.from(teamMap.entries()).map(([teamName, data]) => ({
-      teamName,
-      averageThinkingDepth: Math.min(1, 0.3 + Math.random() * 0.5),
-      decisionSpeed: data.count > 0 ? 3 + Math.random() * 10 : 0,
-      reversalRate: data.count > 0 ? data.reversals / data.count : 0,
-    })),
+    teamCognition,
   }
 }
 
