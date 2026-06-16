@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "推信·思见 — 所思即所见",
+  title: "思见 — 所思即所见",
   description: "帮人看清自己怎么想，而不是给人答案。",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
 }
 
 export default function RootLayout({

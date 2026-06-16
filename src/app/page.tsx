@@ -11,6 +11,7 @@ import ExperimentBar from "@/components/ExperimentBar"
 import SharedList from "@/components/SharedList"
 import AuthBar from "@/components/AuthBar"
 import { getCurrentUser, loginAs, logout, updateUserRole, UserRole, SijianUser } from "@/lib/sijian-user"
+import { getLineInfo } from "@/lib/thinking-lines"
 import type {
   ChatMessage, MindNode, MindEdge, MindSpaceState,
   Position, DomainType, FrameType,
@@ -376,59 +377,135 @@ ${analysis}
     setChatList(loadAllChats())
   }, [])
 
-  // ── 移动端标签切换 ──────────────────────────
-  const [mobileTab, setMobileTab] = useState<"mind" | "chat">("chat")
+  // ── 移动端状态 ────────────────────────────
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [mindExpanded, setMindExpanded] = useState(false)
 
   const headerLinks = (
     <>
       <a href="/pricing"
-        className="text-xs text-gray-500 hover:text-gray-800 transition-all px-2 py-1 rounded-lg border border-[#a5d6a7] hover:bg-[#c8e6c9] whitespace-nowrap">
+        className="text-[11px] text-gray-500 hover:text-gray-800 transition-all px-2 py-1 rounded-lg border border-[#a5d6a7] hover:bg-[#c8e6c9] whitespace-nowrap">
         定价
       </a>
       <a href="/b-end"
-        className="text-xs text-gray-500 hover:text-gray-800 transition-all px-2 py-1 rounded-lg border border-[#a5d6a7] hover:bg-[#c8e6c9] whitespace-nowrap">
+        className="text-[11px] text-gray-500 hover:text-gray-800 transition-all px-2 py-1 rounded-lg border border-[#a5d6a7] hover:bg-[#c8e6c9] whitespace-nowrap">
         B端
       </a>
       <SharedList />
       <button onClick={handleNewSession}
-        className="text-xs text-gray-500 hover:text-gray-800 transition-all px-2 py-1 rounded-lg border border-[#a5d6a7] hover:bg-[#c8e6c9] whitespace-nowrap">
+        className="text-[11px] text-gray-500 hover:text-gray-800 transition-all px-2 py-1 rounded-lg border border-[#a5d6a7] hover:bg-[#c8e6c9] whitespace-nowrap">
         新对话
       </button>
     </>
   )
 
-  return (
-    <div className="flex flex-col md:flex-row h-screen page-enter">
+  const FRAME_LABELS: Record<string, string> = {
+    tree: "🌳 层级", network: "🕸️ 网络", helix: "🧬 螺旋",
+    strata: "📐 分层", orbital: "🪐 轨道", pipeline: "🔗 流程",
+    lens: "🔍 透镜", cycle: "🔄 循环", spectrum: "🌈 光谱",
+    matrix: "📊 矩阵", diffusion: "💧 扩散",
+  }
 
-      {/* ═══ 移动端顶部栏 ═══ */}
-      <div className="md:hidden shrink-0 px-3 py-2 border-b border-[#c8e6c9] flex items-center justify-between bg-white/90">
-        <div>
-          <h1 className="text-sm font-bold text-gray-900">推信 · 思见</h1>
-        </div>
-        <div className="flex items-center gap-1">
+  return (
+    <div className="flex flex-col md:flex-row h-dvh page-enter">
+
+      {/* ═══════════════════════════════════════════
+          移动端布局：上下分区
+          ═══════════════════════════════════════════ */}
+
+      {/* ── 移动端顶部栏 ── */}
+      <div className="md:hidden shrink-0 px-4 py-2 border-b border-gray-200 flex items-center justify-between bg-white/95 backdrop-blur-sm safe-top">
+        <h1 className="text-[15px] font-bold text-gray-900">思见</h1>
+        <div className="flex items-center gap-1.5">
           <AuthBar user={user} onLogin={handleLogin} onLogout={handleLogout} onRoleChange={handleRoleChange} />
           <button onClick={() => setShowMobileMenu(!showMobileMenu)}
-            className="text-xs text-gray-500 px-2 py-1 rounded-lg border border-[#a5d6a7]">
+            className="text-gray-500 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100">
             {showMobileMenu ? "✕" : "☰"}
           </button>
         </div>
       </div>
-      {/* 移动端下拉菜单 */}
+
+      {/* ── 移动端下拉菜单 ── */}
       {showMobileMenu && (
-        <div className="md:hidden shrink-0 px-3 py-2 border-b border-[#c8e6c9] bg-white flex items-center gap-2 overflow-x-auto">
+        <div className="md:hidden shrink-0 px-4 py-2 border-b border-gray-100 bg-white flex items-center gap-2 overflow-x-auto animate-fade-in">
           {headerLinks}
         </div>
       )}
 
-      {/* ═══ 左侧 思维空间 ═══ */}
-      <div className={`${mobileTab === "mind" ? "flex" : "hidden"} md:flex md:w-1/2 min-w-0 h-full flex-col`}
-        style={{ background: "#e8f4f8" }}>
+      {/* ── 移动端：思维空间（紧凑版，~1/3）── */}
+      {nodes.length > 0 && (
+        <div className={`md:hidden shrink-0 border-b border-[#c8dce8] bg-white transition-all duration-300 ${
+          mindExpanded ? "h-[55vh]" : "h-[28vh]"
+        }`}>
+          {/* 折叠栏 */}
+          <div className="flex items-center justify-between px-4 py-1.5 bg-[#e8f4f8]/60">
+            <button onClick={() => setMindExpanded(!mindExpanded)}
+              className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-800">
+              <span>{mindExpanded ? "▾" : "▸"}</span>
+              <span className="font-medium">
+                {FRAME_LABELS[frameType] || "思维空间"}
+              </span>
+              <span className="text-gray-300">·</span>
+              <span>{nodes.length}概念</span>
+              {thinkingLines?.[0] && (
+                <span className="text-gray-300">·</span>
+              )}
+              {thinkingLines?.[0] && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full"
+                  style={{
+                    background: (getLineInfo(thinkingLines[0].lineId as any)?.color || "#6366F1") + "18",
+                    color: getLineInfo(thinkingLines[0].lineId as any)?.color || "#6366F1"
+                  }}>
+                  {thinkingLines[0].lineId}
+                </span>
+              )}
+            </button>
+            {topicArchive.length > 0 && (
+              <div className="flex items-center gap-1 overflow-x-auto max-w-[50%]">
+                {topicArchive.slice(-3).map((t, i) => (
+                  <button key={i}
+                    onClick={() => {
+                      setNodes(t.nodes); setEdges(t.edges)
+                      setDomainType(t.domain as DomainType); setFrameType(t.frame as FrameType)
+                      setTopicArchive(arch => arch.filter((_, j) => j !== i))
+                    }}
+                    className="shrink-0 text-[9px] px-1.5 py-0.5 rounded-full bg-white border border-[#c8dce8] text-gray-500">
+                    {t.topic}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* 思维空间内容 */}
+          <div className={`${mindExpanded ? "h-[calc(55vh-32px)]" : "h-[calc(28vh-32px)]"}`}>
+            <MindTransit
+              nodes={nodes} edges={edges}
+              domainType={domainType} frameType={frameType}
+              thinkingLines={thinkingLines}
+              onNodeClick={handleNodeClick}
+              onExport={handleExport}
+            />
+          </div>
+        </div>
+      )}
 
-        {/* 话题归档 */}
+      {/* ── 移动端：聊天区（~2/3 或全屏）── */}
+      <div className="md:hidden flex-1 min-h-0 flex flex-col" style={{ background: "#e8f5e9" }}>
+        <ChatPanel
+          messages={messages} onSend={handleSend} onFileSelect={handleFileSelect} loading={loading}
+        />
+      </div>
+
+
+      {/* ═══════════════════════════════════════════
+          桌面端布局：左右分栏（不变）
+          ═══════════════════════════════════════════ */}
+
+      {/* 左侧 思维空间 */}
+      <div className="hidden md:flex md:w-1/2 min-w-0 h-full flex-col" style={{ background: "#e8f4f8" }}>
         {topicArchive.length > 0 && (
-          <div className="shrink-0 px-3 md:px-4 py-1.5 flex items-center gap-1.5 overflow-x-auto border-b border-[#c8dce8] bg-white/50">
-            <span className="text-[10px] text-gray-400 shrink-0">📂</span>
+          <div className="shrink-0 px-4 py-2 flex items-center gap-2 overflow-x-auto border-b border-[#c8dce8] bg-white/50">
+            <span className="text-[10px] text-gray-400 shrink-0">📂 话题:</span>
             {topicArchive.map((topic, i) => (
               <button key={i}
                 onClick={() => {
@@ -436,13 +513,12 @@ ${analysis}
                   setDomainType(topic.domain as DomainType); setFrameType(topic.frame as FrameType)
                   setTopicArchive(arch => arch.filter((_, j) => j !== i))
                 }}
-                className="shrink-0 text-[10px] md:text-[11px] px-2 py-0.5 rounded-full bg-white border border-[#c8dce8] hover:border-blue-300 hover:bg-blue-50 transition-all text-gray-600">
+                className="shrink-0 text-[11px] px-2.5 py-1 rounded-full bg-white border border-[#c8dce8] hover:border-blue-300 hover:bg-blue-50 transition-all text-gray-600">
                 {topic.topic}
               </button>
             ))}
           </div>
         )}
-
         <div className="flex-1 min-h-0">
           <MindTransit
             nodes={nodes} edges={edges}
@@ -456,14 +532,12 @@ ${analysis}
         </div>
       </div>
 
-      {/* ═══ 右侧聊天面板 ═══ */}
-      <div className={`${mobileTab === "chat" ? "flex" : "hidden"} md:flex md:w-1/2 min-w-0 h-full md:border-l border-[#c8e6c9] flex-col`}
+      {/* 右侧 聊天 */}
+      <div className="hidden md:flex md:w-1/2 min-w-0 h-full border-l border-[#c8e6c9] flex-col"
         style={{ background: "#e8f5e9" }}>
-
-        {/* 品牌 — 桌面端 */}
-        <div className="hidden md:flex px-5 py-3.5 border-b border-[#c8e6c9] items-center justify-between shrink-0 bg-white/60 backdrop-blur-sm">
+        <div className="px-5 py-3.5 border-b border-[#c8e6c9] flex items-center justify-between shrink-0 bg-white/60 backdrop-blur-sm">
           <div>
-            <h1 className="text-lg font-bold text-gray-900 tracking-tight">推信 · 思见</h1>
+            <h1 className="text-lg font-bold text-gray-900 tracking-tight">思见</h1>
             <p className="text-[11px] text-gray-500 mt-0.5">所思即所见</p>
           </div>
           <div className="flex items-center gap-2">
@@ -471,31 +545,11 @@ ${analysis}
             {headerLinks}
           </div>
         </div>
-
-        {/* 聊天 */}
         <div className="flex-1 min-h-0">
           <ChatPanel
             messages={messages} onSend={handleSend} onFileSelect={handleFileSelect} loading={loading}
           />
         </div>
-      </div>
-
-      {/* ═══ 移动端底部标签栏 ═══ */}
-      <div className="md:hidden shrink-0 h-14 border-t border-[#c8e6c9] bg-white flex items-stretch">
-        <button onClick={() => { setMobileTab("mind"); setShowMobileMenu(false) }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-all ${
-            mobileTab === "mind" ? "text-blue-600 bg-blue-50" : "text-gray-400"
-          }`}>
-          <span className="text-lg">🚇</span>
-          <span className="text-[10px] font-medium">思维空间</span>
-        </button>
-        <button onClick={() => { setMobileTab("chat"); setShowMobileMenu(false) }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-all ${
-            mobileTab === "chat" ? "text-green-600 bg-green-50" : "text-gray-400"
-          }`}>
-          <span className="text-lg">💬</span>
-          <span className="text-[10px] font-medium">对话</span>
-        </button>
       </div>
 
     </div>
