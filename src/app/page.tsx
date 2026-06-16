@@ -563,8 +563,8 @@ ${analysis}
         style={{ background: "#e8f5e9" }}>
         <div className="px-5 py-3.5 border-b border-[#c8e6c9] flex items-center justify-between shrink-0 bg-white/60 backdrop-blur-sm">
           <div>
-            <h1 className="text-lg font-bold text-gray-900 tracking-tight">思见</h1>
-            <p className="text-[11px] text-gray-500 mt-0.5">所思即所见</p>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">思见</h1>
+            <p className="text-sm text-gray-500 mt-0.5">所思即所见</p>
           </div>
           <div className="flex items-center gap-2">
             <AuthBar user={user} onLogin={handleLogin} onLogout={handleLogout} onRoleChange={handleRoleChange} />

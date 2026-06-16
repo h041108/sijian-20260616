@@ -55,8 +55,8 @@ function computeStations(
       for (const n of nodes) { const d = n.depth ?? 0; if (!byDepth[d]) byDepth[d] = []; byDepth[d].push(n) }
       const depths = Object.keys(byDepth).map(Number).sort((a, b) => a - b)
       const maxLayer = Math.max(2, depths.length)
-      const w = 700, h = 460
-      const padT = 60, padB = 80, padX = 60
+      const w = 900, h = 600
+      const padT = 80, padB = 100, padX = 80
       svgW = w; svgH = h
       for (const d of depths) {
         const layer = byDepth[d]
@@ -83,7 +83,7 @@ function computeStations(
 
     // ── 2. network: 力导向图(环形分布) ──
     case "network": {
-      const cx = 350, cy = 210, r = Math.min(180, 40 + count * 16)
+      const cx = 450, cy = 280, r = Math.min(240, 60 + count * 22)
       nodes.forEach((n, i) => {
         const angle = (i / count) * Math.PI * 2 - Math.PI / 2
         stations[n.id] = { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r, color: n.color || LINE_COLORS[i % LINE_COLORS.length] }
@@ -94,26 +94,26 @@ function computeStations(
           arcPaths.push({ source: e.source, target: e.target, path: "" })
         }
       }
-      svgW = 700; svgH = 460
+      svgW = 900; svgH = 600
       break
     }
 
     // ── 3. helix: 双螺旋交错 ──
     case "helix": {
-      const cx = 350, cy = 230
+      const cx = 450, cy = 300
       for (let i = 0; i < count; i++) {
         const isStrandA = i % 2 === 0
         const t = i / Math.max(count - 1, 1)
         const angle = t * Math.PI * 4 - Math.PI / 2
-        const radius = 40 + t * 160
-        const offsetY = isStrandA ? -20 : 20
+        const radius = 60 + t * 220
+        const offsetY = isStrandA ? -30 : 30
         stations[nodes[i].id] = {
           x: cx + Math.cos(angle) * radius,
           y: cy + Math.sin(angle) * Math.max(radius * 0.3, 20) + offsetY,
           color: isStrandA ? mainColor : LINE_COLORS[2],
         }
       }
-      svgW = 700; svgH = 500
+      svgW = 900; svgH = 640
       break
     }
 
@@ -127,18 +127,18 @@ function computeStations(
       }
       const depthKeys = Object.keys(byDepth).map(Number).sort((a, b) => a - b)
       const maxD = Math.max(3, depthKeys.length)
-      const padX = 60, padB = 70
-      svgW = 700; svgH = Math.max(360, maxD * 90 + padB)
+      const padX = 80, padB = 90
+      svgW = 900; svgH = Math.max(500, maxD * 120 + padB)
       let yi = 0
       const allDepths = new Set<number>()
       for (let d = 0; d < maxD; d++) allDepths.add(d)
       const layers = Array.from(allDepths).sort((a, b) => a - b)
       for (const d of layers) {
         const layerNodes = byDepth[d] || []
-        const y = 50 + ((yi) / Math.max(layers.length - 1, 1)) * (svgH - 50 - padB)
+        const y = 70 + ((yi) / Math.max(layers.length - 1, 1)) * (svgH - 50 - padB)
         if (layerNodes.length > 0) {
           layerNodes.forEach((n, j) => {
-            const gap = Math.min(120, (svgW - padX * 2) / Math.max(layerNodes.length, 1))
+            const gap = Math.min(160, (svgW - padX * 2) / Math.max(layerNodes.length, 1))
             stations[n.id] = {
               x: padX + gap * (j + 0.5),
               y,
@@ -158,10 +158,10 @@ function computeStations(
 
     // ── 5. orbital: 同心轨道 ──
     case "orbital": {
-      const cx = 350, cy = 220
+      const cx = 450, cy = 280
       const orbits = Math.min(count, Math.ceil(count / 3) || 1)
       const orbitRadii: number[] = []
-      for (let o = 0; o < orbits; o++) orbitRadii.push(60 + o * 55)
+      for (let o = 0; o < orbits; o++) orbitRadii.push(80 + o * 72)
 
       // Distribute nodes across orbits
       let ni = 0
@@ -177,15 +177,15 @@ function computeStations(
           }
         }
       }
-      svgW = 700; svgH = 480
+      svgW = 900; svgH = 640
       break
     }
 
     // ── 6. pipeline: 从左到右流程 ──
     case "pipeline": {
-      const padX = 80, padY = 160
-      svgW = Math.max(700, padX * 2 + count * 120)
-      svgH = 400
+      const padX = 100, padY = 220
+      svgW = Math.max(900, padX * 2 + count * 160)
+      svgH = 540
       nodes.forEach((n, i) => {
         const yOffset = i % 2 === 1 ? 40 : -20
         stations[n.id] = {
@@ -199,27 +199,27 @@ function computeStations(
 
     // ── 7. lens: 中心聚焦 ⟶ 外围在弧上 ──
     case "lens": {
-      const cx = 350, cy = 220
+      const cx = 450, cy = 280
       if (count === 1) {
         stations[nodes[0].id] = { x: cx, y: cy, color: nodes[0].color || mainColor }
       } else {
         // First node is the "lens center"
         stations[nodes[0].id] = { x: cx, y: cy, color: nodes[0].color || mainColor }
         const rest = count - 1
-        const r = Math.min(180, 80 + rest * 20)
+        const r = Math.min(240, 110 + rest * 26)
         for (let i = 0; i < rest; i++) {
           const angle = (i / rest) * Math.PI * 1.2 - Math.PI * 1.1
           const n = nodes[i + 1]
           stations[n.id] = { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r, color: n.color || LINE_COLORS[(i + 2) % LINE_COLORS.length] }
         }
       }
-      svgW = 700; svgH = 460
+      svgW = 900; svgH = 600
       break
     }
 
     // ── 8. cycle: 环形循环 ──
     case "cycle": {
-      const cx = 350, cy = 220, r = Math.min(180, 60 + count * 12)
+      const cx = 450, cy = 280, r = Math.min(240, 80 + count * 16)
       nodes.forEach((n, i) => {
         const angle = (i / count) * Math.PI * 2 - Math.PI / 2
         stations[n.id] = { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r, color: n.color || LINE_COLORS[i % LINE_COLORS.length] }
@@ -229,15 +229,15 @@ function computeStations(
         const next = (i + 1) % count
         arcPaths.push({ source: nodes[i].id, target: nodes[next].id, path: "" })
       }
-      svgW = 700; svgH = 480
+      svgW = 900; svgH = 640
       break
     }
 
     // ── 9. spectrum: 水平连续谱 ──
     case "spectrum": {
-      const padX = 70, padY = 180
-      svgW = Math.max(700, count * 110 + padX * 2)
-      svgH = 400
+      const padX = 90, padY = 240
+      svgW = Math.max(900, count * 150 + padX * 2)
+      svgH = 540
       nodes.forEach((n, i) => {
         const ySpread = Math.sin((i / Math.max(count - 1, 1)) * Math.PI * 2) * 100
         stations[n.id] = {
@@ -253,10 +253,10 @@ function computeStations(
     case "matrix": {
       const cols = Math.min(count, Math.ceil(Math.sqrt(count)))
       const rows = Math.ceil(count / cols)
-      const cellW = Math.min(130, 600 / cols)
-      const cellH = Math.min(100, 380 / rows)
-      svgW = Math.max(700, cols * cellW + 60)
-      svgH = Math.max(400, rows * cellH + 80)
+      const cellW = Math.min(180, 800 / cols)
+      const cellH = Math.min(140, 500 / rows)
+      svgW = Math.max(900, cols * cellW + 80)
+      svgH = Math.max(550, rows * cellH + 100)
       nodes.forEach((n, i) => {
         const col = i % cols, row = Math.floor(i / cols)
         stations[n.id] = {
@@ -270,7 +270,7 @@ function computeStations(
 
     // ── 11. diffusion: 中心扩散涟漪 ──
     case "diffusion": {
-      const cx = 350, cy = 230
+      const cx = 450, cy = 300
       if (count === 1) {
         stations[nodes[0].id] = { x: cx, y: cy, color: nodes[0].color || mainColor }
       } else {
@@ -282,7 +282,7 @@ function computeStations(
         let placed = 0
         for (let ring = 0; ring < ringCapacities.length && placed < rest; ring++) {
           const ringCount = Math.min(ringCapacities[ring], rest - placed)
-          const radius = 80 + ring * 70
+          const radius = 110 + ring * 90
           for (let j = 0; j < ringCount && placed < rest; j++, placed++) {
             const angle = (j / ringCount) * Math.PI * 2 - Math.PI / 2
             const n = nodes[placed + 1]
@@ -294,7 +294,7 @@ function computeStations(
           }
         }
       }
-      svgW = 700; svgH = 500
+      svgW = 900; svgH = 640
       break
     }
 
@@ -304,12 +304,12 @@ function computeStations(
       nodes.forEach((n, i) => {
         const col = i % cols, row = Math.floor(i / cols)
         stations[n.id] = {
-          x: 80 + col * 140 + (row % 2) * 20,
-          y: 70 + row * 85,
+          x: 100 + col * 180 + (row % 2) * 30,
+          y: 90 + row * 110,
           color: n.color || LINE_COLORS[i % LINE_COLORS.length],
         }
       })
-      svgW = 700; svgH = 460
+      svgW = 900; svgH = 600
     }
   }
 
@@ -392,8 +392,8 @@ export default function MindTransit({
     )
   }
 
-  const dotR = nodes.length <= 4 ? 13 : nodes.length <= 8 ? 10 : 8
-  const labelSize = nodes.length <= 4 ? 12 : nodes.length <= 8 ? 11 : 10
+  const dotR = nodes.length <= 4 ? 18 : nodes.length <= 8 ? 14 : 11
+  const labelSize = nodes.length <= 4 ? 15 : nodes.length <= 8 ? 14 : 13
 
   // Decorative background elements per frame
   const showRipples = frame === "diffusion"
