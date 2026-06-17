@@ -426,7 +426,7 @@ export default function Home() {
 
       {/* 主内容区 — 聊天居中 + 浮动迷你思维空间 */}
       <div className="flex-1 min-h-0 flex justify-center relative bg-[#fafafa]">
-        <div className="flex-1 flex flex-col min-h-0 w-full max-w-2xl">
+        <div className="flex-1 flex flex-col min-h-0 w-full max-w-4xl">
           <ChatPanel
             messages={messages} onSend={handleSend} onFileSelect={handleFileSelect} loading={loading}
             nodesCount={nodes.length}

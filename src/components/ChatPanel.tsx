@@ -134,7 +134,7 @@ export default function ChatPanel({
       {/* 消息区 — 有消息时滚动，无消息时弹性撑开以便输入框居中 */}
       <div className={`overflow-y-auto px-4 py-4 space-y-4 custom-scrollbar ${messages.length === 0 ? "flex-1 flex flex-col justify-center items-center" : "flex-1"}`}>
         {messages.length === 0 && (
-          <div className="text-center w-full max-w-md mb-8">
+          <div className="text-center w-full max-w-2xl mb-8">
             <p className="text-2xl font-bold text-gray-800 mb-2">
               有什么我可以帮你的？
             </p>
