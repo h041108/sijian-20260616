@@ -90,6 +90,7 @@ export interface ChatMessage {
   content: string
   mindSpace?: MindSpaceState
   domainType?: DomainType
+  reasoning?: string
   createdAt: string
 }
 

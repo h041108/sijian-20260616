@@ -1,4 +1,5 @@
 import type { AIResponse, MindNode, MindEdge } from "./types"
+import { detectThinkingLines, ThinkingLineId } from "./thinking-lines"
 
 type ExtractResult = { nodes: MindNode[]; edges: MindEdge[]; frameType?: string; domainType?: string }
 
@@ -131,7 +132,7 @@ export async function chatStream(
         if (!reader) { emit({ type: "error", content: "流式读取失败" }); controller.close(); return }
 
         const decoder = new TextDecoder()
-        let fullReply = "", dispReply = "", buf = "", inExtract = false
+        let fullReply = "", dispReply = "", fullReasoning = "", buf = "", inExtract = false
 
         while (true) {
           const { done, value } = await reader.read()
@@ -143,14 +144,22 @@ export async function chatStream(
             if (!t || !t.startsWith("data: ")) continue
             const js = t.slice(6); if (js === "[DONE]") continue
             try {
-              const token = JSON.parse(js).choices?.[0]?.delta?.content
+              const delta = JSON.parse(js).choices?.[0]?.delta
+              if (!delta) continue
+
+              // R1 推理内容 — 独立流，可视化到思维空间
+              if (delta.reasoning_content) {
+                fullReasoning += delta.reasoning_content
+                emit({ type: "reasoning_token", content: delta.reasoning_content })
+              }
+
+              const token = delta.content
               if (!token) continue
               fullReply += token
-              // 检测是否进入/退出 extract 块
               if (token.includes("<extract")) inExtract = true
               if (inExtract) {
                 if (token.includes("</extract>")) { inExtract = false; continue }
-                continue // suppress extract tokens
+                continue
               }
               dispReply += token
               emit({ type: "token", content: token })
@@ -160,12 +169,21 @@ export async function chatStream(
 
         const cleanReply = fullReply.replace(/<extract[\s\S]*?<\/extract>/g, "").trim() || dispReply.trim()
         const space = parseExtract(fullReply)
-        if (space.nodes.length > 0) {
-          emit({ type: "done", message: fullReply.replace(/<extract[\s\S]*?<\/extract>/g, "").trim(), mindSpaceUpdate: { nodes: space.nodes, edges: space.edges, frameType: space.frameType }, domain_type: space.domainType || "general" })
-        } else {
-          const locals = localExtract(fullReply.replace(/<extract[\s\S]*?<\/extract>/g, "").trim(), messages[messages.length - 1]?.content || "")
-          emit({ type: "done", message: fullReply.replace(/<extract[\s\S]*?<\/extract>/g, "").trim(), mindSpaceUpdate: { nodes: locals.nodes, edges: locals.edges, frameType: locals.frameType }, domain_type: locals.domainType || "general" })
+        const donePayload: any = {
+          type: "done",
+          message: cleanReply,
+          reasoning: fullReasoning || undefined,
+          reasoningNodes: fullReasoning ? reasoningToNodes(fullReasoning) : undefined,
         }
+        if (space.nodes.length > 0) {
+          donePayload.mindSpaceUpdate = { nodes: space.nodes, edges: space.edges, frameType: space.frameType }
+          donePayload.domain_type = space.domainType || "general"
+        } else {
+          const locals = localExtract(cleanReply, messages[messages.length - 1]?.content || "")
+          donePayload.mindSpaceUpdate = { nodes: locals.nodes, edges: locals.edges, frameType: locals.frameType }
+          donePayload.domain_type = locals.domainType || "general"
+        }
+        emit(donePayload)
       } catch {
         emit({ type: "error", content: "AI 服务暂时不可用" })
       } finally { controller.close() }
@@ -227,4 +245,47 @@ function localExtract(reply: string, userMsg: string): ExtractResult {
   const nodes: any[] = sents.map((s, i) => ({ id: `fb${i + 1}`, label: s.slice(0, 6), depth: i === 0 ? 0 : 1, shape: SHAPES_4[i % 4], color: COLORS_16[i % 16], content: s, parentIds: i > 0 ? ["fb1"] : [], anchors: [], metadata: { createdBy: "ai" as const, createdAt: new Date().toISOString(), version: 1 } }))
   const edges = sents.length > 1 ? [{ id: "fbe1", source: "fb1", target: "fb2", edgeType: "abstract" as const, weight: 0.7 }] : []
   return { frameType: "tree", nodes, edges }
+}
+
+// ─── R1 推理过程 → 思维节点可视化 ─────────────────
+
+function reasoningToNodes(reasoning: string): any[] {
+  if (!reasoning || reasoning.length < 20) return []
+
+  // 从推理内容中提取关键短语作为思维节点
+  const lines = detectThinkingLines(reasoning)
+  const palette = ["#6366F1","#EC4899","#F59E0B","#22C55E","#3B82F6","#8B5CF6"]
+  const shapes = ["sphere","box","cylinder","torus"] as const
+
+  // 按句号/换行/分号拆成句子
+  const sentences = reasoning
+    .split(/[。；\n]/)
+    .map(s => s.trim())
+    .filter(s => s.length >= 8 && s.length <= 60)
+    .slice(0, 6)
+
+  if (sentences.length === 0) {
+    // 只取关键线路作为节点
+    return lines.slice(0, 3).map((l, i) => ({
+      id: `reason_${i}`,
+      label: l.lineId.slice(0, 6),
+      depth: 0,
+      shape: "sphere" as const,
+      color: palette[i % palette.length],
+      content: `AI思考线路: ${l.lineId}`,
+      parentIds: [],
+      anchors: [],
+    }))
+  }
+
+  return sentences.map((s, i) => ({
+    id: `reason_${i}`,
+    label: cleanMarkdown(s).slice(0, 6),
+    depth: 0,
+    shape: shapes[i % 4],
+    color: lines[i] ? (lines[i].lineId === "causality" ? "#F59E0B" : lines[i].lineId === "deduction" ? "#4C51BF" : palette[i % palette.length]) : palette[i % palette.length],
+    content: cleanMarkdown(s).slice(0, 80),
+    parentIds: [],
+    anchors: [],
+  }))
 }

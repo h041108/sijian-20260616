@@ -186,6 +186,21 @@ export default function ChatPanel({
                     </div>
                   ) : (
                     <>
+                      {/* R1 推理过程 — 可折叠 */}
+                      {(msg as any).reasoning && (msg as any).reasoning.length > 20 && (
+                        <div className="mb-1">
+                          <button
+                            onClick={() => setExpandedMsgId(isExpanded ? null : msg.id + "_reasoning")}
+                            className="text-[10px] text-purple-500 hover:text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <span>🧠</span> AI 思考过程 {(expandedMsgId === msg.id + "_reasoning") ? "▾" : "▸"}
+                          </button>
+                          {(expandedMsgId === msg.id + "_reasoning") && (
+                            <div className="mt-1 p-2.5 bg-purple-50/50 rounded-xl border border-purple-100 text-xs text-gray-600 leading-relaxed whitespace-pre-wrap max-h-[250px] overflow-y-auto">
+                              {(msg as any).reasoning}
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <div className="bubble-ai px-4 py-2.5 text-[14px] leading-relaxed">
                         <LatexRenderer text={msg.content} />
                       </div>

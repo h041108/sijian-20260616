@@ -216,7 +216,8 @@ export default function Home() {
                   ...m, content: event.message,
                   mindSpace: event.mindSpaceUpdate,
                   domainType: event.domain_type || "general",
-                } : m
+                  reasoning: event.reasoning || undefined,
+                } as ChatMessage : m
               ))
 
               // 记录认知日志
