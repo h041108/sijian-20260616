@@ -441,8 +441,6 @@ export default function Home() {
             className="text-[11px] text-purple-600 hover:bg-purple-50 px-2 py-1 rounded-lg transition-all">
             📋 报告
           </button>
-          <AuthBar user={user} onLogin={handleLogin} onLogout={handleLogout} onRoleChange={handleRoleChange} />
-          <span className="hidden md:flex items-center gap-1.5 ml-1">{headerLinks}</span>
           <button onClick={() => setShowMobileMenu(!showMobileMenu)}
             className="md:hidden text-gray-500 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100">
             {showMobileMenu ? "✕" : "☰"}
@@ -532,6 +530,14 @@ export default function Home() {
           <div className="flex-1 min-h-0 w-full max-w-3xl mx-auto flex flex-col">
             <ChatPanel
               messages={messages} onSend={handleSend} onFileSelect={handleFileSelect} loading={loading}
+              onToggleDrawer={() => setDrawerOpen(!drawerOpen)}
+              nodesCount={nodes.length}
+              extraToolbar={
+                <div className="hidden md:flex items-center gap-1">
+                  <AuthBar user={user} onLogin={handleLogin} onLogout={handleLogout} onRoleChange={handleRoleChange} />
+                  {headerLinks}
+                </div>
+              }
             />
           </div>
         </div>
