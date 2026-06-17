@@ -3,6 +3,7 @@ import { chat, chatStream } from "@/lib/deepseek"
 import { deepSearch } from "@/lib/search"
 import { detectThinkingLines } from "@/lib/thinking-lines"
 import { fullCognitionAnalysis } from "@/lib/cognition"
+import { loadRegistry, decideOrchestration, runPipeline, type PipelineStep } from "@/lib/orchestrator"
 import type { FrameType } from "@/lib/types"
 
 // ─── 思维线路 → 框架类型映射 ───────────────────
@@ -178,8 +179,28 @@ export async function POST(req: NextRequest) {
     }
 
     const thinkingLines = detectThinkingLines(lastUserMsg)
+    const registry = loadRegistry()
 
-    // ── 流式模式：SSE ──
+    // ── 编排决策：智能路由 + 流水线 vs 直连 ──
+    const decision = decideOrchestration(lastUserMsg, registry)
+    const pipelineRequested = stream && decision.mode === "pipeline" && decision.pipeline && decision.pipeline.length > 0
+
+    if (pipelineRequested) {
+      // 多模型流水线模式 — 生成→批判→润色或分析→检验→总结
+      const pipelineResult = await runPipeline(decision.pipeline!, lastUserMsg, registry)
+      const resolvedFrame = resolveFrameType(thinkingLines, "tree")
+      const cognition = fullCognitionAnalysis(lastUserMsg, thinkingLines)
+      return NextResponse.json({
+        message: pipelineResult.finalOutput,
+        mindSpaceUpdate: { nodes: [], edges: [], frameType: resolvedFrame },
+        domain_type: "general",
+        thinkingLines,
+        cognition,
+        _pipeline: { modelsUsed: pipelineResult.modelsUsed, totalLatency: pipelineResult.totalLatency },
+      })
+    }
+
+    // ── 流式模式：SSE（单模型直连）──
     if (stream) {
       const cognition = fullCognitionAnalysis(lastUserMsg, thinkingLines)
       const s = await chatStream(enhancedMessages, existingNodes || [], imageData || null)
