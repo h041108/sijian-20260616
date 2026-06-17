@@ -176,9 +176,13 @@ export default function ChatPanel({
                       <LatexRenderer text={msg.content} />
                     </div>
                   ) : (
-                    <div className="bubble-ai px-4 py-2.5 text-[14px] leading-relaxed">
-                      <LatexRenderer text={msg.content} />
-                    </div>
+                    <>
+                      <div className="bubble-ai px-4 py-2.5 text-[14px] leading-relaxed">
+                        <LatexRenderer text={msg.content} />
+                      </div>
+                      {/* 底部复制工具栏 — 按内容智能分类 */}
+                      <CopyBar content={msg.content} />
+                    </>
                   )}
 
                   {/* 内嵌思维节点预览 — 点击思维线展开 */}
@@ -308,4 +312,89 @@ export default function ChatPanel({
       </div>
     </div>
   )
+}
+
+// ─── 智能复制工具栏 — 按内容自动分类 ─────────────
+
+function CopyBar({ content }: { content: string }) {
+  const buttons = classifyContent(content)
+  if (buttons.length === 0) return null
+
+  return (
+    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+      {buttons.map((btn, i) => (
+        <button key={i}
+          onClick={() => { navigator.clipboard.writeText(btn.text); btn.onCopy?.() }}
+          className="text-[10px] text-gray-400 hover:text-gray-700 hover:bg-gray-100 px-2 py-0.5 rounded-md border border-gray-150 transition-colors flex items-center gap-1"
+          title={btn.hint}>
+          <span>{btn.icon}</span>
+          <span>{btn.label}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+interface CopyButton {
+  icon: string
+  label: string
+  text: string
+  hint: string
+  onCopy?: () => void
+}
+
+function classifyContent(text: string): CopyButton[] {
+  const buttons: CopyButton[] = []
+
+  const hasCode = /```[\s\S]*?```/.test(text)
+  const hasTable = /\|.+\|/.test(text) && text.split("\n").filter(l => l.includes("|")).length >= 3
+  const hasLinks = /https?:\/\/[^\s)]+/.test(text) || /\[.+\]\(.+\)/.test(text)
+  const hasSteps = /第[一二三四五六七八九十\d]+[步条阶段]|步骤\s*\d|^\d+[\.\、]/m.test(text)
+  const codeBlockCount = (text.match(/```/g) || []).length / 2
+
+  // Always: copy full text
+  buttons.push({ icon: "📋", label: "全文", text, hint: "复制全部内容" })
+
+  // Code blocks: each gets its own button
+  if (hasCode) {
+    const blocks = text.match(/```(\w*)\n?([\s\S]*?)```/g) || []
+    blocks.forEach((block, i) => {
+      const lang = block.match(/```(\w*)/)?.[1] || ""
+      const code = block.replace(/```\w*\n?/, "").replace(/```$/, "").trim()
+      if (code.length > 0) {
+        buttons.push({
+          icon: "<>", label: `代码${blocks.length > 1 ? i + 1 : ""}${lang ? ` ${lang}` : ""}`,
+          text: code, hint: `复制代码块 · ${code.split("\n").length}行`,
+        })
+      }
+    })
+  }
+
+  // Text without code: useful when content mixes code and explanation
+  if (hasCode) {
+    const textOnly = text.replace(/```[\s\S]*?```/g, "").replace(/\n{3,}/g, "\n\n").trim()
+    if (textOnly.length > 20) {
+      buttons.push({ icon: "📝", label: "纯文字", text: textOnly, hint: "复制不含代码的文字内容" })
+    }
+  }
+
+  // Structured content detection
+  if (hasTable) {
+    const tableLines = text.split("\n").filter(l => l.includes("|") && l.trim().length > 5)
+    buttons.push({ icon: "📊", label: "表格", text: tableLines.join("\n"), hint: "复制表格数据" })
+  }
+
+  if (hasLinks) {
+    const links = text.match(/(https?:\/\/[^\s)\]]+)/g) || []
+    const uniqueLinks = [...new Set(links)]
+    if (uniqueLinks.length > 0 && uniqueLinks.length <= 10) {
+      buttons.push({ icon: "🔗", label: `链接(${uniqueLinks.length})`, text: uniqueLinks.join("\n"), hint: "复制所有链接" })
+    }
+  }
+
+  if (hasSteps) {
+    buttons.push({ icon: "📋", label: "要点", text: text, hint: "复制结构化要点" })
+  }
+
+  return buttons
 }
