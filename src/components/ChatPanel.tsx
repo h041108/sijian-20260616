@@ -149,9 +149,7 @@ export default function ChatPanel({
                   <LatexRenderer text={msg.content} />
                 </div>
               )}
-              {msg.role === "assistant" && (
-                <CodeCopyBar content={msg.content} />
-              )}
+              {msg.role === "assistant" && null}
             </div>
           </div>
         ))}
@@ -214,77 +212,5 @@ export default function ChatPanel({
         </div>
       </form>
     </div>
-  )
-}
-
-// ─── 代码/文字分离复制组件 ─────────────────────
-
-function CodeCopyBar({ content }: { content: string }) {
-  const codeBlocks = extractCodeBlocks(content)
-
-  if (codeBlocks.length === 0) {
-    return (
-      <button
-        onClick={() => navigator.clipboard.writeText(content)}
-        className="mt-1.5 text-[11px] text-gray-400 hover:text-gray-700 flex items-center gap-1 transition-colors"
-      >
-        <CopyIcon />
-        复制
-      </button>
-    )
-  }
-
-  const textOnly = content.replace(/```[\s\S]*?```/g, "").replace(/\n{3,}/g, "\n\n").trim()
-
-  return (
-    <div className="mt-2 space-y-1.5">
-      <button
-        onClick={() => navigator.clipboard.writeText(content)}
-        className="text-[11px] text-gray-400 hover:text-gray-700 flex items-center gap-1 transition-colors"
-      >
-        <CopyIcon />
-        复制全文
-      </button>
-      {textOnly && (
-        <button
-          onClick={() => navigator.clipboard.writeText(textOnly)}
-          className="text-[11px] text-gray-400 hover:text-gray-700 flex items-center gap-1 transition-colors"
-        >
-          <CopyIcon />
-          复制文字（不含代码）
-        </button>
-      )}
-      {codeBlocks.map((block, i) => (
-        <button
-          key={i}
-          onClick={() => navigator.clipboard.writeText(block.code)}
-          className="text-[11px] text-gray-400 hover:text-blue-600 flex items-center gap-1 transition-colors"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
-          </svg>
-          复制代码 {i + 1}{block.lang ? ` (${block.lang})` : ""}{block.code.split("\n").length > 1 ? ` · ${block.code.split("\n").length}行` : ""}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function extractCodeBlocks(text: string): { code: string; lang: string }[] {
-  const blocks: { code: string; lang: string }[] = []
-  const regex = /```(\w*)\n?([\s\S]*?)```/g
-  let match
-  while ((match = regex.exec(text)) !== null) {
-    blocks.push({ lang: match[1] || "", code: match[2].trim() })
-  }
-  return blocks
-}
-
-function CopyIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-    </svg>
   )
 }

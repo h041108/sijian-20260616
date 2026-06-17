@@ -343,7 +343,7 @@ export default function ReportsView({ role }: Props) {
                   <div key={dept} className="p-3 rounded-xl border border-[#e8e5df]">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-sm font-medium text-gray-700">{dept}</span>
-                      <span className="text-xs text-gray-400">{deptUsers.length || Math.floor(Math.random() * 5 + 2)}人</span>
+                      <span className="text-xs text-gray-400">{deptUsers.length || 1}人</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-gray-100">
                       <div className="h-full bg-green-500 rounded-full"
