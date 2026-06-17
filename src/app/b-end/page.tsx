@@ -93,7 +93,7 @@ export default function BEndPage() {
     const dataUrl = await new Promise<string>(resolve => { const r = new FileReader(); r.onload = () => resolve(r.result as string); r.readAsDataURL(file) })
     const fd = new FormData(); fd.append("file", file); fetch("/api/upload", { method: "POST", body: fd }).catch(() => {})
     let analysis = ""
-    if (file.type.startsWith("image/")) { try { const { analyzeImageInBrowser } = await import("@/lib/image-analyzer"); analysis = await analyzeImageInBrowser(file) } catch {} }
+    if (file.type.startsWith("image/")) { analysis = `[图片: ${file.name}, ${(file.size/1024).toFixed(1)}KB]` }
     else if (file.type.startsWith("text/") || file.name.endsWith(".txt")) { analysis = await new Promise<string>(r => { const reader = new FileReader(); reader.onload = () => r(reader.result as string); reader.readAsText(file) }) }
     setUploadedImages(prev => [...prev, { name: file.name, size: file.size, dataUrl, analysis }])
     if (!topic.trim()) setTopic(file.name.replace(/\.[^.]+$/, ""))

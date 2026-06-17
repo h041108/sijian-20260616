@@ -350,43 +350,9 @@ export default function Home() {
       let imageData: string | undefined = undefined
 
       if (isImage) {
-        imageData = await new Promise<string>((resolve) => {
-          const reader = new FileReader()
-          reader.onload = () => resolve(reader.result as string)
-          reader.readAsDataURL(file)
-        })
-
-        // 浏览器端分析图片特征
-        const analysis = await analyzeImageInBrowser(file)
-
-        // 判断是否为图表类图片，使用不同的引导提示词
-        const isChart = analysis.includes("图表")
-          || analysis.includes("K线图")
-          || analysis.includes("表格")
-          || analysis.includes("走势")
-
-        let aiPrompt: string
-        if (isChart) {
-          aiPrompt = `[用户上传了一张图片: ${file.name} (${(file.size / 1024).toFixed(1)}KB)]
-
-以下是浏览器对该图片的视觉分析：
-${analysis}
-
-请像一个经验丰富的分析师一样，根据以上视觉特征数据反推这张图表可能的内容：
-1. 如果有红/绿色块+网格+时间轴特征，这很可能是一张K线图或股票走势图。红色和绿色代表涨跌蜡烛，下半部分的密集方形可能是成交量柱。
-2. 根据"视觉亮点区域"的颜色分布，尝试推断图表的关键区域——深色集中区可能是K线密集区或关键支撑位，亮区可能是空白区域或坐标轴标签。
-3. 如果有明显的水平边缘线（>6%），说明有文字行或坐标线；如果有明显的垂直边缘线（>5%），说明有柱状图或K线柱体。
-
-请用"我看到这是一张……大概在说……"的句式自然地描述你的推断，然后一定要输出<m>标签将图表的核心要素（比如"趋势""支撑位""成交量"等概念）构建成思维空间。`
-        } else {
-          aiPrompt = `[用户上传了一张图片: ${file.name} (${(file.size / 1024).toFixed(1)}KB)]
-
-以下是浏览器对该图片的视觉分析：
-${analysis}
-
-请根据以上视觉分析结果，推测这张图片可能是什么内容，用"我看到你上传了一张……"开头回复。一定要用<m>标签将你对图片的理解构造成思维空间。`
-        }
-        handleSend(aiPrompt, imageData)
+        const result = await analyzeImageInBrowser(file)
+        imageData = result.dataUrl
+        handleSend(`[上传: ${file.name}] 请根据这张图片内容回复`, imageData)
       } else {
         const fileInfo = `[上传了文件: ${file.name} (${(file.size / 1024).toFixed(1)}KB, ${file.type || "未知类型"})]`
         handleSend(fileInfo)

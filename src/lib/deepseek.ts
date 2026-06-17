@@ -38,14 +38,29 @@ export async function chat(
   existingNodes: { id: string; label: string; content: string }[] = [],
   imageData?: string | null,
 ): Promise<AIResponse> {
-  void imageData
+  void existingNodes
+
+  // 构建消息，支持图片多模态输入
+  const apiMessages = messages.map((m, i) => {
+    const isLast = i === messages.length - 1
+    if (isLast && imageData && m.role === "user") {
+      return {
+        role: "user" as const,
+        content: [
+          { type: "text", text: m.content },
+          { type: "image_url", image_url: { url: imageData } },
+        ],
+      }
+    }
+    return { role: m.role, content: m.content }
+  })
 
   const res = await fetch(`${DEEPSEEK_API_BASE}/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${DEEPSEEK_API_KEY}` },
     body: JSON.stringify({
       model: DEEPSEEK_MODEL, max_tokens: 2048,
-      messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages.map(m => ({ role: m.role, content: m.content }))],
+      messages: [{ role: "system", content: SYSTEM_PROMPT }, ...apiMessages],
       temperature: 0.7,
     }),
   })
@@ -73,7 +88,7 @@ export async function chatStream(
   existingNodes: { id: string; label: string; content: string }[] = [],
   imageData?: string | null,
 ): Promise<ReadableStream<Uint8Array>> {
-  void imageData
+  void existingNodes
 
   return new ReadableStream({
     async start(controller) {
@@ -81,12 +96,21 @@ export async function chatStream(
       const emit = (d: object) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(d)}\n\n`))
 
       try {
+        // 构建消息（支持图片多模态）
+        const apiMessages = messages.map((m, i) => {
+          const last = i === messages.length - 1
+          if (last && imageData && m.role === "user") {
+            return { role: "user" as const, content: [{ type: "text", text: m.content }, { type: "image_url", image_url: { url: imageData } }] }
+          }
+          return { role: m.role, content: m.content }
+        })
+
         const res = await fetch(`${DEEPSEEK_API_BASE}/chat/completions`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${DEEPSEEK_API_KEY}` },
           body: JSON.stringify({
             model: DEEPSEEK_MODEL, max_tokens: 2048, stream: true,
-            messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages.map(m => ({ role: m.role, content: m.content }))],
+            messages: [{ role: "system", content: SYSTEM_PROMPT }, ...apiMessages],
             temperature: 0.7,
           }),
         })
