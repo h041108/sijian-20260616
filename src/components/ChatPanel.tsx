@@ -149,16 +149,7 @@ export default function ChatPanel({
 
       {/* 消息区 — 有消息时滚动，无消息时弹性撑开以便输入框居中 */}
       <div className={`overflow-y-auto px-4 py-4 space-y-4 custom-scrollbar ${messages.length === 0 ? "flex-1 flex flex-col justify-center items-center" : "flex-1"}`}>
-        {messages.length === 0 && (
-          <div className="text-center w-full max-w-2xl mb-8">
-            <p className="text-2xl font-bold text-gray-800 mb-2">
-              有什么我可以帮你的？
-            </p>
-            <p className="text-sm text-gray-400 leading-relaxed">
-              任何问题、想法、创意——我陪你一起想
-            </p>
-          </div>
-        )}
+        {messages.length === 0 && <ThinkingDiary />}
 
         {messages.map((msg) => {
           const hasMindSpace = msg.role === "assistant" && msg.mindSpace?.nodes && msg.mindSpace.nodes.length > 0
@@ -422,4 +413,97 @@ function classifyContent(text: string): CopyButton[] {
   }
 
   return buttons
+}
+
+// ─── 思维日记 — 首页空状态 ─────────────────────────
+
+function ThinkingDiary() {
+  const [logs, setLogs] = useState<any[]>([])
+  const [mirror, setMirror] = useState<any>(null)
+
+  useEffect(() => {
+    const { loadCognitionLogs } = require("@/lib/cognition")
+    const { generateThinkingMirror } = require("@/lib/cognition")
+    const { getCurrentUser } = require("@/lib/sijian-user")
+
+    const all = loadCognitionLogs()
+    const user = getCurrentUser()
+    const userId = user?.id || "anonymous"
+    const nickname = user?.nickname || "访客"
+    setLogs(all.slice(-10).reverse())
+    setMirror(generateThinkingMirror(userId, nickname))
+  }, [])
+
+  const hasData = logs.length > 0
+
+  return (
+    <div className="text-center w-full max-w-2xl mb-8 space-y-6">
+      {/* 品牌 */}
+      <div>
+        <p className="text-[28px] font-extrabold text-gray-900 mb-1 tracking-tight">思见</p>
+        <p className="text-sm text-gray-400">所思即所见</p>
+      </div>
+
+      {hasData && mirror ? (
+        <>
+          {/* 最近的思维记录 */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 text-left">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-semibold text-gray-700">📖 最近的思维轨迹</span>
+              <span className="text-[10px] text-gray-400">{mirror.totalMessages} 条记录</span>
+            </div>
+            <div className="space-y-1.5">
+              {logs.slice(0, 5).map((log: any, i: number) => {
+                const stateColors: Record<string, string> = {
+                  exploring: "#6366F1", focusing: "#22C55E", stuck: "#EF4444",
+                  curious: "#F59E0B", building: "#8B5CF6", questioning: "#EC4899", resting: "#6B7280",
+                }
+                const intentLabels: Record<string, string> = {
+                  learning: "学习", solving: "解题", creating: "创造", deciding: "决策",
+                  understanding: "理解", venting: "倾诉", exploring: "探索",
+                }
+                return (
+                  <div key={i} className="flex items-center gap-2.5 text-xs text-gray-600 py-1.5 border-b border-gray-50 last:border-0">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: stateColors[log.state] || "#d4d4d4" }} />
+                    <span className="text-gray-500 w-12">{intentLabels[log.intent] || log.intent}</span>
+                    <span className="text-gray-300 flex-1 truncate">
+                      {log.dominantLines?.slice(0, 2).join(" · ") || ""}
+                    </span>
+                    <span className="text-gray-300">{new Date(log.timestamp).toLocaleTimeString("zh", { hour: "2-digit", minute: "2-digit" })}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* 思维快照 */}
+          {mirror.dominantStyles.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <span className="text-xs text-gray-400">你的主导思维：</span>
+              {mirror.dominantStyles.slice(0, 3).map((s: any, i: number) => (
+                <span key={s.style} className="text-xs px-2.5 py-1 rounded-full border"
+                  style={{ borderColor: ["#6366F1","#EC4899","#F59E0B"][i], color: ["#6366F1","#EC4899","#F59E0B"][i] }}>
+                  {s.style} · {Math.round(s.percentage)}%
+                </span>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="space-y-4">
+          <p className="text-base text-gray-500">
+            你的专属思维伙伴
+          </p>
+          <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-400">
+            <span className="px-3 py-1.5 bg-gray-50 rounded-full">提问 · 想法的深度对话</span>
+            <span className="px-3 py-1.5 bg-gray-50 rounded-full">反思 · 看清自己的思考方式</span>
+            <span className="px-3 py-1.5 bg-gray-50 rounded-full">创造 · 代码/文案/分析/方案</span>
+          </div>
+          <p className="text-xs text-gray-300">
+            开始对话，思见会记录你的思维轨迹
+          </p>
+        </div>
+      )}
+    </div>
+  )
 }
