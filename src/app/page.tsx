@@ -387,15 +387,11 @@ export default function Home() {
   const [showReport, setShowReport] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
-  const headerLinks = (
+  const hamburgerLinks = (
     <>
-      <a href="/pricing" className="text-[11px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors">定价</a>
-      <span className="text-gray-200 text-[10px]">·</span>
-      <a href="/b-end" className="text-[11px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors">B端</a>
-      <span className="text-gray-200 text-[10px]">·</span>
-      <SharedList />
-      <span className="text-gray-200 text-[10px]">·</span>
-      <button onClick={handleNewSession} className="text-[11px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors">新对话</button>
+      <a href="/pricing" className="text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-50 block">定价</a>
+      <a href="/b-end" className="text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-50 block">B端工作台</a>
+      <div className="px-3 py-1.5"><SharedList /></div>
     </>
   )
 
@@ -421,10 +417,10 @@ export default function Home() {
         </button>
       </div>
 
-      {/* 移动端下拉菜单 */}
+      {/* 移动端下拉菜单 — 定价/B端/分享 */}
       {showMobileMenu && (
-        <div className="md:hidden shrink-0 px-4 py-2 border-b border-gray-100 bg-white flex items-center gap-2 overflow-x-auto animate-fade-in">
-          {headerLinks}
+        <div className="md:hidden shrink-0 px-2 py-2 border-b border-gray-100 bg-white flex flex-col animate-fade-in">
+          {hamburgerLinks}
         </div>
       )}
 
@@ -443,7 +439,10 @@ export default function Home() {
                   className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all" title="思维报告">
                   <span className="text-sm">📋</span>
                 </button>
-                {headerLinks}
+                <button onClick={handleNewSession}
+                  className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors whitespace-nowrap">
+                  新对话
+                </button>
               </div>
             }
           />
