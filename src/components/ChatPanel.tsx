@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import type { ChatMessage, MindNode } from "@/lib/types"
 import LatexRenderer from "@/components/LatexRenderer"
+import { detectThinkingLines, getLineInfo } from "@/lib/thinking-lines"
+import type { ThinkingLineId } from "@/lib/thinking-lines"
 
 // 框架类型 → 思维线颜色
 const FRAME_COLORS: Record<string, string> = {
@@ -37,9 +39,23 @@ export default function ChatPanel({
   const [pastePreview, setPastePreview] = useState<string | null>(null)
   const [voiceActive, setVoiceActive] = useState(false)
   const [expandedMsgId, setExpandedMsgId] = useState<string | null>(null)
+  const [liveThinking, setLiveThinking] = useState<{ lineId: string; name: string; icon: string; color: string } | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // ── 即时思维检测 — 300ms 防抖，零 API 调用 ──
+  useEffect(() => {
+    if (!input || input.trim().length < 2) { setLiveThinking(null); return }
+    const timer = setTimeout(() => {
+      const lines = detectThinkingLines(input)
+      if (lines.length > 0) {
+        const top = getLineInfo(lines[0].lineId as ThinkingLineId)
+        if (top) setLiveThinking({ lineId: top.id, name: top.name, icon: top.icon, color: top.color })
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [input])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -291,10 +307,19 @@ export default function ChatPanel({
               {onToggleDrawer && (
                 <button type="button" onClick={onToggleDrawer}
                   className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 px-1.5 py-0.5 rounded-md transition-all">
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: nodesCount && nodesCount > 0 ? "#6366F1" : "#d4d4d4" }} />
-                  {nodesCount && nodesCount > 0 && mindFrame
-                    ? <span>{FRAME_LABELS[mindFrame] || "思维"} · {nodesCount}概念</span>
-                    : <span>暂无概念</span>}
+                  {liveThinking ? (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: liveThinking.color }} />
+                      <span style={{ color: liveThinking.color }}>{liveThinking.icon} {liveThinking.name}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: nodesCount && nodesCount > 0 ? "#6366F1" : "#d4d4d4" }} />
+                      {nodesCount && nodesCount > 0 && mindFrame
+                        ? <span>{FRAME_LABELS[mindFrame] || "思维"} · {nodesCount}概念</span>
+                        : <span>暂无概念</span>}
+                    </>
+                  )}
                 </button>
               )}
             </div>

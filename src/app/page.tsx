@@ -13,6 +13,7 @@ import AuthBar from "@/components/AuthBar"
 import { getCurrentUser, loginAs, logout, updateUserRole, UserRole, SijianUser } from "@/lib/sijian-user"
 import { getLineInfo } from "@/lib/thinking-lines"
 import ParentReportView from "@/components/ParentReportView"
+import MindReviewCard from "@/components/MindReviewCard"
 import { saveCognitionLog, FullCognitionSnapshot } from "@/lib/cognition"
 import CognitionPanel from "@/components/CognitionPanel"
 import type {
@@ -385,6 +386,7 @@ export default function Home() {
   // ── 抽屉状态 ────────────────────────────────
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showReport, setShowReport] = useState(false)
+  const [showMindReview, setShowMindReview] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const hamburgerLinks = (
@@ -441,6 +443,10 @@ export default function Home() {
                     <span className="text-sm">📋</span>
                   </button>
                 )}
+                <button onClick={() => setShowMindReview(true)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all" title="思维回顾">
+                  <span className="text-sm">🧠</span>
+                </button>
                 <button onClick={handleNewSession}
                   className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors whitespace-nowrap">
                   新对话
@@ -504,6 +510,24 @@ export default function Home() {
 
       {/* ═══ 意识面板 ═══ */}
       <CognitionPanel />
+
+      {/* ═══ 思维回顾弹窗 ═══ */}
+      {showMindReview && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex flex-col justify-end md:justify-center"
+          onClick={() => setShowMindReview(false)}>
+          <div className="bg-white rounded-t-2xl md:rounded-2xl md:max-w-lg md:mx-auto w-full max-h-[85vh] overflow-y-auto shadow-2xl"
+            onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm px-4 py-3 border-b flex items-center justify-between rounded-t-2xl">
+              <span className="text-sm font-semibold text-gray-700">🧠 思维回顾</span>
+              <button onClick={() => setShowMindReview(false)}
+                className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
+            </div>
+            <div className="p-4">
+              <MindReviewCard sessionId={sessionIdRef.current} onClose={() => setShowMindReview(false)} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══ 家长思维报告弹窗 ═══ */}
       {showReport && (
