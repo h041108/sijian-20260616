@@ -435,10 +435,12 @@ export default function Home() {
             extraToolbar={
               <div className="flex items-center gap-1.5">
                 <AuthBar user={user} onLogin={handleLogin} onLogout={handleLogout} onRoleChange={handleRoleChange} />
-                <button onClick={() => setShowReport(true)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all" title="思维报告">
-                  <span className="text-sm">📋</span>
-                </button>
+                {user?.role === "parent" && (
+                  <button onClick={() => setShowReport(true)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all" title="思维报告">
+                    <span className="text-sm">📋</span>
+                  </button>
+                )}
                 <button onClick={handleNewSession}
                   className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors whitespace-nowrap">
                   新对话
