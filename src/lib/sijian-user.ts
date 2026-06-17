@@ -92,16 +92,23 @@ export function logout(): void {
 
 // ─── 微信扫码登录（开发环境模拟） ────────────────────
 
-export function generateMockWechatLogin(): SijianUser {
+export function generateMockWechatLogin(role: UserRole = "student"): SijianUser {
   const id = `wx_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
-  const nicknames = ["思远同学","浩然爸爸","雨桐妈妈","张老师","子涵同学","刘总","王主管","李经理"]
+  const roleNicknames: Record<UserRole, string[]> = {
+    student: ["思远同学","子涵同学","沐辰同学","一诺同学"],
+    parent: ["浩然爸爸","雨桐妈妈","小明爸爸","思远妈妈"],
+    teacher: ["张老师","李老师","王老师","陈老师"],
+    enterprise_admin: ["刘总","王总","李总","陈总"],
+    enterprise_member: ["王主管","李经理","张主管","赵经理"],
+  }
   const avatarColors = ["#6366F1","#EC4899","#F59E0B","#10B981","#3B82F6","#8B5CF6","#F97316","#06B6D4"]
+  const names = roleNicknames[role] || roleNicknames.student
   return {
     id,
     openid: id,
-    nickname: nicknames[Math.floor(Math.random() * nicknames.length)],
+    nickname: names[Math.floor(Math.random() * names.length)],
     avatar: avatarColors[Math.floor(Math.random() * avatarColors.length)],
-    role: "student",  // 默认学生角色，登录后可切换
+    role,
     createdAt: new Date().toISOString(),
   }
 }

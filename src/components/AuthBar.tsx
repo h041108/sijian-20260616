@@ -13,12 +13,13 @@ interface AuthBarProps {
 export default function AuthBar({ user, onLogin, onLogout, onRoleChange }: AuthBarProps) {
   const [showPanel, setShowPanel] = useState(false)
   const [panelMode, setPanelMode] = useState<"login" | "invite">("invite")
+  const [loginRole, setLoginRole] = useState<UserRole>("student")
   const [inviteCode, setInviteCode] = useState("")
   const [codeError, setCodeError] = useState("")
   const [codeSuccess, setCodeSuccess] = useState("")
 
   const handleLogin = () => {
-    const mockUser = generateMockWechatLogin()
+    const mockUser = generateMockWechatLogin(loginRole)
     const registered = registerUser(mockUser)
     onLogin(registered)
     setShowPanel(false)
@@ -51,20 +52,25 @@ export default function AuthBar({ user, onLogin, onLogout, onRoleChange }: AuthB
         </button>
         {showPanel && (
           <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setShowPanel(false)}>
-            <div className="bg-white rounded-2xl p-8 shadow-2xl w-80 text-center" onClick={e => e.stopPropagation()}>
-              <div className="text-4xl mb-4">💬</div>
-              <h2 className="text-lg font-bold text-gray-800 mb-2">登录思见</h2>
-              <p className="text-xs text-gray-400 mb-5">开发环境模拟登录，点击即登录</p>
-              <div className="w-40 h-40 mx-auto mb-5 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center bg-gray-50 cursor-pointer hover:bg-indigo-50 hover:border-indigo-300 transition-all"
-                onClick={handleLogin}>
-                <div className="text-center">
-                  <div className="w-12 h-12 mx-auto mb-2 rounded-lg bg-indigo-500 flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">思</span>
-                  </div>
-                  <div className="text-xs text-gray-400">点击模拟登录</div>
-                </div>
+            <div className="bg-white rounded-2xl p-6 shadow-2xl w-72 text-center" onClick={e => e.stopPropagation()}>
+              <div className="text-3xl mb-3">💬</div>
+              <h2 className="text-base font-bold text-gray-800 mb-1">登录思见</h2>
+              <p className="text-xs text-gray-400 mb-4">选择身份后点击登录（开发环境模拟）</p>
+              <div className="mb-4">
+                <select value={loginRole} onChange={e => setLoginRole(e.target.value as UserRole)}
+                  className="text-sm rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                  <option value="student">👤 学生</option>
+                  <option value="parent">👨‍👩‍👧 家长</option>
+                  <option value="teacher">👩‍🏫 教师</option>
+                  <option value="enterprise_admin">🏢 企业主</option>
+                  <option value="enterprise_member">💼 员工</option>
+                </select>
               </div>
-              <div className="text-[10px] text-gray-300">正式版接入微信开放平台 OAuth 2.0</div>
+              <button onClick={handleLogin}
+                className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-all">
+                点击登录
+              </button>
+              <div className="text-[10px] text-gray-300 mt-3">正式版接入微信 OAuth 2.0</div>
             </div>
           </div>
         )}
