@@ -252,6 +252,33 @@ export default function VideoFactoryDashboard() {
                         </div>
                       )}
 
+                      {/* 内置质检结果 — 故事创世/分镜拆解完成后自动显示 */}
+                      {(stage as any).qaResult && (
+                        <div className="mt-2 p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-100 animate-fade-in">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-[10px] font-medium text-purple-600">🧠 内置质检</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                              (stage as any).qaResult.overallScore >= 80 ? "bg-green-100 text-green-700" :
+                              (stage as any).qaResult.overallScore >= 60 ? "bg-yellow-100 text-yellow-700" :
+                              "bg-red-100 text-red-700"
+                            }`}>{(stage as any).qaResult.overallScore}分</span>
+                            <span className="text-[9px] text-gray-400">因果清晰度 {Math.round(((stage as any).qaResult.narrative?.causalClarity || 0) * 100)}%</span>
+                          </div>
+                          <div className="text-[10px] text-gray-600 leading-relaxed">{(stage as any).qaResult.aiAdvice}</div>
+                          {(stage as any).qaResult.narrative?.gaps?.length > 0 && (
+                            <div className="mt-1.5 text-[9px] text-red-500">
+                              ⚠️ 发现 {(stage as any).qaResult.narrative.gaps.length} 处逻辑跳跃
+                            </div>
+                          )}
+                          {(stage as any).qaResult.emotion?.isMonotone && (
+                            <div className="mt-1 text-[9px] text-yellow-500">⚠️ 情绪曲线偏平，建议增加冲突或反转</div>
+                          )}
+                          {(stage as any).qaResult.cognitiveLoad?.optimalDuration > 0 && (
+                            <div className="mt-1 text-[9px] text-gray-400">建议时长：{(stage as any).qaResult.cognitiveLoad.optimalDuration}秒</div>
+                          )}
+                        </div>
+                      )}
+
                       {stage.error && (
                         <div className="mt-1 text-xs text-red-500">{stage.error}</div>
                       )}

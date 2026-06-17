@@ -50,8 +50,7 @@ export interface PipelineStageResult {
   startedAt?: string
   completedAt?: string
   error?: string
-  // Stage-specific metadata
-  metadata?: Record<string, any>
+  qaResult?: any   // 内置质检报告（故事创世+分镜拆解后自动生成）
 }
 
 // ═══════════════════════════════════════════════════
@@ -348,6 +347,15 @@ export async function executeStage(
     stage.status = "done"
     stage.modelUsed = stageConfig.primaryModel
     stage.completedAt = new Date().toISOString()
+
+    // ── 内置质检：故事创世/分镜拆解完成后自动跑认知分析 ──
+    if (stageId === "story_genesis" || stageId === "script_breakdown") {
+      try {
+        const { analyzeScript } = await import("./video-cognition-qa")
+        stage.qaResult = analyzeScript(stage.output)
+      } catch {}
+    }
+
     saveProjects(projects)
     return stage
   } catch (err: any) {
