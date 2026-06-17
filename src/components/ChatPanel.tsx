@@ -233,9 +233,10 @@ export default function ChatPanel({
         <div ref={bottomRef} />
       </div>
 
-      {/* 输入区 — 无背景，紧贴消息区，底部留0.5cm */}
-      <div className="shrink-0 pb-[0.5cm]">
-        <form onSubmit={handleSubmit} className="px-3 sm:px-4 pt-2.5 pb-1.5">
+      {/* 输入区 — 统一钝角圆角容器 */}
+      <div className="shrink-0 px-3 sm:px-4 pb-[0.5cm]">
+        <form onSubmit={handleSubmit}
+          className="rounded-[22px] border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow px-3 py-2.5">
           {/* 第一排：文本框 + 发送 */}
           <div className="flex items-end gap-2">
             <textarea
@@ -244,28 +245,29 @@ export default function ChatPanel({
               onKeyDown={handleKeyDown}
               placeholder="说点什么……"
               rows={1}
-              className="flex-1 resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 focus:bg-white transition-all"
+              className="flex-1 resize-none bg-transparent px-1 py-2 text-[15px] text-gray-800 placeholder-gray-400 focus:outline-none"
             />
             <button
               type="submit"
               disabled={!input.trim()}
-              className="shrink-0 h-[42px] w-[42px] rounded-full bg-gray-900 hover:bg-gray-800 text-white flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              className="shrink-0 h-[36px] w-[36px] rounded-full bg-gray-900 hover:bg-gray-800 text-white flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
               </svg>
             </button>
           </div>
 
-          {/* 第二排：工具 + 状态 + 入口 */}
-          <div className="flex items-center justify-between px-0.5 mt-1">
+          {/* 分隔线 */}
+          <div className="h-px bg-gray-100 mx-1 my-0.5" />
+
+          {/* 第二排：工具 + 状态 + 入口 — 收拢在容器内 */}
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-0.5">
-              {/* 上传 */}
               <button type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
-                title="上传文件">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all" title="上传文件">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
                 </svg>
               </button>
@@ -273,36 +275,31 @@ export default function ChatPanel({
                 accept="image/*,.pdf,.doc,.docx,.txt,.mp3,.mp4,.wav,.webm"
                 onChange={handleFileChange} className="hidden" />
 
-              {/* 语音 */}
               <button type="button"
                 onClick={() => setVoiceActive(!voiceActive)}
-                className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${voiceActive ? "bg-red-100 text-red-500" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"}`}
+                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${voiceActive ? "bg-red-100 text-red-500" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"}`}
                 title={voiceActive ? "停止录音" : "语音输入"}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
                 </svg>
               </button>
 
-              {/* 思维空间状态标签 */}
               {onToggleDrawer && (
                 <button type="button" onClick={onToggleDrawer}
-                  className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 px-2 py-1 rounded-lg transition-all">
+                  className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 px-1.5 py-0.5 rounded-md transition-all">
                   <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: nodesCount && nodesCount > 0 ? "#6366F1" : "#d4d4d4" }} />
-                  {nodesCount && nodesCount > 0 && mindFrame ? (
-                    <span>{FRAME_LABELS[mindFrame] || "思维"} · {nodesCount}概念</span>
-                  ) : (
-                    <span>暂无概念</span>
-                  )}
+                  {nodesCount && nodesCount > 0 && mindFrame
+                    ? <span>{FRAME_LABELS[mindFrame] || "思维"} · {nodesCount}概念</span>
+                    : <span>暂无概念</span>}
                 </button>
               )}
             </div>
 
-            {/* 右侧快捷入口 */}
             <div className="flex items-center gap-0.5">
               {extraToolbar || (
                 <>
-                  <a href="/pricing" className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-1 rounded transition-colors">定价</a>
-                  <a href="/b-end" className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-1 rounded transition-colors">B端</a>
+                  <a href="/pricing" className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors">定价</a>
+                  <a href="/b-end" className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors">B端</a>
                 </>
               )}
             </div>
