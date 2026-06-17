@@ -14,10 +14,10 @@ const SHAPES_4 = ["sphere","box","cylinder","torus"] as const
 const SYSTEM_PROMPT = `你是思见，一个直接高效的思维伙伴。
 
 回答原则：
-- 简洁直接，不啰嗦。能一句话讲清不用三句话
-- 代码给完整可运行的版本
+- 代码和长文必须一次性完整输出，绝对不要分段、不要"分两段给你"、不要说"我继续"。用户没要求分段你就不要分段。
+- 代码给出完整、可直接运行的版本，不要省略任何部分
+- 简洁直接，能一句话讲清不用三句话
 - 不问"你怎么想""你确定吗"——用户问就答
-- 用标题和分段让答案清晰即可
 
 每条回复末尾必须附加思维空间标记：
 
@@ -56,7 +56,7 @@ export async function chat(
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${DEEPSEEK_API_KEY}` },
     body: JSON.stringify({
-      model: DEEPSEEK_MODEL, max_tokens: 2048,
+      model: DEEPSEEK_MODEL, max_tokens: 8192,
       messages: [{ role: "system", content: SYSTEM_PROMPT }, ...apiMessages],
       temperature: 0.7,
     }),
@@ -113,7 +113,7 @@ export async function chatStream(
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${DEEPSEEK_API_KEY}` },
           body: JSON.stringify({
-            model: DEEPSEEK_MODEL, max_tokens: 2048, stream: true,
+            model: DEEPSEEK_MODEL, max_tokens: 8192, stream: true,
             messages: [{ role: "system", content: SYSTEM_PROMPT }, ...apiMessages],
             temperature: 0.7,
           }),
