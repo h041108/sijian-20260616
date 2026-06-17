@@ -165,8 +165,8 @@ export default function ChatPanel({
         <div ref={bottomRef} />
       </div>
 
-      {/* 输入区 — 两排布局 */}
-      <div className="shrink-0 border-t border-gray-100 bg-white/80 backdrop-blur-sm pb-[env(safe-area-inset-bottom,0px)]">
+      {/* 输入区 — 无背景，紧贴消息区，底部留0.5cm */}
+      <div className="shrink-0 pb-[0.5cm]">
         <form onSubmit={handleSubmit} className="px-3 sm:px-4 pt-2.5 pb-1.5">
           {/* 第一排：文本框 + 发送 */}
           <div className="flex items-end gap-2">

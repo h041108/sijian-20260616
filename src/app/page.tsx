@@ -526,7 +526,7 @@ export default function Home() {
 
         {/* 聊天主区域 — 居中 */}
         <div className="flex-1 flex flex-col min-h-0"
-          style={{ background: "linear-gradient(180deg, #faf8f5 0%, #f3f0eb 100%)" }}>
+          style={{ background: "#fafafa" }}>
           <div className="flex-1 min-h-0 w-full max-w-3xl mx-auto flex flex-col">
             <ChatPanel
               messages={messages} onSend={handleSend} onFileSelect={handleFileSelect} loading={loading}
