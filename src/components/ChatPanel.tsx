@@ -1,8 +1,15 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import type { ChatMessage } from "@/lib/types"
+import type { ChatMessage, MindNode } from "@/lib/types"
 import LatexRenderer from "@/components/LatexRenderer"
+
+// 框架类型 → 思维线颜色
+const FRAME_COLORS: Record<string, string> = {
+  tree: "#4C51BF", network: "#E53E3E", helix: "#805AD5", strata: "#D53F8C",
+  orbital: "#319795", pipeline: "#38A169", lens: "#00B5D8", cycle: "#ED8936",
+  spectrum: "#DD6B20", matrix: "#D69E2E", diffusion: "#3182CE",
+}
 
 interface ChatPanelProps {
   messages: ChatMessage[]
@@ -29,6 +36,7 @@ export default function ChatPanel({
   const [input, setInput] = useState("")
   const [pastePreview, setPastePreview] = useState<string | null>(null)
   const [voiceActive, setVoiceActive] = useState(false)
+  const [expandedMsgId, setExpandedMsgId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -136,27 +144,79 @@ export default function ChatPanel({
           </div>
         )}
 
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex animate-fade-in ${
-              msg.role === "user" ? "justify-end" : "justify-start"
-            }`}
-          >
-            <div className="relative group max-w-[85%]">
-              {msg.role === "user" ? (
-                <div className="bubble-user px-4 py-2.5 text-[14px] leading-relaxed">
-                  <LatexRenderer text={msg.content} />
+        {messages.map((msg) => {
+          const hasMindSpace = msg.role === "assistant" && msg.mindSpace?.nodes && msg.mindSpace.nodes.length > 0
+          const frameType = msg.mindSpace?.frameType || "tree"
+          const lineColor = FRAME_COLORS[frameType] || "#6366F1"
+          const isExpanded = expandedMsgId === msg.id
+
+          return (
+            <div key={msg.id}
+              className={`flex animate-fade-in ${
+                msg.role === "user" ? "justify-end" : "justify-start"
+              }`}
+            >
+              <div className={`relative ${msg.role === "assistant" ? "flex items-stretch gap-2 max-w-[88%]" : "max-w-[85%]"}`}>
+                {/* 彩色思维线 — AI 消息左侧 */}
+                {msg.role === "assistant" && (
+                  <button
+                    onClick={() => setExpandedMsgId(isExpanded ? null : msg.id)}
+                    className={`shrink-0 w-[3px] rounded-full transition-all cursor-pointer ${
+                      hasMindSpace ? "hover:w-[5px]" : ""
+                    }`}
+                    style={{ backgroundColor: hasMindSpace ? lineColor : "#e5e7eb" }}
+                    title={hasMindSpace ? `思维框架: ${FRAME_LABELS[frameType]} · 点击展开节点` : ""}
+                  />
+                )}
+
+                <div className="flex-1 min-w-0">
+                  {/* 气泡 */}
+                  {msg.role === "user" ? (
+                    <div className="bubble-user px-4 py-2.5 text-[14px] leading-relaxed">
+                      <LatexRenderer text={msg.content} />
+                    </div>
+                  ) : (
+                    <div className="bubble-ai px-4 py-2.5 text-[14px] leading-relaxed">
+                      <LatexRenderer text={msg.content} />
+                    </div>
+                  )}
+
+                  {/* 内嵌思维节点预览 — 点击思维线展开 */}
+                  {isExpanded && hasMindSpace && (
+                    <div className="mt-1.5 p-3 bg-gradient-to-r from-gray-50 to-indigo-50/30 rounded-xl border border-gray-200 animate-fade-in">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: lineColor }} />
+                        <span className="text-[10px] font-medium text-gray-600">
+                          {FRAME_LABELS[frameType]} · {msg.mindSpace!.nodes.length} 节点
+                        </span>
+                        {onToggleDrawer && (
+                          <button onClick={onToggleDrawer}
+                            className="ml-auto text-[10px] text-indigo-500 hover:text-indigo-700">
+                            展开全图 →
+                          </button>
+                        )}
+                      </div>
+                      {/* 微型节点列表 */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {msg.mindSpace!.nodes.slice(0, 5).map((n: MindNode) => (
+                          <span key={n.id}
+                            className="text-[10px] px-2 py-0.5 rounded-full border border-gray-200 bg-white text-gray-700">
+                            <span className="w-1.5 h-1.5 rounded-full inline-block mr-1 align-middle"
+                              style={{ backgroundColor: n.color || lineColor }} />
+                            {n.label}
+                          </span>
+                        ))}
+                        {(msg.mindSpace!.nodes.length > 5) && (
+                          <span className="text-[10px] text-gray-400">+{msg.mindSpace!.nodes.length - 5} 更多</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="bubble-ai px-4 py-2.5 text-[14px] leading-relaxed">
-                  <LatexRenderer text={msg.content} />
-                </div>
-              )}
-              {msg.role === "assistant" && null}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
 
         {loading && (
           <div className="flex justify-start animate-fade-in">
