@@ -487,7 +487,7 @@ export default function Home() {
             )}
           </div>
           {/* 思维空间内容 */}
-          <div className={`${mindExpanded ? "h-[calc(55vh-32px)]" : "h-[calc(28vh-32px)]"}`}>
+          <div className={`${mindExpanded ? "h-[calc(55vh-32px)]" : "h-[calc(38.2vh-32px)]"}`}>
             <MindTransit
               nodes={nodes} edges={edges}
               domainType={domainType} frameType={frameType}
