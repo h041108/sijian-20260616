@@ -46,7 +46,7 @@ export default function CognitionPanel() {
   if (collapsed) {
     return (
       <button onClick={() => setCollapsed(false)}
-        className="fixed bottom-4 right-4 z-40 bg-white rounded-2xl shadow-lg border border-[#e8e5df] px-4 py-2.5 flex items-center gap-2 text-sm hover:shadow-xl transition-all">
+        className="hidden md:flex fixed bottom-4 right-4 z-40 bg-white rounded-2xl shadow-lg border border-[#e8e5df] px-4 py-2.5 items-center gap-2 text-sm hover:shadow-xl transition-all">
         <span>🧠</span>
         <span className="font-medium text-gray-700">意识面板</span>
         {mirror && (
