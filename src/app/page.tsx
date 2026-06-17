@@ -389,19 +389,13 @@ export default function Home() {
 
   const headerLinks = (
     <>
-      <a href="/pricing"
-        className="text-[11px] text-gray-500 hover:text-gray-800 transition-all px-2 py-1 rounded-lg border border-gray-200 hover:border-gray-300 whitespace-nowrap">
-        定价
-      </a>
-      <a href="/b-end"
-        className="text-[11px] text-gray-500 hover:text-gray-800 transition-all px-2 py-1 rounded-lg border border-gray-200 hover:border-gray-300 whitespace-nowrap">
-        B端
-      </a>
+      <a href="/pricing" className="text-[11px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors">定价</a>
+      <span className="text-gray-200 text-[10px]">·</span>
+      <a href="/b-end" className="text-[11px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors">B端</a>
+      <span className="text-gray-200 text-[10px]">·</span>
       <SharedList />
-      <button onClick={handleNewSession}
-        className="text-[11px] text-gray-500 hover:text-gray-800 transition-all px-2 py-1 rounded-lg border border-gray-200 hover:border-gray-300 whitespace-nowrap">
-        新对话
-      </button>
+      <span className="text-gray-200 text-[10px]">·</span>
+      <button onClick={handleNewSession} className="text-[11px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors">新对话</button>
     </>
   )
 
@@ -416,10 +410,10 @@ export default function Home() {
     <div className="flex flex-col h-dvh overflow-hidden bg-white">
 
       {/* 顶栏 — 24px 极薄 */}
-      <div className="shrink-0 h-9 px-4 flex items-center justify-between bg-white border-b border-gray-50">
+      <div className="shrink-0 h-10 px-4 flex items-center justify-between bg-white border-b border-gray-50">
         <div className="flex items-center gap-1.5">
-          <span className="text-[12px] font-bold text-gray-900 tracking-tight select-none">思见</span>
-          {nodes.length > 0 && <span className="text-[9px] text-gray-300 hidden sm:block">所思即所见</span>}
+          <span className="text-[20px] font-extrabold text-gray-900 tracking-tight select-none">思见</span>
+          {nodes.length > 0 && <span className="text-[9px] text-gray-300 hidden sm:block mt-1.5">所思即所见</span>}
         </div>
         <button onClick={() => setShowMobileMenu(!showMobileMenu)}
           className="md:hidden w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:bg-gray-100">
