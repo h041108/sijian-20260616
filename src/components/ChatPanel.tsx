@@ -15,7 +15,7 @@ const FRAME_COLORS: Record<string, string> = {
 
 interface ChatPanelProps {
   messages: ChatMessage[]
-  onSend: (content: string) => void
+  onSend: (content: string, imageData?: string) => void
   onFileSelect: (file: File) => void
   loading: boolean
   onToggleDrawer?: () => void
@@ -37,6 +37,7 @@ export default function ChatPanel({
 }: ChatPanelProps) {
   const [input, setInput] = useState("")
   const [pastePreview, setPastePreview] = useState<string | null>(null)
+  const [pendingImage, setPendingImage] = useState<string | null>(null)
   const [voiceActive, setVoiceActive] = useState(false)
   const [expandedMsgId, setExpandedMsgId] = useState<string | null>(null)
   const [liveThinking, setLiveThinking] = useState<{ lineId: string; name: string; icon: string; color: string } | null>(null)
@@ -80,13 +81,12 @@ export default function ChatPanel({
           const blob = item.getAsFile()
           if (!blob) continue
 
-          // 生成预览
           const reader = new FileReader()
-          reader.onload = () => setPastePreview(reader.result as string)
+          reader.onload = () => {
+            setPendingImage(reader.result as string)
+            setPastePreview(reader.result as string)
+          }
           reader.readAsDataURL(blob)
-
-          // 传给父组件处理
-          onFileSelect(new File([blob], `paste_${Date.now()}.png`, { type: blob.type }))
           return
         }
       }
@@ -112,10 +112,12 @@ export default function ChatPanel({
     (e: React.FormEvent) => {
       e.preventDefault()
       if (!input.trim() || loading) return
-      onSend(input.trim())
+      onSend(input.trim(), pendingImage || undefined)
       setInput("")
+      setPendingImage(null)
+      setPastePreview(null)
     },
-    [input, loading, onSend],
+    [input, loading, onSend, pendingImage],
   )
 
   const handleKeyDown = useCallback(
@@ -254,7 +256,7 @@ export default function ChatPanel({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="说点什么……"
+              placeholder={pendingImage ? "输入文字描述你要识别的内容……" : "说点什么……"}
               rows={1}
               className="flex-1 resize-none bg-transparent px-1 py-2 text-[15px] text-gray-800 placeholder-gray-400 focus:outline-none"
             />
@@ -268,6 +270,18 @@ export default function ChatPanel({
               </svg>
             </button>
           </div>
+
+          {/* 粘贴/上传的图片预览 */}
+          {pendingImage && (
+            <div className="px-1 mt-1.5 flex items-start gap-2">
+              <img src={pendingImage} alt="预览" className="w-16 h-16 object-cover rounded-lg border border-gray-200" />
+              <div className="flex-1 text-xs text-gray-400 pt-1">
+                图片已粘贴，输入文字后一起发送
+                <button type="button" onClick={() => { setPendingImage(null); setPastePreview(null) }}
+                  className="ml-2 text-red-400 hover:text-red-600">移除</button>
+              </div>
+            </div>
+          )}
 
           {/* 分隔线 */}
           <div className="h-px bg-gray-100 mx-1 my-0.5" />
