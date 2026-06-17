@@ -437,10 +437,6 @@ export default function Home() {
           )}
         </div>
         <div className="flex items-center gap-1.5">
-          <button onClick={() => setShowReport(true)}
-            className="text-[11px] text-purple-600 hover:bg-purple-50 px-2 py-1 rounded-lg transition-all">
-            📋 报告
-          </button>
           <button onClick={() => setShowMobileMenu(!showMobileMenu)}
             className="md:hidden text-gray-500 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100">
             {showMobileMenu ? "✕" : "☰"}
@@ -533,7 +529,12 @@ export default function Home() {
               onToggleDrawer={() => setDrawerOpen(!drawerOpen)}
               nodesCount={nodes.length}
               extraToolbar={
-                <div className="hidden md:flex items-center gap-1">
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setShowReport(true)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all"
+                    title="思维报告">
+                    <span className="text-sm">📋</span>
+                  </button>
                   <AuthBar user={user} onLogin={handleLogin} onLogout={handleLogout} onRoleChange={handleRoleChange} />
                   {headerLinks}
                 </div>
