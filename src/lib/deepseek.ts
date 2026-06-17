@@ -27,7 +27,8 @@ N: id|标签≤6字|depth|shape|color|内容
 
 框架选一: tree/network/helix/strata/orbital/pipeline/lens/cycle/spectrum/matrix/diffusion
 领域选一: mathematics/physics/chemistry/biology/history/economics/tech/ai/general
-N行最多5个节点，标签≤6字，depth从0开始，shape选sphere/box/cylinder/torus，color从#E53E3E #D53F8C #805AD5等自选。`
+N行最多5个节点，标签≤6字，depth从0开始，shape选sphere/box/cylinder/torus，color从#E53E3E #D53F8C #805AD5等自选。
+N行的标签和内容不要用markdown格式——不要加**、-、#等符号，直接给纯文字。`
 
 // ═══════════════════════════════════════════════════
 // 非流式（B端 / 工作流用）
@@ -169,6 +170,21 @@ export async function chatStream(
 
 // ─── 解析 ─────────────────────────────────────
 
+function cleanMarkdown(text: string): string {
+  return text
+    .replace(/^[\s]*[-*#]+\s*/gm, "")           // 去掉行首的 - * # 及后面的空格
+    .replace(/\*\*([^*]+)\*\*/g, "$1")           // **粗体** → 粗体
+    .replace(/__([^_]+)__/g, "$1")               // __粗体__ → 粗体
+    .replace(/\*([^*]+)\*/g, "$1")               // *斜体* → 斜体（避免 ** 冲突，先处理双星）
+    .replace(/_([^_]+)_/g, "$1")                 // _斜体_ → 斜体
+    .replace(/`([^`]+)`/g, "$1")                 // `代码` → 代码
+    .replace(/~~([^~]+)~~/g, "$1")               // ~~删除线~~ → 删除线
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")     // [链接](url) → 链接
+    .replace(/^>\s*/gm, "")                       // > 引用标记
+    .replace(/\n{3,}/g, "\n\n")                   // 压缩过多空行
+    .trim()
+}
+
 function parseExtract(raw: string): ExtractResult {
   const m = raw.match(/<extract f="(\w+)" d="(\w+)"[^>]*>([\s\S]*?)<\/extract>/)
   if (!m) return { nodes: [], edges: [] }
@@ -184,9 +200,9 @@ function parseExtract(raw: string): ExtractResult {
     const p = t.slice(3).split("|")
     if (p.length >= 6) {
       nodes.push({
-        id: p[0].trim(), label: p[1].trim().slice(0, 6),
+        id: p[0].trim(), label: cleanMarkdown(p[1].trim()).slice(0, 6),
         depth: parseInt(p[2]) || 0, shape: p[3].trim() || "sphere",
-        color: p[4].trim() || "#4C51BF", content: p.slice(5).join("|").trim(),
+        color: p[4].trim() || "#4C51BF", content: cleanMarkdown(p.slice(5).join("|").trim()).slice(0, 80),
         parentIds: [], anchors: [],
         metadata: { createdBy: "ai" as const, createdAt: new Date().toISOString(), version: 1 },
       })
@@ -196,7 +212,9 @@ function parseExtract(raw: string): ExtractResult {
 }
 
 function localExtract(reply: string, userMsg: string): ExtractResult {
-  const text = (userMsg + " " + reply).slice(0, 300)
+  const cleanReply = cleanMarkdown(reply)
+  const cleanUser = cleanMarkdown(userMsg)
+  const text = (cleanUser + " " + cleanReply).slice(0, 300)
   const sents = text.split(/[。！？\n]/).map(s => s.trim()).filter(s => s.length >= 4 && s.length <= 30).slice(0, 5)
   if (sents.length === 0) {
     return { frameType: "tree", nodes: [{ id: "fb1", label: reply.slice(0, 6), depth: 0, shape: "sphere", color: COLORS_16[0], content: reply.slice(0, 50), parentIds: [], anchors: [], metadata: { createdBy: "ai" as const, createdAt: new Date().toISOString(), version: 1 } }], edges: [] }
