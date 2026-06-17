@@ -5,6 +5,7 @@ type ExtractResult = { nodes: MindNode[]; edges: MindEdge[]; frameType?: string;
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || ""
 const DEEPSEEK_API_BASE = process.env.DEEPSEEK_API_BASE || "https://api.deepseek.com/v1"
 const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || "deepseek-v4-flash"
+const DEEPSEEK_VISION_MODEL = "deepseek-chat"   // DeepSeek V3 支持多模态图片识别
 
 const COLORS_16 = ["#E53E3E","#D53F8C","#805AD5","#553C9A","#4C51BF","#3182CE","#00B5D8","#319795","#38A169","#68D391","#9AE6B4","#D69E2E","#F6E05E","#ED8936","#DD6B20","#8B4513"]
 const SHAPES_4 = ["sphere","box","cylinder","torus"] as const
@@ -41,23 +42,26 @@ export async function chat(
 ): Promise<AIResponse> {
   void existingNodes
 
-  // 图片转文本提示（deepseek-v4 不支持多模态 image_url）
-  let finalMessages = messages
+  // 有图片 → 切换多模态模型 + 传递 image_url
+  const model = imageData ? DEEPSEEK_VISION_MODEL : DEEPSEEK_MODEL
+  let apiMessages: any[]
   if (imageData) {
-    const imgHint = `\n\n[用户上传了一张图片。请根据你的知识推测内容并诚实回复——如果无法确定图片内容，请告知用户用文字描述。]`
     const lastMsg = messages[messages.length - 1]
-    if (lastMsg.role === "user") {
-      finalMessages = [...messages.slice(0, -1), { role: "user" as const, content: lastMsg.content + imgHint }]
-    }
+    const hasTextContent = lastMsg.role === "user" ? [{ type: "text" as const, text: lastMsg.content + "\n\n请仔细查看这张图片，描述图中所有文字、图表、数据，然后基于图片内容回答。" }] : [{ type: "text" as const, text: "请描述这张图片的全部内容" }]
+    const imgContent = { type: "image_url" as const, image_url: { url: imageData } }
+    apiMessages = [
+      ...messages.slice(0, -1).map(m => ({ role: m.role, content: m.content })),
+      { role: "user" as const, content: [...hasTextContent, imgContent] },
+    ]
+  } else {
+    apiMessages = messages.map(m => ({ role: m.role, content: m.content }))
   }
-
-  const apiMessages = finalMessages.map(m => ({ role: m.role, content: m.content }))
 
   const res = await fetch(`${DEEPSEEK_API_BASE}/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${DEEPSEEK_API_KEY}` },
     body: JSON.stringify({
-      model: DEEPSEEK_MODEL, max_tokens: 8192,
+      model, max_tokens: 8192,
       messages: [{ role: "system", content: SYSTEM_PROMPT }, ...apiMessages],
       temperature: 0.7,
     }),
@@ -94,27 +98,28 @@ export async function chatStream(
       const emit = (d: object) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(d)}\n\n`))
 
       try {
-        // 构建消息 — 图片转文本描述（deepseek-v4 不支持多模态）
+        // 有图片 → 多模态模型 + image_url
+        const model = imageData ? DEEPSEEK_VISION_MODEL : DEEPSEEK_MODEL
+        let apiMessages: any[]
         if (imageData) {
-          // 图片转为文本提示，交给AI分析
-          const imgHint = `[用户上传了一张图片 (${imageData.length} 字符 base64)]
-
-请根据你对图片格式的了解（base64数据），尝试推测用户上传的内容类型，并诚实回复：
-- 如果你无法识别图片内容，请告诉用户"我暂时无法直接读取图片内容，请用文字描述你上传的图片"
-- 如果用户用文字描述了图片内容，请基于文字描述回答`
           const lastMsg = messages[messages.length - 1]
-          if (lastMsg.role === "user") {
-            messages = [...messages.slice(0, -1), { role: "user" as const, content: `${lastMsg.content}\n\n${imgHint}` }]
-          }
+          const hasTextContent = lastMsg.role === "user"
+            ? [{ type: "text" as const, text: lastMsg.content + "\n\n请仔细查看这张图片，描述图中所有文字、图表、数据，然后基于图片内容回答。" }]
+            : [{ type: "text" as const, text: "请描述这张图片的全部内容" }]
+          const imgContent = { type: "image_url" as const, image_url: { url: imageData } }
+          apiMessages = [
+            ...messages.slice(0, -1).map(m => ({ role: m.role, content: m.content })),
+            { role: "user" as const, content: [...hasTextContent, imgContent] },
+          ]
+        } else {
+          apiMessages = messages.map(m => ({ role: m.role, content: m.content }))
         }
-
-        const apiMessages = messages.map(m => ({ role: m.role, content: m.content }))
 
         const res = await fetch(`${DEEPSEEK_API_BASE}/chat/completions`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${DEEPSEEK_API_KEY}` },
           body: JSON.stringify({
-            model: DEEPSEEK_MODEL, max_tokens: 8192, stream: true,
+            model, max_tokens: 8192, stream: true,
             messages: [{ role: "system", content: SYSTEM_PROMPT }, ...apiMessages],
             temperature: 0.7,
           }),
