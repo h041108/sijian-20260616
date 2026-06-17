@@ -407,21 +407,31 @@ export default function Home() {
   return (
     <div className="flex flex-col h-dvh overflow-hidden bg-white">
 
-      {/* 顶栏 — 24px 极薄 */}
-      <div className="shrink-0 h-10 px-4 flex items-center justify-between bg-white border-b border-gray-50">
+      {/* 顶栏 — 品牌区 */}
+      <div className="shrink-0 h-11 px-4 flex items-center justify-between bg-white border-b border-gray-50">
         <div className="flex items-center gap-1.5">
-          <span className="text-[20px] font-extrabold text-gray-900 tracking-tight select-none">思见</span>
-          {nodes.length > 0 && <span className="text-[9px] text-gray-300 hidden sm:block mt-1.5">所思即所见</span>}
+          <span className="text-[22px] font-extrabold tracking-tight select-none"
+            style={{ background: "linear-gradient(135deg, #6366F1 0%, #8B5CF6 40%, #EC4899 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            思见
+          </span>
+          <span className="text-[10px] font-medium hidden sm:inline-block mt-1.5"
+            style={{ background: "linear-gradient(135deg, #a5b4fc 0%, #c4b5fd 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            所思即所见
+          </span>
         </div>
         <button onClick={() => setShowMobileMenu(!showMobileMenu)}
-          className="md:hidden w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:bg-gray-100">
-          {showMobileMenu ? "✕" : "☰"}
+          className="w-7 h-7 flex items-center justify-center rounded-lg transition-all hover:scale-110"
+          style={{ background: "linear-gradient(135deg, rgba(99,102,241,0.08), rgba(236,72,153,0.08))" }}>
+          <span className="text-sm font-bold"
+            style={{ background: "linear-gradient(135deg, #6366F1, #EC4899)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            {showMobileMenu ? "✕" : "☰"}
+          </span>
         </button>
       </div>
 
-      {/* 移动端下拉菜单 — 定价/B端/分享 */}
+      {/* 下拉菜单 — 桌面端+移动端共用 */}
       {showMobileMenu && (
-        <div className="md:hidden shrink-0 px-2 py-2 border-b border-gray-100 bg-white flex flex-col animate-fade-in">
+        <div className="shrink-0 px-2 py-2 border-b border-gray-100 bg-white flex flex-col animate-fade-in">
           {hamburgerLinks}
         </div>
       )}
