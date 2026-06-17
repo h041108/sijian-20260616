@@ -113,21 +113,15 @@ export default function ChatPanel({
         </div>
       )}
 
-      {/* 消息区 */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 custom-scrollbar">
+      {/* 消息区 — 有消息时滚动，无消息时弹性撑开以便输入框居中 */}
+      <div className={`overflow-y-auto px-4 py-4 space-y-4 custom-scrollbar ${messages.length === 0 ? "flex-1 flex flex-col justify-center items-center" : "flex-1"}`}>
         {messages.length === 0 && (
-          <div className="text-center mt-16">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#5b5f97]/8 to-[#8b7e74]/8 flex items-center justify-center">
-              <span className="text-2xl opacity-40">✦</span>
-            </div>
-            <p className="text-[15px] font-medium text-gray-500">
-              说出你的想法，我来陪你想
+          <div className="text-center w-full max-w-md mb-8">
+            <p className="text-2xl font-bold text-gray-800 mb-2">
+              有什么我可以帮你的？
             </p>
-            <p className="text-[13px] text-gray-400 mt-1.5 leading-relaxed">
-              AI 不会直接给答案——它会先问你"你怎么看？"
-            </p>
-            <p className="text-[12px] text-gray-300 mt-2">
-              Ctrl+V 可直接粘贴图片
+            <p className="text-sm text-gray-400 leading-relaxed">
+              任何问题、想法、创意——我陪你一起想
             </p>
           </div>
         )}

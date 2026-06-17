@@ -382,24 +382,24 @@ export default function Home() {
     setChatList(loadAllChats())
   }, [])
 
-  // ── 移动端状态 ────────────────────────────
+  // ── 抽屉状态 ────────────────────────────────
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showReport, setShowReport] = useState(false)
-  const [mindExpanded, setMindExpanded] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const headerLinks = (
     <>
       <a href="/pricing"
-        className="text-[11px] text-gray-500 hover:text-gray-800 transition-all px-2 py-1 rounded-lg border border-[#a5d6a7] hover:bg-[#c8e6c9] whitespace-nowrap">
+        className="text-[11px] text-gray-500 hover:text-gray-800 transition-all px-2 py-1 rounded-lg border border-gray-200 hover:border-gray-300 whitespace-nowrap">
         定价
       </a>
       <a href="/b-end"
-        className="text-[11px] text-gray-500 hover:text-gray-800 transition-all px-2 py-1 rounded-lg border border-[#a5d6a7] hover:bg-[#c8e6c9] whitespace-nowrap">
+        className="text-[11px] text-gray-500 hover:text-gray-800 transition-all px-2 py-1 rounded-lg border border-gray-200 hover:border-gray-300 whitespace-nowrap">
         B端
       </a>
       <SharedList />
       <button onClick={handleNewSession}
-        className="text-[11px] text-gray-500 hover:text-gray-800 transition-all px-2 py-1 rounded-lg border border-[#a5d6a7] hover:bg-[#c8e6c9] whitespace-nowrap">
+        className="text-[11px] text-gray-500 hover:text-gray-800 transition-all px-2 py-1 rounded-lg border border-gray-200 hover:border-gray-300 whitespace-nowrap">
         新对话
       </button>
     </>
@@ -413,152 +413,127 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-dvh overflow-hidden page-enter">
+    <div className="flex flex-col h-dvh overflow-hidden" style={{ background: "#faf8f5" }}>
 
       {/* ═══════════════════════════════════════════
-          移动端布局：上下分区
+          顶部栏 — 极简
           ═══════════════════════════════════════════ */}
-
-      {/* ── 移动端顶部栏 ── */}
-      <div className="md:hidden shrink-0 px-4 py-2 border-b border-gray-200 flex items-center justify-between bg-white/95 backdrop-blur-sm safe-top">
-        <h1 className="text-[15px] font-bold text-gray-900">思见</h1>
+      <div className="shrink-0 px-4 py-2 border-b border-gray-100 flex items-center justify-between bg-white/90 backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          <button onClick={() => setDrawerOpen(true)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500"
+            title="思维空间">
+            {nodes.length > 0 ? (
+              <span className="text-sm font-bold" style={{ color: nodes[0]?.color || "#6366F1" }}>◈</span>
+            ) : (
+              <span className="text-sm">◈</span>
+            )}
+          </button>
+          <h1 className="text-[15px] font-bold text-gray-900">思见</h1>
+          {nodes.length > 0 && (
+            <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">
+              {FRAME_LABELS[frameType] || "思维空间"} · {nodes.length}概念
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-1.5">
           <button onClick={() => setShowReport(true)}
-            className="text-xs font-medium text-purple-600 hover:bg-purple-50 px-2 py-1 rounded-lg transition-all">
+            className="text-[11px] text-purple-600 hover:bg-purple-50 px-2 py-1 rounded-lg transition-all">
             📋 报告
           </button>
           <AuthBar user={user} onLogin={handleLogin} onLogout={handleLogout} onRoleChange={handleRoleChange} />
+          <span className="hidden md:flex items-center gap-1.5 ml-1">{headerLinks}</span>
           <button onClick={() => setShowMobileMenu(!showMobileMenu)}
-            className="text-gray-500 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100">
+            className="md:hidden text-gray-500 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100">
             {showMobileMenu ? "✕" : "☰"}
           </button>
         </div>
       </div>
 
-      {/* ── 移动端下拉菜单 ── */}
+      {/* 移动端下拉菜单 */}
       {showMobileMenu && (
         <div className="md:hidden shrink-0 px-4 py-2 border-b border-gray-100 bg-white flex items-center gap-2 overflow-x-auto animate-fade-in">
           {headerLinks}
         </div>
       )}
 
-      {/* ── 移动端：思维空间 38.2% / 聊天 61.8% 黄金分割 ── */}
-      {nodes.length > 0 && (
-        <div className={`md:hidden shrink-0 border-b border-[#c8dce8] bg-white transition-all duration-300 ${
-          mindExpanded ? "h-[55vh]" : "h-[38.2vh]"
-        }`}>
-          {/* 折叠栏 */}
-          <div className="flex items-center justify-between px-4 py-1.5 bg-[#e8f4f8]/60">
-            <button onClick={() => setMindExpanded(!mindExpanded)}
-              className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-800">
-              <span>{mindExpanded ? "▾" : "▸"}</span>
-              <span className="font-medium">
-                {FRAME_LABELS[frameType] || "思维空间"}
-              </span>
-              <span className="text-gray-300">·</span>
-              <span>{nodes.length}概念</span>
-              {thinkingLines?.[0] && (
-                <span className="text-gray-300">·</span>
-              )}
-              {thinkingLines?.[0] && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full"
-                  style={{
-                    background: (getLineInfo(thinkingLines[0].lineId as any)?.color || "#6366F1") + "18",
-                    color: getLineInfo(thinkingLines[0].lineId as any)?.color || "#6366F1"
-                  }}>
-                  {thinkingLines[0].lineId}
-                </span>
-              )}
-            </button>
-            {topicArchive.length > 0 && (
-              <div className="flex items-center gap-1 overflow-x-auto max-w-[50%]">
-                {topicArchive.slice(-3).map((t, i) => (
-                  <button key={i}
-                    onClick={() => {
-                      setNodes(t.nodes); setEdges(t.edges)
-                      setDomainType(t.domain as DomainType); setFrameType(t.frame as FrameType)
-                      setTopicArchive(arch => arch.filter((_, j) => j !== i))
-                    }}
-                    className="shrink-0 text-[9px] px-1.5 py-0.5 rounded-full bg-white border border-[#c8dce8] text-gray-500">
-                    {t.topic}
-                  </button>
-                ))}
+      {/* ═══════════════════════════════════════════
+          主内容区：居中聊天 + 左侧思维空间抽屉
+          ═══════════════════════════════════════════ */}
+      <div className="flex-1 min-h-0 flex relative">
+
+        {/* 思维空间抽屉 — 桌面端侧边，手机端全屏 */}
+        {drawerOpen && (
+          <>
+            {/* 遮罩 */}
+            <div className="fixed inset-0 bg-black/30 z-40 md:bg-black/10"
+              onClick={() => setDrawerOpen(false)} />
+
+            {/* 抽屉本体 */}
+            <div className="fixed inset-y-0 left-0 z-50 w-[min(85vw,420px)] bg-white shadow-2xl border-r border-[#e8e5df] flex flex-col animate-fade-in">
+              <div className="shrink-0 px-4 py-3 border-b border-[#e8e5df] flex items-center justify-between bg-white/95 backdrop-blur-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-gray-700">◈ 思维空间</span>
+                  {nodes.length > 0 && (
+                    <span className="text-[10px] text-gray-400">{FRAME_LABELS[frameType] || ""} · {nodes.length}概念</span>
+                  )}
+                </div>
+                <button onClick={() => setDrawerOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
               </div>
-            )}
-          </div>
-          {/* 思维空间内容 */}
-          <div className={`${mindExpanded ? "h-[calc(55vh-32px)]" : "h-[calc(38.2vh-32px)]"}`}>
-            <MindTransit
-              nodes={nodes} edges={edges}
-              domainType={domainType} frameType={frameType}
-              thinkingLines={thinkingLines}
-              onNodeClick={handleNodeClick}
-              onExport={handleExport}
+
+              {/* 话题归档 */}
+              {topicArchive.length > 0 && (
+                <div className="shrink-0 px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto border-b border-[#e8e5df] bg-gray-50/50">
+                  <span className="text-[10px] text-gray-400 shrink-0">📂</span>
+                  {topicArchive.map((topic, i) => (
+                    <button key={i}
+                      onClick={() => {
+                        setNodes(topic.nodes); setEdges(topic.edges)
+                        setDomainType(topic.domain as DomainType); setFrameType(topic.frame as FrameType)
+                        setTopicArchive(arch => arch.filter((_, j) => j !== i))
+                      }}
+                      className="shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-white border border-[#e8e5df] hover:border-blue-300 text-gray-600">
+                      {topic.topic}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex-1 min-h-0" style={{ background: "#f8fafb" }}>
+                <MindTransit
+                  nodes={nodes} edges={edges}
+                  domainType={domainType} frameType={frameType}
+                  thinkingLines={thinkingLines}
+                  onNodeClick={handleNodeClick}
+                  onNodePositionChange={handleNodePositionChange}
+                  onExport={handleExport}
+                />
+                <NodeDetail node={selectedNode} onClose={() => setSelectedNode(null)} />
+              </div>
+
+              {/* 抽屉底部：当前思维线路 */}
+              {thinkingLines?.[0] && (
+                <div className="shrink-0 px-4 py-2 border-t border-[#e8e5df] bg-white flex items-center gap-2 text-[10px] text-gray-400">
+                  <span style={{ color: getLineInfo(thinkingLines[0].lineId as any)?.color }}>
+                    {getLineInfo(thinkingLines[0].lineId as any)?.icon} {getLineInfo(thinkingLines[0].lineId as any)?.name}
+                  </span>
+                  <span>· 置信 {Math.round(thinkingLines[0].confidence * 100)}%</span>
+                  {thinkingLines.length > 1 && <span>+{thinkingLines.length - 1}条关联</span>}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* 聊天主区域 — 居中 */}
+        <div className="flex-1 flex flex-col min-h-0"
+          style={{ background: "linear-gradient(180deg, #faf8f5 0%, #f3f0eb 100%)" }}>
+          <div className="flex-1 min-h-0 w-full max-w-3xl mx-auto flex flex-col">
+            <ChatPanel
+              messages={messages} onSend={handleSend} onFileSelect={handleFileSelect} loading={loading}
             />
           </div>
-        </div>
-      )}
-
-      {/* ── 移动端：聊天区（~2/3 或全屏）── */}
-      <div className="md:hidden flex-1 min-h-0 flex flex-col" style={{ background: "#e8f5e9" }}>
-        <ChatPanel
-          messages={messages} onSend={handleSend} onFileSelect={handleFileSelect} loading={loading}
-        />
-      </div>
-
-
-      {/* ═══════════════════════════════════════════
-          桌面端布局：左右分栏（不变）
-          ═══════════════════════════════════════════ */}
-
-      {/* 左侧 思维空间 */}
-      <div className="hidden md:flex md:w-[38.2%] min-w-0 h-full flex-col" style={{ background: "#e8f4f8" }}>
-        {topicArchive.length > 0 && (
-          <div className="shrink-0 px-4 py-2 flex items-center gap-2 overflow-x-auto border-b border-[#c8dce8] bg-white/50">
-            <span className="text-[10px] text-gray-400 shrink-0">📂 话题:</span>
-            {topicArchive.map((topic, i) => (
-              <button key={i}
-                onClick={() => {
-                  setNodes(topic.nodes); setEdges(topic.edges)
-                  setDomainType(topic.domain as DomainType); setFrameType(topic.frame as FrameType)
-                  setTopicArchive(arch => arch.filter((_, j) => j !== i))
-                }}
-                className="shrink-0 text-[11px] px-2.5 py-1 rounded-full bg-white border border-[#c8dce8] hover:border-blue-300 hover:bg-blue-50 transition-all text-gray-600">
-                {topic.topic}
-              </button>
-            ))}
-          </div>
-        )}
-        <div className="flex-1 min-h-0">
-          <MindTransit
-            nodes={nodes} edges={edges}
-            domainType={domainType} frameType={frameType}
-            thinkingLines={thinkingLines}
-            onNodeClick={handleNodeClick}
-            onNodePositionChange={handleNodePositionChange}
-            onExport={handleExport}
-          />
-          <NodeDetail node={selectedNode} onClose={() => setSelectedNode(null)} />
-        </div>
-      </div>
-
-      {/* 右侧 聊天 */}
-      <div className="hidden md:flex md:w-[61.8%] min-w-0 h-full border-l border-[#c8e6c9] flex-col"
-        style={{ background: "#e8f5e9" }}>
-        <div className="px-5 py-3.5 border-b border-[#c8e6c9] flex items-center justify-between shrink-0 bg-white/60 backdrop-blur-sm">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">思见</h1>
-            <p className="text-sm text-gray-500 mt-0.5">所思即所见</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <AuthBar user={user} onLogin={handleLogin} onLogout={handleLogout} onRoleChange={handleRoleChange} />
-            {headerLinks}
-          </div>
-        </div>
-        <div className="flex-1 min-h-0">
-          <ChatPanel
-            messages={messages} onSend={handleSend} onFileSelect={handleFileSelect} loading={loading}
-          />
         </div>
       </div>
 
