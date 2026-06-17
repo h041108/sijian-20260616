@@ -244,8 +244,6 @@ export default function ChatPanel({
                   <a href="/b-end" className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-1 rounded transition-colors">B端</a>
                 </>
               )}
-              <span className="text-[10px] text-gray-300 mx-0.5">·</span>
-              <span className="text-[10px] text-gray-400">Ctrl+V 粘贴图片</span>
             </div>
           </div>
         </form>
