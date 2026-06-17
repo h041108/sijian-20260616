@@ -40,20 +40,17 @@ export async function chat(
 ): Promise<AIResponse> {
   void existingNodes
 
-  // 构建消息，支持图片多模态输入
-  const apiMessages = messages.map((m, i) => {
-    const isLast = i === messages.length - 1
-    if (isLast && imageData && m.role === "user") {
-      return {
-        role: "user" as const,
-        content: [
-          { type: "text", text: m.content },
-          { type: "image_url", image_url: { url: imageData } },
-        ],
-      }
+  // 图片转文本提示（deepseek-v4 不支持多模态 image_url）
+  let finalMessages = messages
+  if (imageData) {
+    const imgHint = `\n\n[用户上传了一张图片。请根据你的知识推测内容并诚实回复——如果无法确定图片内容，请告知用户用文字描述。]`
+    const lastMsg = messages[messages.length - 1]
+    if (lastMsg.role === "user") {
+      finalMessages = [...messages.slice(0, -1), { role: "user" as const, content: lastMsg.content + imgHint }]
     }
-    return { role: m.role, content: m.content }
-  })
+  }
+
+  const apiMessages = finalMessages.map(m => ({ role: m.role, content: m.content }))
 
   const res = await fetch(`${DEEPSEEK_API_BASE}/chat/completions`, {
     method: "POST",
@@ -96,14 +93,21 @@ export async function chatStream(
       const emit = (d: object) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(d)}\n\n`))
 
       try {
-        // 构建消息（支持图片多模态）
-        const apiMessages = messages.map((m, i) => {
-          const last = i === messages.length - 1
-          if (last && imageData && m.role === "user") {
-            return { role: "user" as const, content: [{ type: "text", text: m.content }, { type: "image_url", image_url: { url: imageData } }] }
+        // 构建消息 — 图片转文本描述（deepseek-v4 不支持多模态）
+        if (imageData) {
+          // 图片转为文本提示，交给AI分析
+          const imgHint = `[用户上传了一张图片 (${imageData.length} 字符 base64)]
+
+请根据你对图片格式的了解（base64数据），尝试推测用户上传的内容类型，并诚实回复：
+- 如果你无法识别图片内容，请告诉用户"我暂时无法直接读取图片内容，请用文字描述你上传的图片"
+- 如果用户用文字描述了图片内容，请基于文字描述回答`
+          const lastMsg = messages[messages.length - 1]
+          if (lastMsg.role === "user") {
+            messages = [...messages.slice(0, -1), { role: "user" as const, content: `${lastMsg.content}\n\n${imgHint}` }]
           }
-          return { role: m.role, content: m.content }
-        })
+        }
+
+        const apiMessages = messages.map(m => ({ role: m.role, content: m.content }))
 
         const res = await fetch(`${DEEPSEEK_API_BASE}/chat/completions`, {
           method: "POST",
