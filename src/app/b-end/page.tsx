@@ -20,10 +20,11 @@ import InstitutionalIntelligenceDashboard from "@/components/InstitutionalIntell
 import StrategyDashboard from "@/components/StrategyDashboard"
 import VideoFactoryDashboard from "@/components/VideoFactoryDashboard"
 import PersonaTemplateDashboard from "@/components/PersonaTemplateDashboard"
+import VideoQADashboard from "@/components/VideoQADashboard"
 
 // ─── 导航配置 ────────────────────────────────────
 
-type ToolId = "knowledge" | "solve" | "training" | "metro" | "content" | "experiment" | "ai_capability" | "heatmap" | "institution" | "orchestrator" | "intelligence" | "strategy" | "video_factory" | "persona" | "dashboard" | "members" | "reports" | "settings"
+type ToolId = "knowledge" | "solve" | "training" | "metro" | "content" | "experiment" | "ai_capability" | "heatmap" | "institution" | "orchestrator" | "intelligence" | "strategy" | "video_factory" | "persona" | "video_qa" | "dashboard" | "members" | "reports" | "settings"
 
 interface NavSection {
   label: string
@@ -43,6 +44,7 @@ const NAV_SECTIONS: NavSection[] = [
       { id: "intelligence", icon: "🧬", label: "机构智能", role: "enterprise" },
       { id: "strategy", icon: "🚀", label: "战略增长", role: "all" },
       { id: "video_factory", icon: "🎬", label: "视频工厂", role: "enterprise" },
+      { id: "video_qa", icon: "🧠", label: "视频质检", role: "enterprise" },
       { id: "persona", icon: "🎭", label: "人格模板", role: "all" },
       { id: "metro", icon: "🚇", label: "思维地铁", role: "all" },
       { id: "content", icon: "🎬", label: "内容策略", role: "enterprise" },
@@ -455,6 +457,9 @@ export default function BEndPage() {
 
             {/* ── 视频工厂 ── */}
             {activeTool === "video_factory" && <VideoFactoryDashboard />}
+
+            {/* ── 视频质检 ── */}
+            {activeTool === "video_qa" && <VideoQADashboard />}
 
             {/* ── 人格模板 ── */}
             {activeTool === "persona" && <PersonaTemplateDashboard />}
