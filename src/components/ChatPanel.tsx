@@ -11,12 +11,20 @@ interface ChatPanelProps {
   loading: boolean
   onToggleDrawer?: () => void
   nodesCount?: number
+  mindFrame?: string
   extraToolbar?: React.ReactNode
+}
+
+const FRAME_LABELS: Record<string, string> = {
+  tree: "🌳 层级", network: "🕸️ 网络", helix: "🧬 螺旋",
+  strata: "📐 分层", orbital: "🪐 轨道", pipeline: "🔗 流程",
+  lens: "🔍 透镜", cycle: "🔄 循环", spectrum: "🌈 光谱",
+  matrix: "📊 矩阵", diffusion: "💧 扩散",
 }
 
 export default function ChatPanel({
   messages, onSend, onFileSelect, loading,
-  onToggleDrawer, nodesCount, extraToolbar,
+  onToggleDrawer, nodesCount, mindFrame, extraToolbar,
 }: ChatPanelProps) {
   const [input, setInput] = useState("")
   const [pastePreview, setPastePreview] = useState<string | null>(null)
@@ -189,16 +197,15 @@ export default function ChatPanel({
             </button>
           </div>
 
-          {/* 第二排：工具图标栏 */}
-          <div className="flex items-center justify-between mt-1.5 px-1">
-            {/* 左侧工具组 */}
+          {/* 第二排：工具 + 状态 + 入口 */}
+          <div className="flex items-center justify-between px-0.5 mt-1">
             <div className="flex items-center gap-0.5">
               {/* 上传 */}
               <button type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
                 title="上传文件">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
                 </svg>
               </button>
@@ -211,30 +218,24 @@ export default function ChatPanel({
                 onClick={() => setVoiceActive(!voiceActive)}
                 className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${voiceActive ? "bg-red-100 text-red-500" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"}`}
                 title={voiceActive ? "停止录音" : "语音输入"}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
                 </svg>
               </button>
 
-              {/* 思维空间 */}
+              {/* 思维空间状态标签 */}
               {onToggleDrawer && (
-                <button type="button"
-                  onClick={onToggleDrawer}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
-                  title="思维空间">
-                  {nodesCount && nodesCount > 0 ? (
-                    <span className="flex items-center gap-0.5 text-xs font-bold" style={{ color: "#6366F1" }}>
-                      ◈<span className="text-[10px]">{nodesCount}</span>
-                    </span>
+                <button type="button" onClick={onToggleDrawer}
+                  className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 px-2 py-1 rounded-lg transition-all">
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: nodesCount && nodesCount > 0 ? "#6366F1" : "#d4d4d4" }} />
+                  {nodesCount && nodesCount > 0 && mindFrame ? (
+                    <span>{FRAME_LABELS[mindFrame] || "思维"} · {nodesCount}概念</span>
                   ) : (
-                    <span className="text-sm text-gray-400">◈</span>
+                    <span>暂无概念</span>
                   )}
                 </button>
               )}
             </div>
-
-            {/* 中间分隔 */}
-            <div className="w-px h-4 bg-gray-200 mx-1" />
 
             {/* 右侧快捷入口 */}
             <div className="flex items-center gap-0.5">
