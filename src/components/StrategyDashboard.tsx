@@ -14,21 +14,27 @@ import { loadRooms } from "@/lib/memory-palace"
 import { loadUsers } from "@/lib/sijian-user"
 import { loadModules } from "@/lib/enterprise-training"
 
-export default function StrategyDashboard() {
-  const [tab, setTab] = useState<"growth" | "clone" | "maturity" | "lesson" | "digest" | "showcase">("growth")
+export default function StrategyDashboard({ role }: { role: "education" | "enterprise" }) {
+  const isEdu = role === "education"
+
+  const allTabs = [
+    { id: "growth" as const, icon: "📈", label: "学生成长对比", badge: "教育", show: isEdu },
+    { id: "clone" as const, icon: "🧬", label: isEdu ? "教师知识克隆" : "岗位知识克隆", badge: isEdu ? "教育" : "企业", show: true },
+    { id: "maturity" as const, icon: "🤖", label: "AI成熟度诊断", badge: "企业", show: !isEdu },
+    { id: "lesson" as const, icon: "📐", label: isEdu ? "思维教案生成" : "培训方案生成", badge: isEdu ? "教育" : "企业", show: true },
+    { id: "digest" as const, icon: "💬", label: "家长周报", badge: "家长", show: isEdu },
+    { id: "showcase" as const, icon: "🏆", label: "企业名片", badge: "企业", show: !isEdu },
+  ].filter(t => t.show)
+
+  const [tab, setTab] = useState<typeof allTabs[0]["id"]>(allTabs[0].id)
+
+  useEffect(() => { setTab(allTabs[0].id) }, [role, isEdu])
 
   return (
     <div className="space-y-6">
       {/* ── 导航 ── */}
       <div className="bg-white rounded-2xl border border-[#e8e5df] p-3 flex flex-wrap gap-1.5">
-        {[
-          { id: "growth" as const, icon: "📈", label: "学生成长对比", badge: "教育机构" },
-          { id: "clone" as const, icon: "🧬", label: "知识克隆", badge: "中小企业" },
-          { id: "maturity" as const, icon: "🤖", label: "AI成熟度诊断", badge: "中小企业" },
-          { id: "lesson" as const, icon: "📐", label: "思维教案生成", badge: "教育机构" },
-          { id: "digest" as const, icon: "💬", label: "家长周报", badge: "家长" },
-          { id: "showcase" as const, icon: "🏆", label: "企业名片", badge: "中小企业" },
-        ].map(t => (
+        {allTabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${
               tab === t.id ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
@@ -41,9 +47,9 @@ export default function StrategyDashboard() {
       </div>
 
       {tab === "growth" && <GrowthComparisonPanel />}
-      {tab === "clone" && <KnowledgeClonePanel />}
+      {tab === "clone" && <KnowledgeClonePanel isEducation={isEdu} />}
       {tab === "maturity" && <MaturityDiagnosticPanel />}
-      {tab === "lesson" && <LessonPlanPanel />}
+      {tab === "lesson" && <LessonPlanPanel isEducation={isEdu} />}
       {tab === "digest" && <WeeklyDigestPanel />}
       {tab === "showcase" && <CapabilityShowcasePanel />}
     </div>
@@ -152,30 +158,12 @@ function GrowthComparisonPanel() {
 // P0b: 岗位知识克隆
 // ═══════════════════════════════════════════════════
 
-function KnowledgeClonePanel() {
-  const [roleName, setRoleName] = useState("销售经理")
-  const [department, setDepartment] = useState("销售部")
-  const [targetName, setTargetName] = useState("新员工小王")
+function KnowledgeClonePanel({ isEducation }: { isEducation: boolean }) {
+  const [roleName, setRoleName] = useState(isEducation ? "数学教师" : "销售经理")
+  const [department, setDepartment] = useState(isEducation ? "数学" : "销售部")
+  const [targetName, setTargetName] = useState(isEducation ? "新入职老师" : "新员工小王")
   const [knowledge, setKnowledge] = useState<RoleKnowledge | null>(null)
   const [cloneResult, setCloneResult] = useState<number | null>(null)
-  const [cloned, setCloned] = useState(false)
-
-  // 根据当前用户角色判断是教育机构还是企业
-  const [isEducation, setIsEducation] = useState(false)
-  useEffect(() => {
-    const sess = typeof window !== "undefined" ? localStorage.getItem("sijian_session") : null
-    if (sess) {
-      try {
-        const user = JSON.parse(sess)
-        setIsEducation(user.role === "teacher" || user.role === "student" || user.role === "parent")
-        if (user.role === "teacher") {
-          setRoleName("数学教师")
-          setDepartment("数学")
-          setTargetName("新入职老师")
-        }
-      } catch {}
-    }
-  }, [])
 
   const eduDepartments = ["数学","物理","化学","生物","语文","英语","历史","地理","政治","编程","美术","音乐","通用"]
   const bizDepartments = ["销售部","研发部","市场部","客服部","行政部","财务部","人力资源部","运营部"]
@@ -186,7 +174,6 @@ function KnowledgeClonePanel() {
   const handleCapture = () => {
     const k = captureRoleKnowledge(roleName, department)
     setKnowledge(k)
-    setCloned(false)
     setCloneResult(null)
   }
 
@@ -194,7 +181,6 @@ function KnowledgeClonePanel() {
     if (!knowledge || !targetName.trim()) return
     const count = cloneKnowledgeTo(knowledge, targetName.trim())
     setCloneResult(count)
-    setCloned(true)
   }
 
   return (
@@ -415,7 +401,7 @@ function MaturityDiagnosticPanel() {
 // P1b: 思维教案生成
 // ═══════════════════════════════════════════════════
 
-function LessonPlanPanel() {
+function LessonPlanPanel({ isEducation }: { isEducation: boolean }) {
   const [topic, setTopic] = useState("")
   const [subject, setSubject] = useState("mathematics")
   const [grade, setGrade] = useState("高三")
@@ -423,18 +409,6 @@ function LessonPlanPanel() {
   const [enterpriseCat, setEnterpriseCat] = useState("onboarding")
   const [audience, setAudience] = useState("全体员工")
   const [plan, setPlan] = useState<any>(null)
-
-  // 角色自适应
-  const [isEducation, setIsEducation] = useState(false)
-  useEffect(() => {
-    const sess = typeof window !== "undefined" ? localStorage.getItem("sijian_session") : null
-    if (sess) {
-      try {
-        const user = JSON.parse(sess)
-        setIsEducation(user.role === "teacher" || user.role === "student" || user.role === "parent")
-      } catch {}
-    }
-  }, [])
 
   const handleGenerate = () => {
     if (!topic.trim()) return

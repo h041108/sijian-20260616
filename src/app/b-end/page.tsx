@@ -452,7 +452,7 @@ export default function BEndPage() {
             {activeTool === "intelligence" && <InstitutionalIntelligenceDashboard />}
 
             {/* ── 战略增长 ── */}
-            {activeTool === "strategy" && <StrategyDashboard />}
+            {activeTool === "strategy" && <StrategyDashboard role={role} />}
 
             {/* ── 视频工厂 ── */}
             {activeTool === "video_factory" && <VideoFactoryDashboard />}
