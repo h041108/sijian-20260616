@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react"
 import {
-  VideoProject, PipelineStageId, PipelineStageResult,
-  PIPELINE_STAGES, GENRE_PRESETS, GenrePreset,
+  VideoProject, PipelineStageId,
+  PIPELINE_STAGES, GENRE_PRESETS,
   createProject, loadProjects,
   executeStage, runFullPipeline, getAvailableModels,
-  VIDEO_MODELS, VideoModel,
+  VIDEO_MODELS,
 } from "@/lib/video-factory"
+import VoiceDirectorPanel from "@/components/VoiceDirectorPanel"
 
 const STAGE_ICONS: Record<PipelineStageId, string> = {
   story_genesis: "📖", script_breakdown: "🎬", prompt_engineering: "🎨",
@@ -30,7 +31,7 @@ export default function VideoFactoryDashboard() {
   const [duration, setDuration] = useState(60)
   const [aspectRatio, setAspectRatio] = useState("9:16")
   const [currentStyles, setCurrentStyles] = useState<string[]>(GENRE_PRESETS.short_drama.styleSuggestions)
-  const [viewMode, setViewMode] = useState<"create" | "projects" | "models">("create")
+  const [viewMode, setViewMode] = useState<"create" | "projects" | "models" | "voice">("create")
 
   useEffect(() => {
     setProjects(loadProjects())
@@ -79,6 +80,7 @@ export default function VideoFactoryDashboard() {
       <div className="bg-white rounded-2xl border border-[#e8e5df] p-3 flex items-center gap-1.5 flex-wrap">
         {[
           { id: "create" as const, icon: "🎬", label: "新建项目" },
+          { id: "voice" as const, icon: "🎙️", label: "口述成片" },
           { id: "projects" as const, icon: "📂", label: `我的项目 (${projects.length})` },
           { id: "models" as const, icon: "🔧", label: "模型工坊" },
         ].map(t => (
@@ -147,6 +149,11 @@ export default function VideoFactoryDashboard() {
           </div>
         </div>
       )}
+
+      {/* ════════════════════════════════════════
+          口述成片
+          ════════════════════════════════════════ */}
+      {viewMode === "voice" && <VoiceDirectorPanel />}
 
       {/* ════════════════════════════════════════
           项目详情 / 流水线控制
