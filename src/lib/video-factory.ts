@@ -313,11 +313,12 @@ export async function executeStage(
   // ── 视觉生成：调 /api/video/frame ──
   if (stageId === "visual_generation") {
     try {
-      // 从上一阶段输出提取 prompt
+      // 从上一阶段输出提取 prompt，或从项目一句话生成兜底提示词
       const prevOutput = previousStageOutput || ""
       const promptLines = prevOutput.split("\n").filter(l => l.startsWith("[即梦]") || l.startsWith("[Midjourney]"))
-      const firstPrompt = promptLines[0] || prevOutput.slice(0, 500)
-      stage.input = firstPrompt.slice(0, 200) || "即梦生成"
+      const firstPrompt = promptLines[0] || prevOutput.slice(0, 500) || project.oneLiner
+      const imagePrompt = firstPrompt.slice(0, 400) || `${project.style}风格的${project.oneLiner}·电影级光影·8K画质`
+      stage.input = imagePrompt.slice(0, 200) || "即梦生成"
 
       const frameRes = await fetch("/api/video/frame", {
         method: "POST", headers: { "Content-Type": "application/json" },
