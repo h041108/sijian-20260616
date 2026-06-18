@@ -169,7 +169,7 @@ export const PIPELINE_STAGES: StageAgent[] = [
     name: "视觉生成",
     icon: "🖼️",
     description: "调用图像/视频生成API，产出每个镜头的关键帧或视频片段",
-    primaryModel: "midjourney",
+    primaryModel: "jimeng",
     fallbackModels: ["jimeng", "stable_diffusion", "dalle3"],
     inputFormat: "多模型提示词表",
     outputFormat: "图片/视频URL列表",
