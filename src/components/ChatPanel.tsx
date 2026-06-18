@@ -22,6 +22,7 @@ interface ChatPanelProps {
   nodesCount?: number
   mindFrame?: string
   extraToolbar?: React.ReactNode
+  onOpenVideoFactory?: () => void
 }
 
 const FRAME_LABELS: Record<string, string> = {
@@ -34,6 +35,7 @@ const FRAME_LABELS: Record<string, string> = {
 export default function ChatPanel({
   messages, onSend, onFileSelect, loading,
   onToggleDrawer, nodesCount, mindFrame, extraToolbar,
+  onOpenVideoFactory,
 }: ChatPanelProps) {
   const [input, setInput] = useState("")
   const [pastePreview, setPastePreview] = useState<string | null>(null)
@@ -340,6 +342,15 @@ export default function ChatPanel({
                         : <span>暂无概念</span>}
                     </>
                   )}
+                </button>
+              )}
+
+              {/* 视频工厂入口 */}
+              {onOpenVideoFactory && (
+                <button type="button" onClick={onOpenVideoFactory}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all"
+                  title="视频工厂 — 一句话生成视频">
+                  <span className="text-sm">🎬</span>
                 </button>
               )}
             </div>
