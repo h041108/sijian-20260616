@@ -345,12 +345,13 @@ export default function ChatPanel({
                 </button>
               )}
 
-              {/* 视频工厂入口 */}
+              {/* 即影入口 */}
               {onOpenVideoFactory && (
                 <button type="button" onClick={onOpenVideoFactory}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-all"
-                  title="视频工厂 — 一句话生成视频">
+                  className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-purple-600 hover:bg-purple-50 px-1.5 py-0.5 rounded-md transition-all"
+                  title="即影 — 所思即所见">
                   <span className="text-sm">🎬</span>
+                  <span className="hidden sm:inline">即影</span>
                 </button>
               )}
             </div>
