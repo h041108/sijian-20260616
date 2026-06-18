@@ -310,8 +310,53 @@ export async function executeStage(
   stage.startedAt = new Date().toISOString()
   saveProjects(projects)
 
+  // ── 视觉生成：调 /api/video/frame ──
+  if (stageId === "visual_generation") {
+    try {
+      // 从上一阶段输出提取 prompt
+      const prevOutput = previousStageOutput || ""
+      const promptLines = prevOutput.split("\n").filter(l => l.startsWith("[即梦]") || l.startsWith("[Midjourney]"))
+      const firstPrompt = promptLines[0] || prevOutput.slice(0, 500)
+      stage.input = firstPrompt.slice(0, 200) || "即梦生成"
+
+      const frameRes = await fetch("/api/video/frame", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: firstPrompt.slice(0, 400), width: 1920, height: 1080 }),
+      })
+      const frameData = await frameRes.json()
+      stage.output = JSON.stringify({ url: frameData.url, placeholder: frameData.placeholder || false, message: frameData.message || frameData.debug?.hasEnv === false ? "未配置 JIMENG_API_KEY 环境变量" : "", debug: frameData.debug })
+      stage.status = "done"; stage.modelUsed = "jimeng"; stage.completedAt = new Date().toISOString()
+      saveProjects(projects)
+      return stage
+    } catch (err: any) {
+      stage.status = "failed"; stage.error = err.message; saveProjects(projects); return stage
+    }
+  }
+
+  // ── 最终合成：返回客户端组装指令 ──
+  if (stageId === "final_assembly") {
+    try {
+      // 找到视觉生成阶段的图片
+      const visStage = project.stages.find(s => s.stageId === "visual_generation")
+      let frameUrl = ""
+      if (visStage?.output) { try { frameUrl = JSON.parse(visStage.output).url || "" } catch {} }
+      stage.input = frameUrl ? "已获取关键帧" : "关键帧未生成"
+      stage.output = JSON.stringify({
+        status: "ready_for_client_assembly",
+        frames: frameUrl ? [{ url: frameUrl }] : [],
+        requiresClientRender: true,
+        message: "请点击下载按钮合成视频",
+      })
+      stage.status = "done"; stage.completedAt = new Date().toISOString(); stage.modelUsed = "client_canvas"
+      saveProjects(projects)
+      return stage
+    } catch (err: any) {
+      stage.status = "failed"; stage.error = err.message; saveProjects(projects); return stage
+    }
+  }
+
   try {
-    // 构建输入
+    // ── LLM 阶段 ──
     let input = ""
     if (stageId === "story_genesis") {
       input = `一句话创意：${project.oneLiner}\n风格：${project.style}\n类型：${GENRE_PRESETS[project.genre]?.label || project.genre}`
