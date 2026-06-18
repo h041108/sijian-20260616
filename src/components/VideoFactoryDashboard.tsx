@@ -46,6 +46,7 @@ export default function VideoFactoryDashboard() {
     setProjects(loadProjects())
     setActiveId(project.id)
     setOneLiner("")
+    setViewMode("projects")
   }, [oneLiner, genre, style, duration, aspectRatio])
 
   // ── 单阶段执行 ──
