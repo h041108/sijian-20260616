@@ -85,6 +85,7 @@ const VIDEO_MODELS: VideoModel[] = [
   { id: "jimeng_video", name: "即梦视频", type: "video_gen", provider: "ByteDance", strengths: ["短视频生态","模板丰富","一键成片"], available: !!process.env.JIMENG_API_KEY },
   { id: "runway", name: "Runway Gen-3", type: "video_gen", provider: "RunwayML", strengths: ["好莱坞级画质","运动模糊","电影感"], available: !!process.env.RUNWAY_API_KEY },
   { id: "pika", name: "Pika 2.0", type: "video_gen", provider: "Pika Labs", strengths: ["卡通动画","风格化","快速生成"], available: !!process.env.PIKA_API_KEY },
+  { id: "infinitetalk", name: "InfiniteTalk", type: "video_gen", provider: "MeiGen-AI", strengths: ["口播数字人","唇同步1.8mm","全身体动","本地GPU","无限时长"], available: false, apiEndpoint: "http://localhost:7860" },
 
   // ── 配音/TTS 组 ──
   { id: "doubao_tts", name: "豆包语音合成", type: "tts", provider: "ByteDance", strengths: ["多角色配音","情感语调","自然口语"], available: !!process.env.DOUBAO_API_KEY },

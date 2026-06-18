@@ -5,9 +5,10 @@ import {
   PERSONA_LIBRARY, AIPersona, PROMPT_TEMPLATES, PromptTemplate,
   executeTemplate, getTemplatesByCategory,
 } from "@/lib/persona-engine"
+import SkillEditorPanel from "@/components/SkillEditorPanel"
 
 export default function PersonaTemplateDashboard() {
-  const [tab, setTab] = useState<"personas" | "templates" | "api">("personas")
+  const [tab, setTab] = useState<"personas" | "templates" | "api" | "skills">("personas")
 
   return (
     <div className="space-y-6">
@@ -15,6 +16,7 @@ export default function PersonaTemplateDashboard() {
         {[
           { id: "personas" as const, icon: "🎭", label: "AI 人格库" },
           { id: "templates" as const, icon: "📋", label: "Prompt 模板引擎" },
+          { id: "skills" as const, icon: "📝", label: "Skill 编辑" },
           { id: "api" as const, icon: "🔌", label: "认知 API" },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
@@ -26,6 +28,7 @@ export default function PersonaTemplateDashboard() {
 
       {tab === "personas" && <PersonaPanel />}
       {tab === "templates" && <TemplatePanel />}
+      {tab === "skills" && <SkillEditorPanel />}
       {tab === "api" && <APIPanel />}
     </div>
   )
