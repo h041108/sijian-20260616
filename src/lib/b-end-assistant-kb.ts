@@ -104,7 +104,7 @@ export const B_END_KNOWLEDGE: Record<string, ModuleGuide> = {
     ],
   },
   video_factory: {
-    id: "video_factory", label: "视频工厂", icon: "🎬",
+    id: "video_factory", label: "即影", icon: "🎬",
     usage: "视频工厂是一句话→完整视频的六阶段流水线：故事创世→分镜拆解→提示词工程→视觉生成→音频制作→最终合成。每阶段可独立执行，亦可一键全流程。内置脚本质检。",
     steps: [
       "1. 新建项目：输入一句话创意+选择类型/风格/时长/画幅",

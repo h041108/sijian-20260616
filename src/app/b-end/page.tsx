@@ -43,7 +43,7 @@ const NAV_SECTIONS: NavSection[] = [
       { id: "orchestrator", icon: "🔧", label: "模型编排", role: "enterprise" },
       { id: "intelligence", icon: "🧬", label: "机构智能", role: "enterprise" },
       { id: "strategy", icon: "🚀", label: "战略增长", role: "all" },
-      { id: "video_factory", icon: "🎬", label: "视频工厂", role: "enterprise" },
+      { id: "video_factory", icon: "🎬", label: "即影", role: "enterprise" },
       { id: "persona", icon: "🎭", label: "人格模板", role: "all" },
       { id: "metro", icon: "🚇", label: "思维地铁", role: "all" },
       { id: "content", icon: "🎬", label: "内容策略", role: "enterprise" },

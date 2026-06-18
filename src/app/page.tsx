@@ -568,7 +568,7 @@ export default function Home() {
           <div className="bg-white rounded-t-2xl md:rounded-2xl md:max-w-3xl md:mx-auto w-full max-h-[90vh] overflow-y-auto shadow-2xl"
             onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm px-4 py-3 border-b flex items-center justify-between rounded-t-2xl">
-              <span className="text-sm font-semibold text-gray-700">🎬 视频工厂</span>
+              <span className="text-sm font-semibold text-gray-700">🎬 即影</span>
               <button onClick={() => setShowVideoFactory(false)}
                 className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
             </div>
