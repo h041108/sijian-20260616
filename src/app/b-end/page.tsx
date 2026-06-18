@@ -20,6 +20,7 @@ import InstitutionalIntelligenceDashboard from "@/components/InstitutionalIntell
 import StrategyDashboard from "@/components/StrategyDashboard"
 import VideoFactoryDashboard from "@/components/VideoFactoryDashboard"
 import PersonaTemplateDashboard from "@/components/PersonaTemplateDashboard"
+import BEndAIAssistant from "@/components/BEndAIAssistant"
 
 // ─── 导航配置 ────────────────────────────────────
 
@@ -506,6 +507,9 @@ export default function BEndPage() {
           <img src={previewImage} alt="预览" className="max-w-[90vw] max-h-[90vh] rounded-2xl shadow-2xl" />
         </div>
       )}
+
+      {/* ═══ AI 助手 ═══ */}
+      <BEndAIAssistant />
     </div>
   )
 }
