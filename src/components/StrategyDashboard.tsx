@@ -159,6 +159,29 @@ function KnowledgeClonePanel() {
   const [cloneResult, setCloneResult] = useState<number | null>(null)
   const [cloned, setCloned] = useState(false)
 
+  // 根据当前用户角色判断是教育机构还是企业
+  const [isEducation, setIsEducation] = useState(false)
+  useEffect(() => {
+    const sess = typeof window !== "undefined" ? localStorage.getItem("sijian_session") : null
+    if (sess) {
+      try {
+        const user = JSON.parse(sess)
+        setIsEducation(user.role === "teacher" || user.role === "student" || user.role === "parent")
+        if (user.role === "teacher") {
+          setRoleName("数学教师")
+          setDepartment("数学")
+          setTargetName("新入职老师")
+        }
+      } catch {}
+    }
+  }, [])
+
+  const eduDepartments = ["数学","物理","化学","生物","语文","英语","历史","地理","政治","编程","美术","音乐","通用"]
+  const bizDepartments = ["销售部","研发部","市场部","客服部","行政部","财务部","人力资源部","运营部"]
+  const departments = isEducation ? eduDepartments : bizDepartments
+  const rolePlaceholder = isEducation ? "如：高三数学教师" : "如：销售经理"
+  const clonePlaceholder = isEducation ? "如：新入职的数学老师" : "如：新员工小王"
+
   const handleCapture = () => {
     const k = captureRoleKnowledge(roleName, department)
     setKnowledge(k)
@@ -175,22 +198,31 @@ function KnowledgeClonePanel() {
 
   return (
     <div className="space-y-4">
-      {/* 捕获面板 */}
       <div className="bg-white rounded-2xl border border-[#e8e5df] p-6">
-        <h3 className="text-sm font-semibold text-gray-700 mb-4">🧬 岗位知识捕获</h3>
-        <p className="text-xs text-gray-400 mb-4">定义要克隆的岗位，系统自动从现有数据中提取该岗位的所有知识资产</p>
+        <h3 className="text-sm font-semibold text-gray-700 mb-4">
+          🧬 {isEducation ? "教师知识捕获" : "岗位知识捕获"}
+        </h3>
+        <p className="text-xs text-gray-400 mb-4">
+          {isEducation
+            ? "定义要克隆的教师岗位和科目，系统自动提取该教师的所有知识资产（教案、概念、培训记录）"
+            : "定义要克隆的岗位，系统自动从现有数据中提取该岗位的所有知识资产"}
+        </p>
         <div className="flex gap-3 flex-wrap items-end">
           <div>
-            <label className="text-[10px] text-gray-400 block mb-1">岗位名称</label>
+            <label className="text-[10px] text-gray-400 block mb-1">
+              {isEducation ? "教师名称" : "岗位名称"}
+            </label>
             <input value={roleName} onChange={e => setRoleName(e.target.value)}
-              placeholder="如：销售经理"
+              placeholder={rolePlaceholder}
               className="rounded-xl border border-[#e8e5df] bg-[#f8faf3] px-3 py-2 text-sm w-36" />
           </div>
           <div>
-            <label className="text-[10px] text-gray-400 block mb-1">部门</label>
+            <label className="text-[10px] text-gray-400 block mb-1">
+              {isEducation ? "教学科目" : "部门"}
+            </label>
             <select value={department} onChange={e => setDepartment(e.target.value)}
               className="rounded-xl border border-[#e8e5df] bg-[#f8faf3] px-3 py-2 text-sm">
-              {["销售部","研发部","市场部","客服部","行政部","财务部"].map(d => <option key={d} value={d}>{d}</option>)}
+              {departments.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
           <button onClick={handleCapture}
@@ -232,14 +264,14 @@ function KnowledgeClonePanel() {
           {/* 克隆操作 */}
           <div className="flex gap-3 items-end">
             <div>
-              <label className="text-[10px] text-gray-400 block mb-1">目标员工姓名</label>
+              <label className="text-[10px] text-gray-400 block mb-1">{isEducation ? "目标教师姓名" : "目标员工姓名"}</label>
               <input value={targetName} onChange={e => setTargetName(e.target.value)}
-                placeholder="新员工姓名"
+                placeholder={clonePlaceholder}
                 className="rounded-xl border border-[#e8e5df] bg-[#f8faf3] px-3 py-2 text-sm w-44" />
             </div>
             <button onClick={handleClone} disabled={!targetName.trim()}
               className="rounded-xl bg-green-600 hover:bg-green-700 text-white px-5 py-2 text-sm font-medium disabled:opacity-40">
-              🧬 克隆到新员工
+              {isEducation ? "🧬 克隆到新教师" : "🧬 克隆到新员工"}
             </button>
             {cloneResult !== null && (
               <div className="p-2 bg-green-50 rounded-xl border border-green-200 text-sm text-green-700">
