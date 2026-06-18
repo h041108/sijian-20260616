@@ -321,8 +321,12 @@ export async function executeStage(
 
     stage.input = input.slice(0, 300)
 
-    // 构建prompt
-    const fullPrompt = stageConfig.systemPrompt
+    // 构建prompt — 优先从 Skill 引擎加载，回退硬编码
+    const skillPrompt = typeof window !== "undefined"
+      ? (() => { try { return require("./skill-engine").getSkill(`pipeline_${stageId}`)?.systemPrompt } catch { return null } })()
+      : null
+    const basePrompt = skillPrompt || stageConfig.systemPrompt
+    const fullPrompt = basePrompt
       .replace("{style}", project.style)
       .replace("{duration}", String(project.duration))
       .replace("{genre}", GENRE_PRESETS[project.genre]?.label || project.genre)
