@@ -463,7 +463,7 @@ export default function BEndPage() {
             {/* ── 思维地铁 ── */}
             {activeTool === "metro" && (
               <div className="bg-white rounded-2xl border border-[#e8e5df] overflow-hidden" style={{ height: "calc(100vh - 140px)" }}>
-                <iframe src="/metro" className="w-full h-full border-0" title="思维地铁" />
+                <iframe src={`/metro?role=${role}`} className="w-full h-full border-0" title="思维地铁" />
               </div>
             )}
 

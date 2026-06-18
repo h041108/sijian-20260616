@@ -1,299 +1,327 @@
 "use client"
 
-import { useState, useCallback, useRef, useMemo } from "react"
-import { getAllLines, getLineInfo, ThinkingLineId } from "@/lib/thinking-lines"
+import { useState, useCallback, useMemo } from "react"
+import { getAllLines } from "@/lib/thinking-lines"
+
+// ═══════════════════════════════════════════════════
+// 从真实数据生成地铁图
+// ═══════════════════════════════════════════════════
 
 interface Station {
-  id: string; label: string; x: number; y: number; depth: number
-  isTransfer: boolean; isStart: boolean; isEnd: boolean
-  connectedLines: string[]; content?: string; thinkingAt?: string
+  id: string; label: string; x: number; y: number; r: number
+  color: string; isHub: boolean; depth: number
+  content: string; lineIds: string[]
 }
 interface MetroLine {
-  id: string; name: string; category: string; color: string; lightColor: string
+  id: string; name: string; color: string
   stations: Station[]
-  lineStyle: "solid" | "dashed" | "double" | "zigzag" | "curved"
 }
 
-function generate60Lines(): MetroLine[] {
-  const all = getAllLines()
-  const cats = [...new Set(all.map(l => l.category))]
-  const W = 1400; const H = 900
-  const pad = 50  // reduced padding to fit more stations
+function generateEduLines(): MetroLine[] {
+  const allLines = getAllLines()
+  const lines: MetroLine[] = []
 
-  return all.map((line, idx) => {
-    const catIdx = cats.indexOf(line.category)
-    const col = catIdx % 5
-    const row = Math.floor(catIdx / 5)
-    const baseX = pad + col * 240 + (idx % 5) * 10
-    const baseY = pad + row * 120 + ((idx * 37) % 80)
-    // 每条线路4-6个站点，让内容更丰富
-    const count = 4 + (idx % 3)  // 4,5,6 交替
-    const gap = Math.min(70, 55 - count)  // 站点越多间距稍窄
-
-    // 站点名称不重复，体现真实概念的递进
-    const labelSuffixes = ["定义","原理","应用","案例","工具","方法"]
-    const stations: Station[] = Array.from({length: count}, (_, si) => ({
-      id: line.id + "_s" + (si+1),
-      label: line.name.slice(0, 5) + (si < labelSuffixes.length ? labelSuffixes[si] : ""),
-      x: baseX + si * gap,
-      y: baseY + (si % 2) * 28,
-      depth: Math.round((si+1)/count * 10),
-      isTransfer: si === Math.floor(count/2) && idx % 3 === 0,
-      isStart: si === 0,
-      isEnd: si === count-1,
-      connectedLines: si === Math.floor(count/2) ? [all[(idx+3)%all.length].id, all[(idx+7)%all.length].id] : [],
-      content: line.name + "的" + (si < labelSuffixes.length ? labelSuffixes[si] : "运用") + "——" + line.category + "思维",
-    }))
-    return {
-      id: line.id, name: line.name, category: line.category,
-      color: line.color, lightColor: line.gradient[0] || line.color,
-      stations,
-      lineStyle: (idx % 5 === 0 ? "dashed" : idx % 5 === 1 ? "double" : idx % 5 === 2 ? "zigzag" : idx % 5 === 3 ? "curved" : "solid") as any,
+  try {
+    const rooms = JSON.parse(localStorage.getItem("sijian_memory_palace") || "[]") || []
+    if (rooms.length === 0) {
+      // 无数据时展示空的线路模板
+      return allLines.slice(0, 8).map((l, i) => ({
+        id: l.id, name: l.name, color: l.color,
+        stations: [{
+          id: `${l.id}_empty`, label: l.name.slice(0, 4), x: 100 + i * 160, y: 200 + (i % 3) * 180,
+          r: 6, color: l.color, isHub: false, depth: 0,
+          content: "暂无学习记录，开始对话后这里会显示你的思维轨迹",
+          lineIds: [l.id],
+        }],
+      }))
     }
-  })
+
+    // 按学科分组房间
+    const bySubject: Record<string, typeof rooms> = {}
+    for (const r of rooms) {
+      const subj = r.subject || "general"
+      if (!bySubject[subj]) bySubject[subj] = []
+      bySubject[subj].push(r)
+    }
+
+    const subjectNames: Record<string, string> = {
+      mathematics:"数学", physics:"物理", chemistry:"化学", biology:"生物",
+      history:"历史", geography:"地理", chinese:"语文", english:"英语", general:"通用",
+    }
+
+    let lineIdx = 0
+    const cols = 3
+    const colW = 440, rowH = 220, pad = 80
+
+    for (const [subj, rooms] of Object.entries(bySubject)) {
+      const subjName = subjectNames[subj] || subj
+      const items = rooms.flatMap((r: any) => r.items)
+      const lineColor = allLines[lineIdx % allLines.length]?.color || "#6366F1"
+      const lineName = allLines[lineIdx % allLines.length]?.name || subjName
+
+      lineIdx++
+
+      const col = (lineIdx - 1) % cols
+      const row = Math.floor((lineIdx - 1) / cols)
+
+      const stations: Station[] = items.slice(0, 8).map((item: any, si: number) => {
+        const angle = (si / Math.min(items.length, 8)) * Math.PI * 1.5 + Math.PI * 0.25
+        const radius = 40 + si * 12
+        return {
+          id: item.id, label: item.label.slice(0, 6),
+          x: pad + col * colW + 160 + Math.cos(angle) * radius,
+          y: pad + row * rowH + 120 + Math.sin(angle) * radius * 0.4,
+          r: Math.round(5 + item.mastery * 7), color: item.color || lineColor,
+          isHub: item.mastery >= 0.7, depth: Math.round(item.mastery * 10),
+          content: `${item.label}: ${item.content?.slice(0, 80) || "学习概念"} · 掌握度${Math.round(item.mastery * 100)}%`,
+          lineIds: [allLines[lineIdx % allLines.length]?.id || "general"],
+        }
+      })
+
+      if (stations.length > 0) {
+        lines.push({ id: subj, name: `${subjName} · ${items.length}概念`, color: lineColor, stations })
+      }
+    }
+  } catch {}
+
+  if (lines.length === 0) {
+    return allLines.slice(0, 6).map((l, i) => ({
+      id: l.id, name: l.name, color: l.color,
+      stations: [{
+        id: `${l.id}_start`, label: "开始学习", x: 120 + i * 180, y: 200 + (i % 2) * 120,
+        r: 8, color: l.color, isHub: true, depth: 0,
+        content: "开始对话后，AI帮你构建思维空间，在这里能看到你的学习轨迹",
+        lineIds: [l.id],
+      }],
+    }))
+  }
+
+  return lines
 }
 
-const LINES = generate60Lines()
+function generateEnterpriseLines(): MetroLine[] {
+  const allLines = getAllLines()
+  const lines: MetroLine[] = []
 
-// ---
+  try {
+    // 从机构知识图谱获取数据
+    const modules = JSON.parse(localStorage.getItem("sijian_enterprise_modules") || "[]") || []
+    const records = JSON.parse(localStorage.getItem("sijian_enterprise_records") || "[]") || []
 
-export default function MetroMap() {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [legendOpen, setLegendOpen] = useState(true)
+    if (modules.length === 0) {
+      return allLines.slice(0, 6).map((l, i) => ({
+        id: l.id, name: l.name, color: l.color,
+        stations: [{
+          id: `${l.id}_empty`, label: "待培训", x: 100 + i * 200, y: 250,
+          r: 6, color: l.color, isHub: false, depth: 0,
+          content: "创建培训模块后，这里会展示企业知识分布图",
+          lineIds: [l.id],
+        }],
+      }))
+    }
+
+    const cols = 3, colW = 430, rowH = 180, pad = 70
+
+    modules.forEach((mod: any, mi: number) => {
+      const col = mi % cols, row = Math.floor(mi / cols)
+      const color = allLines[mi % allLines.length]?.color || "#6366F1"
+
+      // 找到该模块的员工完成情况
+      let totalMastery = 0, count = 0
+      for (const rec of records) {
+        const tp = rec.trainings?.find((t: any) => t.trainingModuleId === mod.id)
+        if (tp) { totalMastery += tp.overallMastery || 0; count++ }
+      }
+      const avgMastery = count > 0 ? totalMastery / count : 0.3
+
+      const stations: Station[] = mod.knowledgePoints?.slice(0, 6).map((kp: any, ki: number) => ({
+        id: kp.id, label: kp.label?.slice(0, 6) || "知识点",
+        x: pad + col * colW + 140 + (ki % 3) * 80,
+        y: pad + row * rowH + 100 + Math.floor(ki / 3) * 60,
+        r: 5 + avgMastery * 6 + (kp.importance === "critical" ? 2 : 0),
+        color: kp.importance === "critical" ? "#EF4444" : kp.importance === "important" ? color : "#9CA3AF",
+        isHub: kp.importance === "critical",
+        depth: Math.round(avgMastery * 10),
+        content: `${kp.label}: ${kp.content?.slice(0, 60) || ""} (${kp.importance === "critical" ? "关键" : kp.importance === "important" ? "重要" : "了解"})`,
+        lineIds: [mod.id],
+      })) || []
+
+      if (stations.length > 0) {
+        lines.push({ id: mod.id, name: mod.name?.slice(0, 12) || "培训", color, stations })
+      }
+    })
+  } catch {}
+
+  if (lines.length === 0) {
+    return allLines.slice(0, 6).map((l, i) => ({
+      id: l.id, name: l.name, color: l.color,
+      stations: [{
+        id: `${l.id}_enterprise`, label: "创建培训", x: 100 + i * 200, y: 250,
+        r: 8, color: l.color, isHub: true, depth: 0,
+        content: "在思维训练中创建培训模块，数据会汇总到这里",
+        lineIds: [l.id],
+      }],
+    }))
+  }
+
+  return lines
+}
+
+// ═══════════════════════════════════════════════════
+// 主组件
+// ═══════════════════════════════════════════════════
+
+export default function MetroMap({ role = "education" }: { role?: "education" | "enterprise" }) {
   const [selectedStation, setSelectedStation] = useState<Station | null>(null)
-  const [hoveredStation, setHoveredStation] = useState<string | null>(null)
   const [hiddenLines, setHiddenLines] = useState<Set<string>>(new Set())
   const [zoom, setZoom] = useState(1)
-  const [pan, setPan] = useState({ x: 0, y: 0 })
-  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null)
-  const [inputText, setInputText] = useState("")
-  const svgRef = useRef<SVGSVGElement>(null)
+  const pan = { x: 0, y: 0 }
+  const [viewMode, setViewMode] = useState<"map" | "list">("map")
 
-  const viewW = 1400; const viewH = 900
+  const lines = useMemo(() =>
+    role === "education" ? generateEduLines() : generateEnterpriseLines(),
+  [role])
+
+  const categories = useMemo(() => {
+    const cats: Record<string, MetroLine[]> = {}
+    for (const l of lines) {
+      const cat = l.id.slice(0, 8) || "默认"
+      if (!cats[cat]) cats[cat] = []
+      cats[cat].push(l)
+    }
+    return cats
+  }, [lines])
 
   const toggleLine = useCallback((id: string) => {
     setHiddenLines(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next })
   }, [])
 
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (!e.ctrlKey) return; e.preventDefault()
-    setZoom(z => Math.max(0.3, Math.min(3, z - e.deltaY * 0.001)))
-  }, [])
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.target === svgRef.current || (e.target as HTMLElement).tagName === "svg") {
-      setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y })
-    }
-  }, [pan])
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (dragStart) setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y })
-  }, [dragStart])
-
-  const handleMouseUp = useCallback(() => setDragStart(null), [])
-
-  // 换乘站高亮
-  const highlightLines = useMemo(() => {
-    if (!selectedStation?.isTransfer) return new Set<string>()
-    return new Set(selectedStation.connectedLines)
-  }, [selectedStation])
-
-  // 线路分类
-  const categories = useMemo(() => {
-    const cats: Record<string, MetroLine[]> = {}
-    for (const l of LINES) { if (!cats[l.category]) cats[l.category] = []; cats[l.category].push(l) }
-    return cats
-  }, [])
-
-  // 站点形状渲染
-  const renderStationShape = (s: Station, color: string, lightColor: string, r: number) => {
-    const isHovered = hoveredStation === s.id
-    const isSelected = selectedStation?.id === s.id
-    const scale = isHovered ? 1.25 : 1
-    const actualR = r * scale
-    const glow = (s.isStart || s.isEnd) ? { filter: "url(#glow)" } : {}
-    const line = LINES.find(l => l.stations.some(st => st.id === s.id))
-    const shape = line?.lineStyle === "dashed" ? "diamond" : line?.id === "critical" || line?.id === "trialerror" ? "triangle" : line?.id === "convergent" ? "hexagon" : line?.id === "hypothesis" || line?.id === "qa" ? "question" : "circle"
-
-    const fill = lerpColor(lightColor, color, s.depth / 10)
-
-    switch (shape) {
-      case "diamond": return <polygon points={`0,${-actualR} ${actualR},0 0,${actualR} ${-actualR},0`} fill={fill} stroke={color} strokeWidth={isSelected ? 2.5 : 1.5} {...glow} />
-      case "triangle": return <polygon points={`0,${-actualR} ${actualR},${actualR} ${-actualR},${actualR}`} fill={fill} stroke={color} strokeWidth={isSelected ? 2.5 : 1.5} {...glow} />
-      case "hexagon": return <polygon points={`0,${-actualR} ${actualR*0.87},${-actualR/2} ${actualR*0.87},${actualR/2} 0,${actualR} ${-actualR*0.87},${actualR/2} ${-actualR*0.87},${-actualR/2}`} fill={fill} stroke={color} strokeWidth={isSelected ? 2.5 : 1.5} {...glow} />
-      default: return <circle cx={0} cy={0} r={actualR} fill={fill} stroke={color} strokeWidth={isSelected ? 2.5 : 1.5} {...glow} />
-    }
-  }
+  const visibleLines = lines.filter(l => !hiddenLines.has(l.id))
+  const totalStations = visibleLines.reduce((s, l) => s + l.stations.length, 0)
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "#0F0F1A", color: "#F1F1F6", fontFamily: "system-ui, sans-serif" }}>
-      {/* 左侧栏 */}
-      <div className={`shrink-0 transition-all duration-300 ${sidebarOpen ? "w-[280px]" : "w-[48px]"}`} style={{ background: "#1A1A2E", borderRight: "1px solid #2A2A45" }}>
-        <div className="flex items-center justify-between px-3 py-3 border-b" style={{ borderColor: "#2A2A45" }}>
-          {sidebarOpen && <span className="text-sm font-semibold">📋 历史会话</span>}
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-xs px-2 py-1 rounded-lg hover:opacity-80 transition-opacity" style={{ background: "#2A2A45", color: "#8888A0" }}>
-            {sidebarOpen ? "◀" : "▶"}
-          </button>
+    <div className="flex flex-col h-screen overflow-hidden bg-[#0F0F1A] text-[#F1F1F6] font-sans">
+      {/* 顶栏 */}
+      <div className="shrink-0 px-4 py-2.5 flex items-center justify-between border-b border-[#2A2A45] bg-[#1A1A2E]">
+        <div>
+          <h2 className="text-sm font-bold">
+            {role === "education" ? "🎓 学习思维轨迹" : "🏢 企业知识图谱"}
+          </h2>
+          <p className="text-[10px] text-[#8888A0] mt-0.5">
+            {role === "education"
+              ? "每个节点都是你学习和思考过的概念"
+              : "每个节点都是企业培训体系中已编码的知识"}
+          </p>
         </div>
-        {sidebarOpen && (
-          <div className="p-3 space-y-2 overflow-y-auto h-[calc(100%-48px)]">
-            {["三角函数的学习路径","物理力学的思维梳理","化学平衡的类比理解","生态系统关系分析"].map((title, i) => (
-              <div key={i} className="p-2.5 rounded-lg cursor-pointer hover:opacity-80 transition-opacity text-xs" style={{ background: i === 0 ? "#2A2A45" : "transparent", color: i === 0 ? "#F1F1F6" : "#8888A0" }}>
-                {title}
-              </div>
-            ))}
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg p-0.5 bg-[#0F0F1A]">
+            <button onClick={() => setViewMode("map")}
+              className={`px-3 py-1 text-[11px] rounded-md transition-all ${viewMode === "map" ? "bg-[#2A2A45] text-white" : "text-[#8888A0]"}`}>地图</button>
+            <button onClick={() => setViewMode("list")}
+              className={`px-3 py-1 text-[11px] rounded-md transition-all ${viewMode === "list" ? "bg-[#2A2A45] text-white" : "text-[#8888A0]"}`}>列表</button>
           </div>
-        )}
-      </div>
-
-      {/* 主画布 */}
-      <div className="flex-1 flex flex-col relative" onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
-        {/* 画布区域 */}
-        <div className="flex-1 relative overflow-hidden pb-2">
-          <svg ref={svgRef} viewBox={`0 0 ${viewW} ${viewH}`} className="w-full h-full"
-            style={{ transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`, transformOrigin: "center", cursor: dragStart ? "grabbing" : "grab" }}>
-            <defs>
-              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-              </filter>
-              <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#0F0F1A" floodOpacity="0.5"/></filter>
-            </defs>
-
-            {/* 线路路径 */}
-            {LINES.map(line => {
-              if (hiddenLines.has(line.id)) return null
-              const pts = line.stations.map(s => `${s.x},${s.y}`).join(" ")
-              const isHL = highlightLines.has(line.id)
-              const sw = line.id === "contrast" || line.id === "proscons" ? (isHL ? 3 : 2) : (isHL ? 2.5 : 1.5)
-              const op = isHL ? 1 : 0.35
-              const dash = line.lineStyle === "dashed" ? "6,3" : line.lineStyle === "zigzag" ? "2,2" : "none"
-
-              return line.lineStyle === "curved" ? (
-                <path key={line.id} d={line.stations.map((s,i) => i === 0 ? `M${s.x},${s.y}` : `Q${(line.stations[i-1].x+s.x)/2},${Math.min(line.stations[i-1].y,s.y)-30} ${s.x},${s.y}`).join(" ")}
-                  fill="none" stroke={line.color} strokeWidth={sw} opacity={op} strokeDasharray={dash} strokeLinecap="round" />
-              ) : (
-                <polyline key={line.id} points={pts} fill="none" stroke={line.color} strokeWidth={sw} opacity={op} strokeDasharray={dash} strokeLinecap="round" strokeLinejoin="round" />
-              )
-            })}
-
-            {/* 换乘站的交汇高亮 */}
-            {selectedStation?.isTransfer && selectedStation.connectedLines.map(cl => {
-              const tl = LINES.find(l => l.id === cl); if (!tl || hiddenLines.has(cl)) return null
-              return <circle key={cl} cx={selectedStation.x} cy={selectedStation.y} r={16} fill="none" stroke={tl.color} strokeWidth="3" opacity={0.6} />
-            })}
-
-            {/* 站点 */}
-            {LINES.map(line => {
-              if (hiddenLines.has(line.id)) return null
-              const isHL = highlightLines.has(line.id)
-              return line.stations.map(s => (
-                <g key={s.id} onClick={(e) => { e.stopPropagation(); setSelectedStation(s === selectedStation ? null : s) }}
-                  onMouseEnter={() => setHoveredStation(s.id)} onMouseLeave={() => setHoveredStation(null)}
-                  style={{ cursor: "pointer" }}>
-                  {renderStationShape(s, isHL ? "#ffffff" : line.color, line.lightColor, s.isStart || s.isEnd ? 9 : s.isTransfer ? 8 : 6)}
-
-                  {/* 标签 — 站点下方 */}
-                  <text x={s.x} y={s.y + (s.isStart || s.isEnd ? 22 : s.isTransfer ? 20 : 16)}
-                    textAnchor="middle"
-                    fontSize={s.isTransfer ? 10 : 9} fill={isHL ? "#ffffff" : "#8888A0"} fontWeight={s.isTransfer ? 600 : 400}
-                    fontFamily="system-ui, sans-serif">
-                    {s.label}
-                  </text>
-
-                  {/* 起点/终点特效 */}
-                  {s.isStart && <circle cx={s.x} cy={s.y} r={13} fill="none" stroke={line.color} strokeWidth="1.5" opacity={0.4}><animate attributeName="r" values="9;13;9" dur="2s" repeatCount="indefinite"/></circle>}
-                  {s.isEnd && <circle cx={s.x} cy={s.y} r={12} fill="none" stroke={line.lightColor} strokeWidth="1" opacity={0.6}><animate attributeName="opacity" values="0.6;0.15;0.6" dur="1.5s" repeatCount="indefinite"/></circle>}
-
-                  {/* 换乘站标记 */}
-                  {s.isTransfer && <circle cx={s.x} cy={s.y} r={14} fill="none" stroke="#F1F1F6" strokeWidth="0.5" opacity={0.3} />}
-                </g>
-              ))
-            })}
-          </svg>
-
-          {/* 缩放指示器 */}
-          <div className="absolute bottom-4 right-4 text-[10px] px-2 py-1 rounded-lg" style={{ background: "#1A1A2E", color: "#8888A0", border: "1px solid #2A2A45" }}>
-            {Math.round(zoom * 100)}% · Ctrl+滚轮缩放
-          </div>
-        </div>
-
-        {/* 底部输入栏 */}
-        <div className="shrink-0 px-4 py-3" style={{ background: "#1A1A2E", borderTop: "1px solid #2A2A45" }}>
-          <div className="flex items-center gap-3">
-            <input value={inputText} onChange={e => setInputText(e.target.value)}
-              placeholder="说说你的想法……"
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none transition-all focus:ring-2"
-              style={{ background: "#0F0F1A", color: "#F1F1F6", border: "1px solid #2A2A45" }}
-              onKeyDown={e => e.key === "Enter" && setInputText("")} />
-            <button className="px-5 py-2.5 rounded-xl text-sm font-medium transition-opacity hover:opacity-80"
-              style={{ background: "linear-gradient(135deg, #6366F1, #8B5CF6)", color: "#fff" }}>
-              发送
-            </button>
-          </div>
+          <span className="text-[10px] text-[#8888A0]">{visibleLines.length}线路 · {totalStations}站</span>
         </div>
       </div>
 
-      {/* 站点详情浮层 */}
-      {selectedStation && (() => {
-        const line = LINES.find(l => l.stations.some(s => s.id === selectedStation.id))
-        return (
-          <div className="absolute right-4 top-20 w-72 rounded-xl border p-4 shadow-2xl z-20 animate-fade-in" style={{ background: "#1A1A2E", borderColor: line?.color || "#2A2A45" }}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: line?.color }} />
-                <span className="text-sm font-semibold" style={{ color: "#F1F1F6" }}>{selectedStation.label}</span>
-              </div>
-              <button onClick={() => setSelectedStation(null)} className="text-xs hover:opacity-70" style={{ color: "#8888A0" }}>✕</button>
-            </div>
-            <div className="text-xs mb-2" style={{ color: "#8888A0" }}>
-              {line?.name} · 深度 {selectedStation.depth}/10
-              {selectedStation.isTransfer && <span className="ml-2 px-1.5 py-0.5 rounded" style={{ background: "#2A2A45", color: "#F1F1F6" }}>换乘站</span>}
-            </div>
-            {selectedStation.content && <p className="text-xs leading-relaxed mb-2" style={{ color: "#F1F1F6" }}>{selectedStation.content}</p>}
-            {selectedStation.isTransfer && selectedStation.connectedLines.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {selectedStation.connectedLines.map(cl => {
-                  const tl = LINES.find(l => l.id === cl); if (!tl) return null
-                  return <span key={cl} className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: tl.color + "20", color: tl.color }}>{tl.name}</span>
-                })}
-              </div>
-            )}
-          </div>
-        )
-      })()}
-
-      {/* 图例面板 */}
-      <div className={`absolute right-3 top-3 z-20 rounded-xl border transition-all duration-300 ${legendOpen ? "w-56 max-h-[70vh] overflow-y-auto" : "w-auto"}`}
-        style={{ background: "#1A1A2E", borderColor: "#2A2A45" }}>
-        <button onClick={() => setLegendOpen(!legendOpen)} className="w-full px-3 py-2 text-xs font-medium flex items-center justify-between" style={{ color: "#F1F1F6" }}>
-          🗺️ 线路图例 {legendOpen && <span style={{ color: "#8888A0" }}>点击切换显示</span>}
-        </button>
-        {legendOpen && Object.entries(categories).map(([cat, lines]) => (
-          <div key={cat} className="px-3 py-1">
-            <div className="text-[10px] font-medium mb-1" style={{ color: "#8888A0" }}>{cat}类</div>
-            {lines.map(l => (
+      {viewMode === "map" ? (
+        <div className="flex-1 relative overflow-hidden">
+          {/* 图例 */}
+          <div className="absolute left-3 top-3 z-20 rounded-xl border border-[#2A2A45] bg-[#1A1A2E] max-h-[70vh] overflow-y-auto w-48 p-2">
+            <div className="text-[10px] font-medium text-[#8888A0] mb-2 px-1">线路图例</div>
+            {lines.slice(0, 15).map(l => (
               <button key={l.id} onClick={() => toggleLine(l.id)}
-                className="flex items-center gap-2 w-full text-left py-1.5 px-2 rounded-lg text-xs transition-opacity hover:opacity-80"
+                className="flex items-center gap-2 w-full text-left py-1 px-1 rounded text-xs hover:bg-[#2A2A45]"
                 style={{ opacity: hiddenLines.has(l.id) ? 0.3 : 1 }}>
-                <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: l.color }} />
-                <span style={{ color: "#F1F1F6" }}>{l.name}</span>
-                <span className="ml-auto text-[10px]" style={{ color: "#8888A0" }}>{l.stations.length}站</span>
+                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: l.color }} />
+                <span className="truncate">{l.name}</span>
+                <span className="ml-auto text-[10px] text-[#8888A0]">{l.stations.length}</span>
               </button>
             ))}
           </div>
-        ))}
-      </div>
+
+          {/* SVG画布 */}
+          <svg viewBox="0 0 1400 900" className="w-full h-full"
+            style={{ transform: `scale(${zoom})`, transformOrigin: "center" }}>
+            {visibleLines.map(line => {
+              const pts = line.stations.map(s => `${s.x},${s.y}`).join(" ")
+              return (
+                <polyline key={line.id} points={pts} fill="none"
+                  stroke={line.color} strokeWidth={1.5} opacity={0.25}
+                  strokeLinecap="round" strokeLinejoin="round" />
+              )
+            })}
+
+            {visibleLines.flatMap(line =>
+              line.stations.map(s => (
+                <g key={s.id} onClick={() => setSelectedStation(s === selectedStation ? null : s)}
+                  style={{ cursor: "pointer" }}>
+                  <circle cx={s.x} cy={s.y} r={s.r} fill={s.color} stroke="white" strokeWidth="1.5" />
+                  {s.isHub && (
+                    <circle cx={s.x} cy={s.y} r={s.r + 6} fill="none" stroke={s.color} strokeWidth="1" opacity={0.3}>
+                      <animate attributeName="opacity" values="0.3;0.6;0.3" dur="2s" repeatCount="indefinite" />
+                    </circle>
+                  )}
+                  <text x={s.x} y={s.y + s.r + 14} textAnchor="middle" fontSize="9" fill="#8888A0">
+                    {s.label}
+                  </text>
+                </g>
+              ))
+            )}
+          </svg>
+
+          {/* 选中站点详情 */}
+          {selectedStation && (
+            <div className="absolute right-4 top-16 w-72 rounded-xl border p-4 shadow-2xl z-20 animate-fade-in bg-[#1A1A2E] border-[#2A2A45]">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedStation.color }} />
+                  <span className="text-sm font-semibold">{selectedStation.label}</span>
+                </div>
+                <button onClick={() => setSelectedStation(null)} className="text-[#8888A0] text-xs">✕</button>
+              </div>
+              <p className="text-xs text-[#8888A0] lead-relaxed">{selectedStation.content}</p>
+              {selectedStation.isHub && (
+                <div className="mt-2 text-[10px] px-2 py-0.5 rounded-full inline-block bg-[#2A2A45] text-[#F1F1F6]">
+                  ⭐ 核心节点
+                </div>
+              )}
+              <div className="flex items-center gap-3 text-[10px] text-[#8888A0] mt-2">
+                <span>深度 {selectedStation.depth}/10</span>
+                <span>半径 {Math.round(selectedStation.r)}px</span>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* 列表视图 */
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {visibleLines.map(line => (
+            <div key={line.id} className="rounded-xl border border-[#2A2A45] bg-[#1A1A2E] p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: line.color }} />
+                <span className="text-sm font-semibold">{line.name}</span>
+                <span className="text-[10px] text-[#8888A0]">{line.stations.length}站</span>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {line.stations.map(s => (
+                  <div key={s.id} onClick={() => setSelectedStation(s)}
+                    className={`p-2 rounded-lg cursor-pointer text-xs border transition-all ${
+                      selectedStation?.id === s.id ? "border-white/40 bg-white/5" : "border-transparent hover:bg-white/5"
+                    }`}>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                      <span className="font-medium">{s.label}</span>
+                      {s.isHub && <span className="text-[10px]">⭐</span>}
+                    </div>
+                    <div className="text-[10px] text-[#8888A0] truncate">{s.content.slice(0, 40)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
-}
-
-// ─── 颜色渐变工具 ─────────────────────────────
-
-function lerpColor(a: string, b: string, t: number): string {
-  const ah = parseInt(a.slice(1), 16); const bh = parseInt(b.slice(1), 16)
-  const ar = (ah >> 16) & 0xff; const ag = (ah >> 8) & 0xff; const ab = ah & 0xff
-  const br = (bh >> 16) & 0xff; const bg = (bh >> 8) & 0xff; const bb = bh & 0xff
-  const rr = Math.round(ar + (br - ar) * t); const rg = Math.round(ag + (bg - ag) * t); const rb = Math.round(ab + (bb - ab) * t)
-  return `#${((1 << 24) + (rr << 16) + (rg << 8) + rb).toString(16).slice(1)}`
 }
