@@ -42,12 +42,14 @@ export async function POST(req: NextRequest) {
     })
 
     if (!res.ok) {
-      const err = await res.text()
-      console.error("即梦 API error:", err)
+      const errText = await res.text()
       return NextResponse.json({
-        url: `https://placehold.co/${width}x${height}/EF4444/FFFFFF?text=生成失败`,
+        url: `https://placehold.co/${width}x${height}/EF4444/FFFFFF?text=API${res.status}`,
         error: true,
+        statusCode: res.status,
+        apiResponse: errText.slice(0, 300),
         message: `即梦 API 返回 ${res.status}`,
+        debug: { apiKeyType: apiKey.slice(0, 10) + "...", apiBase: JIMENG_API_BASE, model: "doubao-seedream-2-0-t2i-250628" },
       }, { status: 502 })
     }
 
