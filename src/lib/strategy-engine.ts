@@ -568,6 +568,92 @@ export function generateLessonPlan(
 }
 
 // ═══════════════════════════════════════════════════
+// P1b: 企业培训方案生成器
+// ═══════════════════════════════════════════════════
+
+export interface EnterpriseTrainingPlan {
+  topic: string
+  category: string
+  audience: string
+  duration: number
+  objectives: string[]
+  sections: LessonSection[]
+  thinkingExercises: ThinkingExercise[]
+  assessment: AssessmentMethod
+  generatedAt: string
+}
+
+const ENTERPRISE_SECTION_TEMPLATES: Record<string, { title: string; content: (t: string) => string; guidance: (t: string) => string }[]> = {
+  onboarding: [
+    { title: "公司使命与价值观", content: (t: string) => t, guidance: () => "用2-3个真实案例让新员工理解公司在做什么、为什么做" },
+    { title: "岗位职责与工具", content: (t: string) => t, guidance: () => "让老员工做现场演示，新员工跟着操作一遍" },
+    { title: "AI辅助工作流", content: (t: string) => t, guidance: () => "现场演示思见如何辅助日常工作，让员工立刻感受到效率提升" },
+    { title: "实战演练", content: (t: string) => t, guidance: () => "模拟真实工作场景完成一个任务，观察新员工如何思考问题" },
+    { title: "复盘与Q&A", content: (t: string) => t, guidance: () => "让每个新员工说一个最意想不到的收获" },
+  ],
+  product: [
+    { title: "产品定位与目标用户", content: (t: string) => t, guidance: () => "用用户故事地图展示产品如何解决真实用户的痛点" },
+    { title: "竞品对标分析", content: (t: string) => t, guidance: () => "用SWOT框架帮团队理解竞争格局，不只看功能对比" },
+    { title: "技术架构深潜", content: (t: string) => t, guidance: () => "画出系统架构图，标注关键的技术决策和权衡" },
+    { title: "销售/服务场景演练", content: (t: string) => t, guidance: () => "分组对练：A组扮演疑心客户，B组用产品知识和思维框架回应" },
+    { title: "产品迭代复盘", content: (t: string) => t, guidance: () => "展示每个功能背后的决策逻辑，培养团队的产品思维" },
+  ],
+  skill: [
+    { title: "技能现状评估", content: (t: string) => t, guidance: () => "用具体案例测试，不要问你觉得你几分" },
+    { title: "核心方法论", content: (t: string) => t, guidance: () => "展示高手是怎么思考这个问题的而不是罗列知识点" },
+    { title: "实战练习", content: (t: string) => t, guidance: () => "基于真实工作场景的动手练习，观察每个人的思考路径" },
+    { title: "同伴互评", content: (t: string) => t, guidance: () => "用逻辑、创意、可执行性三个维度互评" },
+    { title: "个人提升计划", content: (t: string) => t, guidance: () => "行动计划要具体到每周做什么和如何检验效果" },
+  ],
+  management: [
+    { title: "管理场景分析", content: (t: string) => t, guidance: () => "用真实案例引入，让管理者先讨论再给方案" },
+    { title: "决策框架", content: (t: string) => t, guidance: () => "矩阵决策、情景推演、二阶思维——让管理者当场用" },
+    { title: "团队沟通与反馈", content: (t: string) => t, guidance: () => "角色扮演：管理者给员工负面反馈，给出改进建议" },
+    { title: "绩效与成长", content: (t: string) => t, guidance: () => "绩效评估不是审判，是帮人进步的对话" },
+    { title: "复盘与行动计划", content: (t: string) => t, guidance: () => "计划需包含：要改什么、怎么改、如何检验、什么时候复盘" },
+  ],
+}
+
+const TRAINING_LABELS: Record<string, string> = {
+  onboarding: "入职培训", product: "产品知识", skill: "技能提升", management: "管理培训",
+}
+
+export function generateEnterpriseTrainingPlan(
+  topic: string, category: string, audience: string = "全体员工", duration: number = 60,
+): EnterpriseTrainingPlan {
+  const catLabel = TRAINING_LABELS[category] || category
+  const templates = ENTERPRISE_SECTION_TEMPLATES[category] || ENTERPRISE_SECTION_TEMPLATES.onboarding
+  const now = new Date().toISOString()
+
+  return {
+    topic, category: catLabel, audience, duration,
+    objectives: [
+      `掌握${topic}的核心知识和技能`,
+      `能够用至少2种思维框架分析${topic}相关问题`,
+      `将培训内容转化为具体的工作行动`,
+    ],
+    sections: templates.map(s => ({
+      title: s.title,
+      timeAllocation: Math.round(duration / 5),
+      content: s.content(topic),
+      teacherGuidance: s.guidance(topic),
+      materials: [],
+    })),
+    thinkingExercises: [
+      { title: `类比练习：${topic}像什么？`, type: "analogy", prompt: `把${topic}比作一个日常事物并解释`, expectedOutcome: "参与者建立个人化理解", extension: "比较不同人的类比" },
+      { title: `逆向练习：不学${topic}会怎样？`, type: "reverse", prompt: `如果完全不做${topic}，3个月后会发生什么？`, expectedOutcome: "理解必要性和紧迫性", extension: "讨论最低必要投入" },
+      { title: `决策练习：${topic}中的典型两难`, type: "pipeline", prompt: `面对典型两难抉择，用决策框架分析你的选择`, expectedOutcome: "学会结构化决策", extension: "找出团队常见认知偏差" },
+    ],
+    assessment: {
+      type: "实操考核 + 自我评估",
+      questions: [`能用3句话向完全不懂的人解释${topic}吗？`, `打算在哪个具体场景应用？`, `今天最大的认知改变是什么？`],
+      successCriteria: [`能准确阐述核心概念`, `能制定至少1个具体应用计划`, `培训后3天内完成一次实际应用`],
+    },
+    generatedAt: now,
+  }
+}
+
+// ═══════════════════════════════════════════════════
 // P2a: 家长每周自动推送摘要生成
 // ═══════════════════════════════════════════════════
 

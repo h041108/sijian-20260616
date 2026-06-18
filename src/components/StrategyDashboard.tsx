@@ -6,6 +6,7 @@ import {
   captureRoleKnowledge, cloneKnowledgeTo, RoleKnowledge,
   diagnoseAIMaturity, AIMaturityReport,
   generateLessonPlan, LessonPlan,
+  generateEnterpriseTrainingPlan, EnterpriseTrainingPlan,
   generateWeeklyDigest,
   generateCapabilityShowcase, CapabilityShowcase,
 } from "@/lib/strategy-engine"
@@ -419,95 +420,132 @@ function LessonPlanPanel() {
   const [subject, setSubject] = useState("mathematics")
   const [grade, setGrade] = useState("高三")
   const [duration, setDuration] = useState(45)
-  const [plan, setPlan] = useState<LessonPlan | null>(null)
+  const [enterpriseCat, setEnterpriseCat] = useState("onboarding")
+  const [audience, setAudience] = useState("全体员工")
+  const [plan, setPlan] = useState<any>(null)
+
+  // 角色自适应
+  const [isEducation, setIsEducation] = useState(false)
+  useEffect(() => {
+    const sess = typeof window !== "undefined" ? localStorage.getItem("sijian_session") : null
+    if (sess) {
+      try {
+        const user = JSON.parse(sess)
+        setIsEducation(user.role === "teacher" || user.role === "student" || user.role === "parent")
+      } catch {}
+    }
+  }, [])
 
   const handleGenerate = () => {
     if (!topic.trim()) return
-    setPlan(generateLessonPlan(topic.trim(), subject, grade, duration))
+    if (isEducation) {
+      setPlan(generateLessonPlan(topic.trim(), subject, grade, duration))
+    } else {
+      setPlan(generateEnterpriseTrainingPlan(topic.trim(), enterpriseCat, audience, duration))
+    }
   }
+
+  const eduSubjects = [{v:"mathematics",l:"数学"},{v:"physics",l:"物理"},{v:"chemistry",l:"化学"},{v:"biology",l:"生物"},{v:"chinese",l:"语文"},{v:"english",l:"英语"},{v:"history",l:"历史"}]
+  const eduGrades = ["小学","初中","高一","高二","高三","大学"]
+  const bizCategories = [
+    {v:"onboarding",l:"入职培训"},{v:"product",l:"产品知识"},{v:"skill",l:"技能提升"},{v:"management",l:"管理培训"},{v:"compliance",l:"合规培训"},{v:"sales",l:"销售培训"},
+  ]
+  const bizAudiences = ["全体员工","新员工","管理层","销售团队","研发团队","运营团队"]
+
+  const headerLabel = isEducation ? "📐 AI 思维教案生成器" : "📐 AI 培训方案生成器"
+  const headerDesc = isEducation ? "输入教学主题，生成包含思维训练环节的完整教案" : "输入培训主题，生成包含思维训练环节的企业培训方案"
+  const topicPlaceholder = isEducation ? "如：三角函数的应用" : "如：新员工信息安全培训"
+  const generateLabel = isEducation ? "🪄 生成教案" : "🪄 生成培训方案"
+  const sectionLabel = isEducation ? "📖 教学环节" : "📖 培训环节"
+  const guidanceLabel = isEducation ? "👩‍🏫 教学指导" : "👤 培训引导"
 
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-2xl border border-[#e8e5df] p-6">
-        <h3 className="text-sm font-semibold text-gray-700 mb-4">📐 AI 思维教案生成器</h3>
-        <p className="text-xs text-gray-400 mb-4">输入教学主题，AI 自动生成包含思维训练环节的完整教案</p>
+        <h3 className="text-sm font-semibold text-gray-700 mb-4">{headerLabel}</h3>
+        <p className="text-xs text-gray-400 mb-4">{headerDesc}</p>
         <div className="flex gap-3 flex-wrap items-end">
           <input value={topic} onChange={e => setTopic(e.target.value)}
-            placeholder="教学主题，如：三角函数的应用"
+            placeholder={topicPlaceholder}
             className="flex-1 min-w-[200px] rounded-xl border border-[#e8e5df] bg-[#f8faf3] px-4 py-2.5 text-sm"
             onKeyDown={e => e.key === "Enter" && handleGenerate()} />
-          <select value={subject} onChange={e => setSubject(e.target.value)}
-            className="rounded-xl border border-[#e8e5df] bg-[#f8faf3] px-3 py-2.5 text-sm">
-            {[{v:"mathematics",l:"数学"},{v:"physics",l:"物理"},{v:"chemistry",l:"化学"},{v:"biology",l:"生物"},{v:"chinese",l:"语文"},{v:"english",l:"英语"},{v:"history",l:"历史"}].map(s => <option key={s.v} value={s.v}>{s.l}</option>)}
-          </select>
-          <select value={grade} onChange={e => setGrade(e.target.value)}
-            className="rounded-xl border border-[#e8e5df] bg-[#f8faf3] px-3 py-2.5 text-sm">
-            {["小学","初中","高一","高二","高三","大学"].map(g => <option key={g} value={g}>{g}</option>)}
-          </select>
+          {isEducation ? (
+            <>
+              <select value={subject} onChange={e => setSubject(e.target.value)}
+                className="rounded-xl border border-[#e8e5df] bg-[#f8faf3] px-3 py-2.5 text-sm">
+                {eduSubjects.map(s => <option key={s.v} value={s.v}>{s.l}</option>)}
+              </select>
+              <select value={grade} onChange={e => setGrade(e.target.value)}
+                className="rounded-xl border border-[#e8e5df] bg-[#f8faf3] px-3 py-2.5 text-sm">
+                {eduGrades.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </>
+          ) : (
+            <>
+              <select value={enterpriseCat} onChange={e => setEnterpriseCat(e.target.value)}
+                className="rounded-xl border border-[#e8e5df] bg-[#f8faf3] px-3 py-2.5 text-sm">
+                {bizCategories.map(c => <option key={c.v} value={c.v}>{c.l}</option>)}
+              </select>
+              <select value={audience} onChange={e => setAudience(e.target.value)}
+                className="rounded-xl border border-[#e8e5df] bg-[#f8faf3] px-3 py-2.5 text-sm">
+                {bizAudiences.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </>
+          )}
           <select value={duration} onChange={e => setDuration(Number(e.target.value))}
             className="rounded-xl border border-[#e8e5df] bg-[#f8faf3] px-3 py-2.5 text-sm">
             {[30,45,60,90].map(d => <option key={d} value={d}>{d}分钟</option>)}
           </select>
           <button onClick={handleGenerate} disabled={!topic.trim()}
             className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 text-sm font-medium disabled:opacity-40">
-            🪄 生成教案
+            {generateLabel}
           </button>
         </div>
       </div>
 
       {plan && (
         <div className="space-y-4">
-          {/* 教案头部 */}
           <div className="bg-white rounded-2xl border border-[#e8e5df] p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-lg font-bold text-gray-800">{plan.topic}</h2>
-                <p className="text-xs text-gray-400">{plan.subject} · {plan.grade} · {plan.duration}分钟</p>
+                <p className="text-xs text-gray-400">
+                  {isEducation ? `${plan.subject} · ${plan.grade}` : `${plan.category} · ${plan.audience}`} · {plan.duration}分钟
+                </p>
               </div>
               <button onClick={() => {
-                const text = [
-                  `教案：${plan.topic}`,
-                  `学科：${plan.subject} · 年级：${plan.grade} · 时长：${plan.duration}分钟`,
-                  "",
-                  `教学目标：`,
-                  ...plan.objectives.map((o, i) => `${i + 1}. ${o}`),
-                  "",
-                  `教学环节：`,
-                  ...plan.sections.map(s => `【${s.title}】${s.content}`),
-                ].join("\n")
+                const text = [isEducation ? "教案" : "培训方案", `主题：${plan.topic}`, "", "目标：", ...plan.objectives.map((o: string, i: number) => `${i+1}. ${o}`), "", "环节：", ...plan.sections.map((s: any) => `【${s.title}】${s.content}`)].join("\n")
                 navigator.clipboard.writeText(text)
-              }} className="text-xs text-gray-400 hover:text-gray-600 border px-3 py-1 rounded-lg">📋 复制教案</button>
+              }} className="text-xs text-gray-400 hover:text-gray-600 border px-3 py-1 rounded-lg">📋 复制</button>
             </div>
             <div className="space-y-2 text-xs text-gray-600">
-              <p className="font-medium text-gray-700">教学目标：</p>
-              {plan.objectives.map((o, i) => <p key={i}>• {o}</p>)}
+              <p className="font-medium text-gray-700">目标：</p>
+              {plan.objectives.map((o: string, i: number) => <p key={i}>• {o}</p>)}
             </div>
           </div>
 
-          {/* 教学环节 */}
           <div className="bg-white rounded-2xl border border-[#e8e5df] p-6">
-            <h3 className="text-sm font-semibold text-gray-700 mb-4">📖 教学环节</h3>
-            {plan.sections.map((sec, i) => (
+            <h3 className="text-sm font-semibold text-gray-700 mb-4">{sectionLabel}</h3>
+            {plan.sections.map((sec: any, i: number) => (
               <div key={i} className="mb-4 last:mb-0 p-4 rounded-xl border border-[#e8e5df]"
-                style={{ borderLeftWidth: "4px", borderLeftColor: ["#6366F1","#22C55E","#F59E0B","#EC4899","#8B5CF6"][i] }}>
+                style={{ borderLeftWidth: "4px", borderLeftColor: ["#6366F1","#22C55E","#F59E0B","#EC4899","#8B5CF6"][i % 5] }}>
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-sm font-semibold text-gray-800">{sec.title}</h4>
                   <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded-full">{sec.timeAllocation}分钟</span>
                 </div>
                 <p className="text-xs text-gray-600 mb-2">{sec.content}</p>
                 <div className="p-2 bg-indigo-50 rounded-lg">
-                  <p className="text-[10px] text-indigo-500 font-medium mb-0.5">👩‍🏫 教学指导</p>
+                  <p className="text-[10px] text-indigo-500 font-medium mb-0.5">{guidanceLabel}</p>
                   <p className="text-xs text-gray-700">{sec.teacherGuidance}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* 思维练习 */}
           <div className="bg-white rounded-2xl border border-[#e8e5df] p-6">
             <h3 className="text-sm font-semibold text-gray-700 mb-4">🧠 思维训练练习</h3>
             <div className="grid grid-cols-3 gap-3">
-              {plan.thinkingExercises.map((ex, i) => (
+              {plan.thinkingExercises.map((ex: any, i: number) => (
                 <div key={i} className="p-4 rounded-xl border border-[#e8e5df] bg-gray-50">
                   <div className="text-xs font-semibold text-gray-700 mb-1">{ex.title}</div>
                   <div className="text-[10px] text-gray-400 mb-2">{ex.type}</div>
