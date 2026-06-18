@@ -348,10 +348,10 @@ export default function ChatPanel({
               {/* 即影入口 */}
               {onOpenVideoFactory && (
                 <button type="button" onClick={onOpenVideoFactory}
-                  className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-purple-600 hover:bg-purple-50 px-1.5 py-0.5 rounded-md transition-all"
+                  className="flex items-center gap-1 text-[15px] text-gray-400 hover:text-purple-600 hover:bg-purple-50 px-1.5 py-0.5 rounded-md transition-all"
                   title="即影 — 所思即所见">
                   <span className="text-sm">🎬</span>
-                  <span className="hidden sm:inline">即影</span>
+                  <span className="inline">即影</span>
                 </button>
               )}
             </div>
@@ -359,8 +359,8 @@ export default function ChatPanel({
             <div className="flex items-center gap-0.5">
               {extraToolbar || (
                 <>
-                  <a href="/pricing" className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors">定价</a>
-                  <a href="/b-end" className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors">B端</a>
+                  <a href="/pricing" className="text-[15px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors">定价</a>
+                  <a href="/b-end" className="text-[15px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors">B端</a>
                 </>
               )}
             </div>
