@@ -16,10 +16,12 @@ export async function POST(req: NextRequest) {
     }
 
     const apiKey = process.env.JIMENG_API_KEY
+    console.log("[即影Debug] JIMENG_API_KEY exists:", !!apiKey, "length:", apiKey?.length || 0)
     if (!apiKey) {
       return NextResponse.json({
         url: `https://placehold.co/${width}x${height}/6366F1/FFFFFF?text=${encodeURIComponent(prompt.slice(0, 30))}`,
         placeholder: true,
+        debug: { hasEnv: false, allKeys: Object.keys(process.env).filter(k => k.includes("JIMENG") || k.includes("API")) },
         message: "配置 JIMENG_API_KEY 环境变量以启用真实图片生成",
       })
     }
