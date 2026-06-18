@@ -11,14 +11,22 @@ export default function VoiceDirectorPanel() {
   const [selectedScene, setSelectedScene] = useState<NarratedScene | null>(null)
   const [voiceSupported, setVoiceSupported] = useState(false)
   const recognitionRef = useRef<any>(null)
+  const lastResultIdx = useRef(0)
 
   useEffect(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     setVoiceSupported(!!SR)
     if (SR) {
-      const r = new SR(); r.lang = "zh-CN"; r.interimResults = true; r.continuous = true
-      r.onresult = (e: any) => { let t = ""; for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript; setNarrative(p => p + t) }
-      r.onerror = () => setListening(false); r.onend = () => setListening(false)
+      const r = new SR(); r.lang = "zh-CN"; r.interimResults = false; r.continuous = true
+      r.onresult = (e: any) => {
+        let transcript = ""
+        for (let i = lastResultIdx.current; i < e.results.length; i++) {
+          if (e.results[i].isFinal) { transcript += e.results[i][0].transcript; lastResultIdx.current = i + 1 }
+        }
+        if (transcript) setNarrative(p => p + transcript)
+      }
+      r.onerror = () => setListening(false)
+      r.onend = () => { setListening(false); lastResultIdx.current = 0 }
       recognitionRef.current = r
     }
   }, [])
