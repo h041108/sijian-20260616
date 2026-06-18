@@ -9,6 +9,7 @@ import {
   VIDEO_MODELS,
 } from "@/lib/video-factory"
 import VoiceDirectorPanel from "@/components/VoiceDirectorPanel"
+import DigitalHumanPanel from "@/components/DigitalHumanPanel"
 
 const STAGE_ICONS: Record<PipelineStageId, string> = {
   story_genesis: "📖", script_breakdown: "🎬", prompt_engineering: "🎨",
@@ -31,7 +32,7 @@ export default function VideoFactoryDashboard() {
   const [duration, setDuration] = useState(60)
   const [aspectRatio, setAspectRatio] = useState("9:16")
   const [currentStyles, setCurrentStyles] = useState<string[]>(GENRE_PRESETS.short_drama.styleSuggestions)
-  const [viewMode, setViewMode] = useState<"create" | "projects" | "models" | "voice">("create")
+  const [viewMode, setViewMode] = useState<"create" | "projects" | "models" | "voice" | "digital_human">("create")
 
   useEffect(() => {
     setProjects(loadProjects())
@@ -81,6 +82,7 @@ export default function VideoFactoryDashboard() {
         {[
           { id: "create" as const, icon: "🎬", label: "新建项目" },
           { id: "voice" as const, icon: "🎙️", label: "口述成片" },
+          { id: "digital_human" as const, icon: "🎭", label: "数字人口播" },
           { id: "projects" as const, icon: "📂", label: `我的项目 (${projects.length})` },
           { id: "models" as const, icon: "🔧", label: "模型工坊" },
         ].map(t => (
@@ -154,6 +156,11 @@ export default function VideoFactoryDashboard() {
           口述成片
           ════════════════════════════════════════ */}
       {viewMode === "voice" && <VoiceDirectorPanel />}
+
+      {/* ════════════════════════════════════════
+          数字人口播
+          ════════════════════════════════════════ */}
+      {viewMode === "digital_human" && <DigitalHumanPanel />}
 
       {/* ════════════════════════════════════════
           项目详情 / 流水线控制
