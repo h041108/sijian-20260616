@@ -4,7 +4,6 @@
 
 import { NextRequest, NextResponse } from "next/server"
 
-const JIMENG_API_KEY = process.env.JIMENG_API_KEY || ""
 const JIMENG_API_BASE = "https://ark.cn-beijing.volces.com/api/v3"
 
 export async function POST(req: NextRequest) {
@@ -16,8 +15,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "prompt is required" }, { status: 400 })
     }
 
-    if (!JIMENG_API_KEY) {
-      // 无 Key → 返回占位
+    const apiKey = process.env.JIMENG_API_KEY
+    if (!apiKey) {
       return NextResponse.json({
         url: `https://placehold.co/${width}x${height}/6366F1/FFFFFF?text=${encodeURIComponent(prompt.slice(0, 30))}`,
         placeholder: true,
@@ -25,12 +24,11 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // 即梦 ImageGen 2.0 → OpenAI-compatible images API
     const res = await fetch(`${JIMENG_API_BASE}/images/generations`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${JIMENG_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: "doubao-seedream-2-0-t2i-250628",
