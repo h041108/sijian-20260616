@@ -378,18 +378,69 @@ export async function runFullPipeline(projectId: string): Promise<VideoProject> 
   let previousOutput = ""
 
   for (const stageAgent of PIPELINE_STAGES) {
-    // 视觉生成和最终合成在演示模式下跳过实际API调用
-    if (stageAgent.id === "visual_generation" || stageAgent.id === "final_assembly") {
+    // ── 视觉生成：调用 /api/video/frame 生成关键帧 ──
+    if (stageAgent.id === "visual_generation") {
       const stage = project.stages.find(s => s.stageId === stageAgent.id)
-      if (stage) {
+      if (!stage) continue
+      stage.status = "running"
+      stage.startedAt = new Date().toISOString()
+      stage.input = previousOutput.slice(0, 300)
+
+      try {
+        // 从上一阶段提取提示词
+        const promptLines = previousOutput
+          .split("\n")
+          .filter(l => l.trim().startsWith("[Midjourney]") || l.trim().startsWith("[即梦]"))
+        const firstPrompt = promptLines[0] || previousOutput.slice(0, 500)
+
+        const frameRes = await fetch("/api/video/frame", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: `cinematic shot, ${firstPrompt.slice(0, 400)}`,
+            width: 1920, height: 1080,
+          }),
+        })
+        const frameData = await frameRes.json()
+        stage.output = JSON.stringify({
+          url: frameData.url,
+          prompt: firstPrompt.slice(0, 200),
+          placeholder: frameData.placeholder || false,
+          message: frameData.message || "",
+        })
         stage.status = "done"
-        stage.startedAt = new Date().toISOString()
         stage.completedAt = new Date().toISOString()
-        stage.input = previousOutput.slice(0, 300)
-        stage.output = `[${stageAgent.name}] 此阶段需要配置对应的模型API Key（${stageAgent.primaryModel}）才能实际运行。演示模式下输出占位。`
-        stage.modelUsed = stageAgent.primaryModel
-        saveProjects(projects)
+      } catch {
+        stage.status = "done"
+        stage.output = JSON.stringify({ url: "", placeholder: true, message: "图片生成失败·请检查即梦API Key" })
+        stage.completedAt = new Date().toISOString()
       }
+      stage.modelUsed = stageAgent.primaryModel
+      saveProjects(projects)
+      continue
+    }
+
+    // ── 最终合成：调用 renderVideoOnClient 指示符 ──
+    if (stageAgent.id === "final_assembly") {
+      const stage = project.stages.find(s => s.stageId === stageAgent.id)
+      if (!stage) continue
+      stage.status = "done"
+      stage.startedAt = new Date().toISOString()
+      stage.completedAt = new Date().toISOString()
+      // 找到视觉生成阶段的关键帧URL
+      const visStage = project.stages.find(s => s.stageId === "visual_generation")
+      let frameUrl = ""
+      if (visStage?.output) {
+        try { frameUrl = JSON.parse(visStage.output).url || "" } catch {}
+      }
+      stage.input = previousOutput.slice(0, 300)
+      stage.output = JSON.stringify({
+        status: "ready_for_client_assembly",
+        frames: frameUrl ? [{ url: frameUrl }] : [],
+        message: "请点击下载按钮在浏览器中合成并下载视频",
+        requiresClientRender: true,
+      })
+      stage.modelUsed = stageAgent.primaryModel
+      saveProjects(projects)
       continue
     }
 

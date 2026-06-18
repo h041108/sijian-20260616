@@ -261,8 +261,69 @@ export default function VideoFactoryDashboard() {
                       {/* 阶段输出预览 */}
                       {stage.output && (
                         <div className="mt-2 p-2 bg-white rounded-lg border border-gray-100 text-xs text-gray-600 font-mono leading-relaxed max-h-[200px] overflow-y-auto whitespace-pre-wrap">
-                          {stage.output.slice(0, 1500)}
-                          {stage.output.length > 1500 && <p className="text-gray-300 mt-1">... 共 {stage.output.length} 字</p>}
+                          {/* 视觉生成阶段：显示图片 */}
+                          {stage.stageId === "visual_generation" && (() => {
+                            try {
+                              const parsed = JSON.parse(stage.output)
+                              if (parsed.url && !parsed.url.includes("placehold.co")) {
+                                return (
+                                  <div className="mb-2">
+                                    <img src={parsed.url} alt="关键帧" className="w-full rounded-lg max-h-[300px] object-cover" />
+                                    <div className="mt-1 text-[10px] text-gray-400">{parsed.placeholder ? "⚠️ 占位图·请配置即梦API Key" : "✅ 即梦生成"}</div>
+                                  </div>
+                                )
+                              }
+                              if (parsed.url && parsed.url.includes("placehold.co")) {
+                                return <div className="text-amber-600 mb-2">⚠️ 未配置即梦 API Key，显示占位图。配置 JIMENG_API_KEY 环境变量后即可生成真实图片。</div>
+                              }
+                            } catch {}
+                            return null
+                          })()}
+                          {stage.stageId !== "visual_generation" && (
+                            <>
+                              {stage.output.slice(0, 1500)}
+                              {stage.output.length > 1500 && <p className="text-gray-300 mt-1">... 共 {stage.output.length} 字</p>}
+                            </>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 最终合成阶段：下载按钮 */}
+                      {stage.stageId === "final_assembly" && stage.status === "done" && stage.output && (
+                        <div className="mt-2">
+                          <button onClick={async () => {
+                            try {
+                              const parsed = JSON.parse(stage.output)
+                              if (parsed.requiresClientRender) {
+                                // 找到视觉生成阶段的图片URL
+                                const visStage = active?.stages.find(s => s.stageId === "visual_generation")
+                                let frameUrl = ""
+                                if (visStage?.output) {
+                                  try { frameUrl = JSON.parse(visStage.output).url || "" } catch {}
+                                }
+                                if (frameUrl && !frameUrl.includes("placehold.co")) {
+                                  // 加载客户端合成器
+                                  const { assembleVideoClientSide, downloadVideo } = await import("@/lib/video-assembler")
+                                  try {
+                                    const blob = await assembleVideoClientSide({
+                                      frames: [{ url: frameUrl, startTime: 0, endTime: active?.duration || 10, index: 0 }],
+                                      width: 1920, height: 1080, fps: 24,
+                                    }, (pct: number) => {
+                                      // progress could be shown here
+                                    })
+                                    downloadVideo(blob, `思见视频-${active?.id?.slice(0, 8) || "output"}.webm`)
+                                  } catch {
+                                    alert("视频合成需要即梦真实图片。请先配置 JIMENG_API_KEY 并重新运行视觉生成阶段。")
+                                  }
+                                } else {
+                                  alert("请先运行视觉生成阶段获取真实图片。当前为占位图无法合成。")
+                                }
+                              }
+                            } catch { alert("合成失败") }
+                          }}
+                            className="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white py-3 text-sm font-bold transition-all flex items-center justify-center gap-2">
+                            <span>📥</span> 下载视频
+                          </button>
                         </div>
                       )}
 
