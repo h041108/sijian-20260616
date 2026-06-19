@@ -15,14 +15,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "prompt is required" }, { status: 400 })
     }
 
-    const apiKey = process.env.JIMENG_API_KEY
-    console.log("[即影Debug] JIMENG_API_KEY exists:", !!apiKey, "length:", apiKey?.length || 0)
+    const apiKey = process.env.JIMENG_API_KEY || process.env.SEEDANCE_API_KEY || null
+    const modelId = process.env.JIMENG_MODEL || "doubao-seedream-4-5-251128"
+    console.log("[即影Debug] JIMENG_API_KEY exists:", !!process.env.JIMENG_API_KEY, "SEEDANCE_API_KEY exists:", !!process.env.SEEDANCE_API_KEY)
     if (!apiKey) {
       return NextResponse.json({
         url: `https://placehold.co/${width}x${height}/6366F1/FFFFFF?text=${encodeURIComponent(prompt.slice(0, 30))}`,
         placeholder: true,
-        debug: { hasEnv: false, allKeys: Object.keys(process.env).filter(k => k.includes("JIMENG") || k.includes("API")) },
-        message: "配置 JIMENG_API_KEY 环境变量以启用真实图片生成",
+        debug: { hasEnv: false, allKeys: Object.keys(process.env).filter(k => k.includes("JIMENG") || k.includes("SEEDANCE") || k.includes("API")) },
+        message: "配置 JIMENG_API_KEY 或 SEEDANCE_API_KEY 环境变量以启用真实图片生成",
       })
     }
 
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "doubao-seedream-2-0-t2i-250628",
+        model: modelId,
         prompt,
         n: 1,
         size: `${width}x${height}`,
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
         statusCode: res.status,
         apiResponse: errText.slice(0, 300),
         message: `即梦 API 返回 ${res.status}`,
-        debug: { apiKeyType: apiKey.slice(0, 10) + "...", apiBase: JIMENG_API_BASE, model: "doubao-seedream-2-0-t2i-250628" },
+        debug: { apiKeyType: apiKey.slice(0, 10) + "...", apiBase: JIMENG_API_BASE, model: modelId },
       }, { status: 502 })
     }
 

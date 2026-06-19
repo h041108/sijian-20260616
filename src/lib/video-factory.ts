@@ -84,7 +84,10 @@ const VIDEO_MODELS: VideoModel[] = [
   { id: "kling", name: "可灵 Kling", type: "video_gen", provider: "Kuaishou", strengths: ["物理模拟","动作连贯","人物表情"], available: !!process.env.KLING_API_KEY },
   { id: "jimeng_video", name: "即梦视频", type: "video_gen", provider: "ByteDance", strengths: ["短视频生态","模板丰富","一键成片"], available: !!process.env.JIMENG_API_KEY },
   { id: "runway", name: "Runway Gen-3", type: "video_gen", provider: "RunwayML", strengths: ["好莱坞级画质","运动模糊","电影感"], available: !!process.env.RUNWAY_API_KEY },
-  { id: "pika", name: "Pika 2.0", type: "video_gen", provider: "Pika Labs", strengths: ["卡通动画","风格化","快速生成"], available: !!process.env.PIKA_API_KEY },
+	  { id: "pika", name: "Pika 2.0", type: "video_gen", provider: "Pika Labs", strengths: ["卡通动画","风格化","快速生成"], available: !!process.env.PIKA_API_KEY },
+	  { id: "seedance2", name: "Seedance 2.0", type: "video_gen", provider: "ByteDance", strengths: ["文生视频","图生视频","1080p","动作流畅"], available: !!(process.env.SEEDANCE_API_KEY || process.env.JIMENG_API_KEY), apiEndpoint: "https://ark.cn-beijing.volces.com/api/v3" },
+	  { id: "seedance2_fast", name: "Seedance 2.0 Fast", type: "video_gen", provider: "ByteDance", strengths: ["快速生成","720p","文生视频","性价比"], available: !!(process.env.SEEDANCE_API_KEY || process.env.JIMENG_API_KEY), apiEndpoint: "https://ark.cn-beijing.volces.com/api/v3" },
+	  { id: "seedance_lite_i2v", name: "Seedance Lite I2V", type: "video_gen", provider: "ByteDance", strengths: ["图生视频","首帧动画","轻量快速"], available: !!(process.env.SEEDANCE_API_KEY || process.env.JIMENG_API_KEY), apiEndpoint: "https://ark.cn-beijing.volces.com/api/v3" },
   { id: "infinitetalk", name: "InfiniteTalk", type: "video_gen", provider: "MeiGen-AI", strengths: ["口播数字人","唇同步1.8mm","全身体动","本地GPU","无限时长"], available: false, apiEndpoint: "http://localhost:7860" },
 
   // ── 配音/TTS 组 ──
@@ -170,10 +173,11 @@ export const PIPELINE_STAGES: StageAgent[] = [
     icon: "🖼️",
     description: "调用图像/视频生成API，产出每个镜头的关键帧或视频片段",
     primaryModel: "jimeng",
-    fallbackModels: ["jimeng", "stable_diffusion", "dalle3"],
+    fallbackModels: ["seedance2_fast", "jimeng", "stable_diffusion", "dalle3"],
     inputFormat: "多模型提示词表",
-    outputFormat: "图片/视频URL列表",
+    outputFormat: "图片URL列表 + Seedance视频任务",
     systemPrompt: `请根据提示词生成图像。每个镜头生成1张关键帧。
+将关键帧提交到 Seedance 2.0 Fast 生成短视频片段（竖屏9:16，配抖音BGM）。
 如果配置了视频生成API，对每个关键帧生成对应的短视频片段。`,
     estimatedTime: 60,
   },
@@ -325,7 +329,29 @@ export async function executeStage(
         body: JSON.stringify({ prompt: firstPrompt.slice(0, 400), width: 1920, height: 1080 }),
       })
       const frameData = await frameRes.json()
-      stage.output = JSON.stringify({ url: frameData.url, placeholder: frameData.placeholder || false, message: frameData.message || frameData.debug?.hasEnv === false ? "未配置 JIMENG_API_KEY 环境变量" : "", debug: frameData.debug })
+      // 异步提交 Seedance 视频任务
+      let seedanceTaskId: string | null = null
+      try {
+        const sdRes = await fetch("/api/video/seedance", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: firstPrompt.slice(0, 400),
+            imageUrl: frameData.url && !frameData.placeholder ? frameData.url : undefined,
+            model: "seedance-2.0-fast",
+            ratio: project.aspectRatio === "9:16" ? "9:16" : "16:9",
+            duration: 5,
+            generateAudio: false,
+          }),
+        })
+        const sdData = await sdRes.json()
+        if (sdData.taskId) seedanceTaskId = sdData.taskId
+      } catch { /* Seedance submission is non-critical */ }
+      stage.output = JSON.stringify({
+        url: frameData.url,
+        placeholder: frameData.placeholder || false,
+        message: frameData.message || (frameData.debug?.hasEnv === false ? "未配置 JIMENG_API_KEY" : ""),
+        seedance: seedanceTaskId ? { taskId: seedanceTaskId, pollUrl: `/api/video/seedance?task_id=${seedanceTaskId}` } : null,
+      })
       stage.status = "done"; stage.modelUsed = "jimeng"; stage.completedAt = new Date().toISOString()
       saveProjects(projects)
       return stage
@@ -340,13 +366,21 @@ export async function executeStage(
       // 找到视觉生成阶段的图片
       const visStage = project.stages.find(s => s.stageId === "visual_generation")
       let frameUrl = ""
-      if (visStage?.output) { try { frameUrl = JSON.parse(visStage.output).url || "" } catch {} }
+      let seedanceTaskId: string | null = null
+      if (visStage?.output) {
+        try {
+          const vo = JSON.parse(visStage.output)
+          frameUrl = vo.url || ""
+          seedanceTaskId = vo.seedance?.taskId || null
+        } catch {}
+      }
       stage.input = frameUrl ? "已获取关键帧" : "关键帧未生成"
       stage.output = JSON.stringify({
         status: "ready_for_client_assembly",
         frames: frameUrl ? [{ url: frameUrl }] : [],
         requiresClientRender: true,
         message: "请点击下载按钮合成视频",
+        seedance: seedanceTaskId ? { taskId: seedanceTaskId, pollUrl: `/api/video/seedance?task_id=${seedanceTaskId}` } : null,
       })
       stage.status = "done"; stage.completedAt = new Date().toISOString(); stage.modelUsed = "client_canvas"
       saveProjects(projects)
@@ -451,17 +485,35 @@ export async function runFullPipeline(projectId: string): Promise<VideoProject> 
           }),
         })
         const frameData = await frameRes.json()
+        // Seedance video submission
+        let seedanceTaskId: string | null = null
+        try {
+          const sdRes = await fetch("/api/video/seedance", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prompt: firstPrompt.slice(0, 400),
+              imageUrl: frameData.url && !frameData.placeholder ? frameData.url : undefined,
+              model: "seedance-2.0-fast",
+              ratio: project.aspectRatio === "9:16" ? "9:16" : "16:9",
+              duration: 5,
+              generateAudio: false,
+            }),
+          })
+          const sdData = await sdRes.json()
+          if (sdData.taskId) seedanceTaskId = sdData.taskId
+        } catch { /* non-critical */ }
         stage.output = JSON.stringify({
           url: frameData.url,
           prompt: firstPrompt.slice(0, 200),
           placeholder: frameData.placeholder || false,
           message: frameData.message || "",
+          seedance: seedanceTaskId ? { taskId: seedanceTaskId, pollUrl: `/api/video/seedance?task_id=${seedanceTaskId}` } : null,
         })
         stage.status = "done"
         stage.completedAt = new Date().toISOString()
       } catch {
         stage.status = "done"
-        stage.output = JSON.stringify({ url: "", placeholder: true, message: "图片生成失败·请检查即梦API Key" })
+        stage.output = JSON.stringify({ url: "", placeholder: true, message: "图片生成失败·请检查即梦API Key", seedance: null })
         stage.completedAt = new Date().toISOString()
       }
       stage.modelUsed = stageAgent.primaryModel
@@ -476,11 +528,15 @@ export async function runFullPipeline(projectId: string): Promise<VideoProject> 
       stage.status = "done"
       stage.startedAt = new Date().toISOString()
       stage.completedAt = new Date().toISOString()
-      // 找到视觉生成阶段的关键帧URL
       const visStage = project.stages.find(s => s.stageId === "visual_generation")
       let frameUrl = ""
+      let seedanceTaskId: string | null = null
       if (visStage?.output) {
-        try { frameUrl = JSON.parse(visStage.output).url || "" } catch {}
+        try {
+          const vo = JSON.parse(visStage.output)
+          frameUrl = vo.url || ""
+          seedanceTaskId = vo.seedance?.taskId || null
+        } catch {}
       }
       stage.input = previousOutput.slice(0, 300)
       stage.output = JSON.stringify({
@@ -488,6 +544,7 @@ export async function runFullPipeline(projectId: string): Promise<VideoProject> 
         frames: frameUrl ? [{ url: frameUrl }] : [],
         message: "请点击下载按钮在浏览器中合成并下载视频",
         requiresClientRender: true,
+        seedance: seedanceTaskId ? { taskId: seedanceTaskId, pollUrl: `/api/video/seedance?task_id=${seedanceTaskId}` } : null,
       })
       stage.modelUsed = stageAgent.primaryModel
       saveProjects(projects)
@@ -527,12 +584,63 @@ export function getAvailableModels(): { byType: Record<string, VideoModel[]>; to
 
   // 推荐组合
   const recommended = [
+    ["deepseek", "jimeng", "seedance2_fast", "doubao_tts"],
     ["deepseek", "jimeng", "kling", "doubao_tts"],
     ["claude", "midjourney", "runway", "doubao_tts"],
-    ["qwen", "jimeng", "jimeng_video", "qwen_tts"],
+    ["qwen", "jimeng", "seedance2", "qwen_tts"],
   ]
 
   return { byType, total: available, recommended }
 }
 
 export { VIDEO_MODELS }
+
+// Seedance video generation helper
+export async function submitSeedanceTask(opts: {
+  prompt: string
+  imageUrl?: string
+  model?: string
+  ratio?: string
+  duration?: number
+  generateAudio?: boolean
+}): Promise<{ taskId: string; pollUrl: string } | null> {
+  try {
+    const res = await fetch("/api/video/seedance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt: opts.prompt.slice(0, 400),
+        imageUrl: opts.imageUrl,
+        model: opts.model || "seedance-2.0-fast",
+        ratio: opts.ratio || "9:16",
+        duration: opts.duration || 5,
+        generateAudio: opts.generateAudio ?? false,
+      }),
+    })
+    const data = await res.json()
+    if (data.taskId) {
+      return { taskId: data.taskId, pollUrl: `/api/video/seedance?task_id=${data.taskId}` }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+export async function pollSeedanceTask(taskId: string): Promise<{
+  status: string
+  videoUrl?: string
+  message?: string
+}> {
+  try {
+    const res = await fetch(`/api/video/seedance?task_id=${taskId}`)
+    const data = await res.json()
+    return {
+      status: data.status || "unknown",
+      videoUrl: data.videoUrl,
+      message: data.message,
+    }
+  } catch {
+    return { status: "error", message: "Failed to poll task" }
+  }
+}

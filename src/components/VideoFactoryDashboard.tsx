@@ -6,7 +6,7 @@ import {
   PIPELINE_STAGES, GENRE_PRESETS,
   createProject, loadProjects,
   executeStage, runFullPipeline, getAvailableModels,
-  VIDEO_MODELS,
+  VIDEO_MODELS, pollSeedanceTask,
 } from "@/lib/video-factory"
 import VoiceDirectorPanel from "@/components/VoiceDirectorPanel"
 import DigitalHumanPanel from "@/components/DigitalHumanPanel"
@@ -24,6 +24,8 @@ export default function VideoFactoryDashboard() {
   const [projects, setProjects] = useState<VideoProject[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [running, setRunning] = useState(false)
+  const [seedanceStatus, setSeedanceStatus] = useState<{ status: string; videoUrl?: string; message?: string } | null>(null)
+  const [seedancePollTimer, setSeedancePollTimer] = useState<ReturnType<typeof setInterval> | null>(null)
 
   // New project form
   const [oneLiner, setOneLiner] = useState("")
@@ -38,6 +40,40 @@ export default function VideoFactoryDashboard() {
     setProjects(loadProjects())
     setCurrentStyles(GENRE_PRESETS[genre]?.styleSuggestions || [])
   }, [genre])
+
+  // ── Seedance 视频任务轮询 ──
+  useEffect(() => {
+    // 清理上一次轮询
+    if (seedancePollTimer) { clearInterval(seedancePollTimer); setSeedancePollTimer(null) }
+    setSeedanceStatus(null)
+
+    const active = activeId ? projects.find(p => p.id === activeId) : null
+    const visStage = active?.stages.find(s => s.stageId === "visual_generation")
+    if (!visStage?.output) return
+
+    let taskId: string | null = null
+    try {
+      const vo = JSON.parse(visStage.output)
+      taskId = vo.seedance?.taskId || null
+    } catch {}
+
+    if (!taskId) return
+
+    // 立即查询一次
+    pollSeedanceTask(taskId).then(r => setSeedanceStatus(r))
+
+    const timer = setInterval(async () => {
+      const r = await pollSeedanceTask(taskId!)
+      setSeedanceStatus(r)
+      if (r.status === "succeeded" || r.status === "failed" || r.status === "expired") {
+        clearInterval(timer)
+        setSeedancePollTimer(null)
+      }
+    }, 5000)
+    setSeedancePollTimer(timer)
+
+    return () => { clearInterval(timer); setSeedancePollTimer(null) }
+  }, [activeId, projects])
 
   // ── 创建项目 ──
   const handleCreate = useCallback(() => {
@@ -262,21 +298,44 @@ export default function VideoFactoryDashboard() {
                       {/* 阶段输出预览 */}
                       {stage.output && (
                         <div className="mt-2 p-2 bg-white rounded-lg border border-gray-100 text-xs text-gray-600 font-mono leading-relaxed max-h-[200px] overflow-y-auto whitespace-pre-wrap">
-                          {/* 视觉生成阶段：显示图片 */}
+                          {/* 视觉生成阶段：显示图片 + Seedance 视频进度 */}
                           {stage.stageId === "visual_generation" && (() => {
                             try {
                               const parsed = JSON.parse(stage.output)
-                              if (parsed.url && !parsed.url.includes("placehold.co")) {
-                                return (
-                                  <div className="mb-2">
-                                    <img src={parsed.url} alt="关键帧" className="w-full rounded-lg max-h-[300px] object-cover" />
-                                    <div className="mt-1 text-[10px] text-gray-400">{parsed.placeholder ? "⚠️ 占位图·请配置即梦API Key" : "✅ 即梦生成"}</div>
-                                  </div>
-                                )
-                              }
-                              if (parsed.url && parsed.url.includes("placehold.co")) {
-                                return <div className="text-amber-600 mb-2">⚠️ 未配置即梦 API Key，显示占位图。配置 JIMENG_API_KEY 环境变量后即可生成真实图片。</div>
-                              }
+                              const seedance = parsed.seedance
+                              const sdStatus = seedance?.taskId ? seedanceStatus : null
+                              return (
+                                <div>
+                                  {parsed.url && !parsed.url.includes("placehold.co") && (
+                                    <div className="mb-2">
+                                      <img src={parsed.url} alt="关键帧" className="w-full rounded-lg max-h-[300px] object-cover" />
+                                      <div className="mt-1 text-[10px] text-gray-400">{parsed.placeholder ? "⚠️ 占位图·请配置即梦API Key" : "✅ 即梦生成"}</div>
+                                    </div>
+                                  )}
+                                  {parsed.url && parsed.url.includes("placehold.co") && (
+                                    <div className="text-amber-600 mb-2">⚠️ 未配置即梦 API Key，显示占位图。配置 JIMENG_API_KEY 环境变量后即可生成真实图片。</div>
+                                  )}
+                                  {seedance?.taskId && (
+                                    <div className={`mt-2 p-2 rounded-lg border text-[10px] ${
+                                      sdStatus?.status === "succeeded" ? "bg-green-50 border-green-200" :
+                                      sdStatus?.status === "failed" || sdStatus?.status === "expired" ? "bg-red-50 border-red-200" :
+                                      "bg-blue-50 border-blue-200 animate-pulse"
+                                    }`}>
+                                      <div className="flex items-center gap-1.5 font-semibold text-gray-700">
+                                        <span>🎥</span>
+                                        <span>Seedance 2.0 Fast</span>
+                                        {sdStatus?.status === "succeeded" && <span className="text-green-600">✅ 视频已生成</span>}
+                                        {sdStatus?.status === "failed" && <span className="text-red-600">❌ 生成失败</span>}
+                                        {sdStatus?.status === "expired" && <span className="text-red-500">⏰ 任务已过期</span>}
+                                        {(!sdStatus || sdStatus.status === "queued" || sdStatus.status === "running") && (
+                                          <span className="text-blue-600">⏳ {sdStatus?.status === "running" ? "生成中" : "排队中"}...</span>
+                                        )}
+                                      </div>
+                                      {sdStatus?.message && <div className="mt-1 text-gray-500">{sdStatus.message}</div>}
+                                    </div>
+                                  )}
+                                </div>
+                              )
                             } catch {}
                             return null
                           })()}
@@ -289,9 +348,17 @@ export default function VideoFactoryDashboard() {
                         </div>
                       )}
 
-                      {/* 最终合成阶段：下载按钮 */}
+                      {/* 最终合成阶段：Seedance AI 视频 + Canvas 兜底下载 */}
                       {stage.stageId === "final_assembly" && stage.status === "done" && stage.output && (
-                        <div className="mt-2">
+                        <div className="mt-2 space-y-2">
+                          {/* Seedance AI 视频下载（优先） */}
+                          {seedanceStatus?.status === "succeeded" && seedanceStatus.videoUrl && (
+                            <a href={seedanceStatus.videoUrl} target="_blank" rel="noopener noreferrer" download
+                              className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-3 text-sm font-bold transition-all flex items-center justify-center gap-2">
+                              <span>🎥</span> 下载 Seedance AI 视频
+                            </a>
+                          )}
+                          {/* Canvas 合成下载（兜底） */}
                           <button onClick={async () => {
                             try {
                               const parsed = JSON.parse(stage.output)
@@ -309,9 +376,7 @@ export default function VideoFactoryDashboard() {
                                     const blob = await assembleVideoClientSide({
                                       frames: [{ url: frameUrl, startTime: 0, endTime: active?.duration || 10, index: 0 }],
                                       width: 1920, height: 1080, fps: 24,
-                                    }, (pct: number) => {
-                                      // progress could be shown here
-                                    })
+                                    }, (pct: number) => {})
                                     downloadVideo(blob, `思见视频-${active?.id?.slice(0, 8) || "output"}.webm`)
                                   } catch {
                                     alert("视频合成需要即梦真实图片。请先配置 JIMENG_API_KEY 并重新运行视觉生成阶段。")
@@ -323,7 +388,7 @@ export default function VideoFactoryDashboard() {
                             } catch { alert("合成失败") }
                           }}
                             className="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white py-3 text-sm font-bold transition-all flex items-center justify-center gap-2">
-                            <span>📥</span> 下载视频
+                            <span>📥</span> Canvas 合成下载
                           </button>
                         </div>
                       )}
