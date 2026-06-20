@@ -177,8 +177,15 @@ export const PIPELINE_STAGES: StageAgent[] = [
 对每个镜头，生成以下模型的提示词：
 [Midjourney] 英文，格式：{场景描述}, {艺术风格}, {光照}, {镜头参数}, {氛围} --ar 16:9 --style {style} --v 6
 [Stable Diffusion] 英文，格式：{场景描述}, {艺术风格}, masterpiece, best quality, {光照}, {镜头参数}
-[即梦] 中文，格式：{场景描述}，{艺术风格}，{画质词}，{光影}，{氛围词}
+[即梦] 中文，格式：{风格关键词}风格，{主体}，{动作}，{环境场景}，{光线描述}，{镜头构图}，{氛围词}，高质量，画质清晰
 [DALL-E 3] 英文，格式：A cinematic shot of {场景描述}, in the style of {艺术风格}
+
+⚠️ 即梦提示词要求（最重要，用户使用即梦生成）：
+1. 必须是流畅的中文描述，不是一个关键词列表，要像在描述一幅画
+2. 每个镜头的主体必须一致（同一角色的外貌、服装保持完全相同）
+3. 必须包含：谁/什么东西 + 在做什么动作 + 在哪（场景）+ 什么光线 + 什么镜头角度 + 什么氛围
+4. 正面例子：写实风格，一位灰发少年穿着破旧蓝色夹克，站在废墟顶端远眺，夕阳逆光，全景俯拍，孤寂悲壮的氛围，高质量，画质清晰
+5. 所有镜头使用统一的风格关键词（如"写实电影风格"或"日系动漫风格"）
 
 艺术风格参考：{style}
 对每个镜头只输出提示词，不要额外说明。`,
@@ -450,21 +457,13 @@ export async function executeStage(
       for (let i = 0; i < shots.length; i++) {
         const shot = shots[i]
         try {
-          // ── 构建上下文感知的图像提示词 ──
-          // 优先使用 prompt_engineering 的即梦格式提示词，否则用镜头描述
+          // 优先使用 prompt_engineering 的 [即梦] 提示词，其次用镜头描述
           const jimengDesc = jimengPrompts[i] || ""
           const baseDesc = jimengDesc || shot.description
-          // 拼接：故事上下文 + 前一个镜头的视觉延续 + 本镜头描述
-          const prevRef = i > 0 && prevShotDescs.length > 0
-            ? `延续上一个镜头: ${prevShotDescs[prevShotDescs.length - 1].slice(0, 80)}`
-            : ""
-          const imagePrompt = [
-            visualContext ? `${visualContext}。` : "",
-            project.style ? `${project.style}风格。` : "",
-            prevRef,
-            baseDesc,
-            "电影级光影，高质量画面，16:9" // 质量兜底词
-          ].filter(Boolean).join(" ").slice(0, 380)
+          // 构建干净的中文图像提示词（即梦/Seedream 是中文模型）
+          const styleKeyword = project.style && !baseDesc.includes(project.style)
+            ? `${project.style}风格，` : ""
+          const imagePrompt = `${styleKeyword}${baseDesc}`.slice(0, 380)
 
           const frameRes = await fetch("/api/video/frame", {
             method: "POST", headers: { "Content-Type": "application/json" },
@@ -497,7 +496,7 @@ export async function executeStage(
               const sdRes = await fetch("/api/video/seedance", {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  prompt: baseDesc.slice(0, 400),
+                  prompt: imagePrompt.slice(0, 400),
                   imageUrl,
                   model: "seedance-2.0-fast",
                   ratio: project.aspectRatio === "9:16" ? "9:16" : "16:9",
@@ -765,16 +764,9 @@ export async function runFullPipeline(projectId: string): Promise<VideoProject> 
           try {
             const jimengDesc = jimengLines[i] || ""
             const baseDesc = jimengDesc || shot.description
-            const prevRef = i > 0 && prevShotDescs.length > 0
-              ? `延续上一镜头: ${prevShotDescs[prevShotDescs.length - 1].slice(0, 80)}`
-              : ""
-            const imagePrompt = [
-              visualContext ? `${visualContext}。` : "",
-              project.style ? `${project.style}风格。` : "",
-              prevRef,
-              baseDesc,
-              "电影级光影，高质量画面，16:9"
-            ].filter(Boolean).join(" ").slice(0, 380)
+            const styleKeyword = project.style && !baseDesc.includes(project.style)
+              ? `${project.style}风格，` : ""
+            const imagePrompt = `${styleKeyword}${baseDesc}`.slice(0, 380)
 
             const frameRes = await fetch("/api/video/frame", {
               method: "POST", headers: { "Content-Type": "application/json" },
@@ -803,7 +795,7 @@ export async function runFullPipeline(projectId: string): Promise<VideoProject> 
                 const sdRes = await fetch("/api/video/seedance", {
                   method: "POST", headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
-                    prompt: baseDesc.slice(0, 400),
+                    prompt: imagePrompt.slice(0, 400),
                     imageUrl,
                     model: "seedance-2.0-fast",
                     ratio: project.aspectRatio === "9:16" ? "9:16" : "16:9",
