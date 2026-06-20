@@ -7,6 +7,8 @@ import {
   createProject, loadProjects, deleteProject,
   executeStage, runFullPipeline, getAvailableModels,
   VIDEO_MODELS, pollSeedanceTask,
+  isCloudSyncEnabled, setCloudSyncEnabled,
+  loadProjectsFromCloud, syncAllToCloud,
 } from "@/lib/video-factory"
 import VoiceDirectorPanel from "@/components/VoiceDirectorPanel"
 import DigitalHumanPanel from "@/components/DigitalHumanPanel"
@@ -38,10 +40,12 @@ export default function VideoFactoryDashboard() {
   const [aspectRatio, setAspectRatio] = useState("9:16")
   const [currentStyles, setCurrentStyles] = useState<string[]>(GENRE_PRESETS.short_drama.styleSuggestions)
   const [viewMode, setViewMode] = useState<"create" | "projects" | "models" | "voice" | "digital_human">("create")
+  const [cloudSync, setCloudSync] = useState(false)
 
   useEffect(() => {
     setProjects(loadProjects())
     setCurrentStyles(GENRE_PRESETS[genre]?.styleSuggestions || [])
+    setCloudSync(isCloudSyncEnabled())
   }, [genre])
 
   // ── Seedance 视频任务轮询 ──

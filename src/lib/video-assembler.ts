@@ -26,16 +26,29 @@ export async function assembleVideoClientSide(
   const totalDuration = frames[frames.length - 1].endTime
   const totalFrames = Math.ceil(totalDuration * fps)
 
+  // 图片代理 — 解决跨域问题（火山引擎 OSS 图片 CORS 受限）
+  function proxyUrl(originalUrl: string): string {
+    if (originalUrl.includes("placehold.co") || originalUrl.startsWith("data:") || originalUrl.startsWith("blob:")) {
+      return originalUrl
+    }
+    // 火山引擎 OSS / 外部 URL → 通过服务端代理
+    if (originalUrl.includes("volces.com") || originalUrl.startsWith("http")) {
+      return `/api/video/proxy-image?url=${encodeURIComponent(originalUrl)}`
+    }
+    return originalUrl
+  }
+
   // 1. 加载所有图片
   onProgress?.(5)
   const images = await Promise.all(
     frames.map(async (f, i) => {
       const img = new Image()
       img.crossOrigin = "anonymous"
+      const src = proxyUrl(f.url)
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve()
-        img.onerror = () => reject(new Error(`Failed to load frame ${i}: ${f.url}`))
-        img.src = f.url
+        img.onerror = () => reject(new Error(`Failed to load frame ${i}: ${f.url.slice(0, 80)}`))
+        img.src = src
       })
       return img
     }),
