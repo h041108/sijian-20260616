@@ -13,6 +13,7 @@ export default function DigitalHumanPanel() {
   const [progress, setProgress] = useState(0)
   const [statusMsg, setStatusMsg] = useState("")
   const [usingOmniHuman, setUsingOmniHuman] = useState(false)
+  const [micError, setMicError] = useState("")
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -33,7 +34,8 @@ export default function DigitalHumanPanel() {
   }, [])
 
   const toggleRecording = useCallback(async () => {
-    if (recording) { mediaRecorderRef.current?.stop(); setRecording(false); return }
+    if (recording) { mediaRecorderRef.current?.stop(); setRecording(false); setMicError(""); return }
+    setMicError("")
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const mr = new MediaRecorder(stream)
@@ -45,7 +47,16 @@ export default function DigitalHumanPanel() {
         stream.getTracks().forEach(t => t.stop())
       }
       mr.start(); setRecording(true)
-    } catch { alert("无法访问麦克风，请检查浏览器权限") }
+    } catch (err: any) {
+      const msg = err?.message || err?.name || ""
+      if (msg.includes("NotAllowed") || msg.includes("Permission")) {
+        setMicError("麦克风权限未开启。请在浏览器设置中允许麦克风，或改用「上传音频文件」。")
+      } else if (msg.includes("NotFound")) {
+        setMicError("未检测到麦克风设备。请改用「上传音频文件」。")
+      } else {
+        setMicError(`无法访问麦克风（${msg.slice(0, 60)}）。\n请改用「上传音频文件」。`)
+      }
+    }
   }, [recording])
 
   const handleGenerate = useCallback(async () => {
@@ -173,8 +184,8 @@ export default function DigitalHumanPanel() {
       <div className="bg-gradient-to-br from-purple-900/90 to-indigo-900/90 rounded-2xl border border-purple-700 p-8 text-center">
         <div className="text-6xl mb-4">🎭</div>
         <h2 className="text-xl font-bold text-white mb-2">数字人口播</h2>
-        <p className="text-sm text-purple-300 mb-1">一张照片 + 一段音频 → 下载口播视频</p>
-        <p className="text-xs text-purple-400">Canvas 合成 · 支持直接下载 · 本地 InfiniteTalk 可选补充唇同步</p>
+        <p className="text-sm text-purple-300 mb-1">一张照片 + 一段音频 → 会说话的数字人</p>
+        <p className="text-xs text-purple-400">Canvas 合成 · 唇动+头晃 · OmniHuman 可选补充精确唇同步</p>
       </div>
 
       <div className="bg-white rounded-2xl border border-[#e8e5df] p-6">
@@ -193,9 +204,14 @@ export default function DigitalHumanPanel() {
                 {audioUrl ? <div><span className="text-2xl">🎵</span><p className="text-sm text-purple-600 mt-1">音频已就绪</p><audio src={audioUrl} controls className="mt-2 mx-auto max-w-full" /></div> : <div className="text-gray-400"><span className="text-4xl mb-2 block">🎙️</span><span className="text-sm">点击上传音频文件</span></div>}
                 <input type="file" accept="audio/*" onChange={handleAudio} className="hidden" />
               </label>
-              <button onClick={toggleRecording} className={`w-full rounded-xl py-3 text-sm font-medium transition-all ${recording ? "bg-red-600 text-white animate-pulse" : "bg-gray-100 hover:bg-gray-200 text-gray-700"}`}>
-                {recording ? "🔴 录音中... 点击停止" : "🎤 或直接录音"}
+              <button onClick={toggleRecording} disabled={recording}
+                className={`w-full rounded-xl py-3 text-sm font-medium transition-all ${recording ? "bg-red-600 text-white animate-pulse" : "bg-gray-100 hover:bg-gray-200 text-gray-700"}`}>
+                {recording ? "🔴 录音中... 点击停止" : "🎤 手机录音（需授权麦克风）"}
               </button>
+              {micError && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 whitespace-pre-line">{micError}</div>
+              )}
+              <p className="text-[10px] text-gray-400 text-center">推荐：用手机自带录音 App 录好后，点上方虚线框上传音频文件，简单稳定。</p>
             </div>
           </div>
         </div>
