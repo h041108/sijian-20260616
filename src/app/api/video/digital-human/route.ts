@@ -138,10 +138,9 @@ async function getTaskResult(taskId: string): Promise<{
   const ak = process.env.VOLC_ACCESS_KEY || ""
   const sk = process.env.VOLC_SECRET_KEY || ""
 
-  const query = { Action: "CVGetResult", Version: API_VERSION }
+  const query = { Action: "CVGetResult", Version: API_VERSION, task_id: taskId }
   const body = JSON.stringify({
     req_key: REQ_KEY,
-    task_id: taskId,
   })
 
   const headers = signRequest("POST", query, body, ak, sk)
@@ -153,7 +152,10 @@ async function getTaskResult(taskId: string): Promise<{
     body,
   })
 
-  if (!res.ok) throw new Error(`CVGetResult failed: ${res.status}`)
+  if (!res.ok) {
+    const errText = await res.text()
+    throw new Error(`CVGetResult failed: ${res.status} — ${errText.slice(0, 300)}`)
+  }
 
   const data = await res.json()
   if (data.code !== 10000) {
