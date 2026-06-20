@@ -320,27 +320,31 @@ interface ParsedShot {
   dialogue: string       // 对白/旁白
 }
 
-function parseShotsFromScript(scriptText: string): ParsedShot[] {
+function parseShotsFromScript(scriptText: string, promptText?: string): ParsedShot[] {
   const shots: ParsedShot[] = []
-  // 匹配格式: 镜头{N} | 时长{t}秒 | 景别{...} | 运镜{...}
+
+  // ── 优先从 script_breakdown 格式解析（镜头{N} | 时长{t}秒）──
+  let sourceText = scriptText
+  // 如果传入的文本没有镜头格式，尝试从项目脚本拆解阶段取
+  if (!/镜头\d+\s*[|｜]\s*时长/.test(sourceText) && promptText && /镜头\d+\s*[|｜]\s*时长/.test(promptText)) {
+    sourceText = promptText
+  }
+
   const shotRegex = /镜头(\d+)\s*[|｜]\s*时长(\d+(?:\.\d+)?)\s*秒/gi
-  const matches = [...scriptText.matchAll(shotRegex)]
+  const matches = [...sourceText.matchAll(shotRegex)]
 
   for (const match of matches) {
     const shotNum = parseInt(match[1])
     const duration = parseFloat(match[2])
     const start = match.index! + match[0].length
 
-    // 找下一个镜头或结束
-    const rest = scriptText.slice(start)
+    const rest = sourceText.slice(start)
     const nextShot = rest.search(/镜头\d+\s*[|｜]/)
     const block = nextShot >= 0 ? rest.slice(0, nextShot) : rest
 
-    // 提取画面描述
     const descMatch = block.match(/画面描述[：:]([\s\S]*?)(?=对白|旁白|情绪|转场|镜头|\n\n|$)/i)
     const desc = descMatch ? descMatch[1].trim() : block.slice(0, 200).trim()
 
-    // 提取对白
     const dialMatch = block.match(/(?:对白|旁白)[：:]([\s\S]*?)(?=情绪|转场|镜头|\n\n|$)/i)
     const dialogue = dialMatch ? dialMatch[1].trim() : ""
 
@@ -349,25 +353,25 @@ function parseShotsFromScript(scriptText: string): ParsedShot[] {
     }
   }
 
-  // 兜底：如果没匹配到，用即梦提示词行
+  // ── 兜底A：从 prompt_engineering 的 [即梦] 行提取 ──
   if (shots.length === 0) {
-    const jimengLines = scriptText
+    const jimengLines = (promptText || scriptText)
       .split("\n")
-      .filter(l => l.includes("[即梦]") || l.includes("[jimeng]"))
+      .filter(l => /\[即梦\]|\[jimeng\]|\[Midjourney\]/.test(l))
     jimengLines.forEach((l, i) => {
-      const desc = l.replace(/\[即梦\]|\[jimeng\]/gi, "").trim()
+      const desc = l.replace(/\[即梦\]|\[jimeng\]|\[Midjourney\]/gi, "").replace(/^\s*[-–—:：]\s*/, "").trim()
       if (desc.length >= 10) {
         shots.push({ shotNumber: i + 1, duration: 5, description: desc.slice(0, 400), dialogue: "" })
       }
     })
   }
 
-  // 兜底：整个脚本作为一段
+  // ── 兜底B：整个脚本作为一段 ──
   if (shots.length === 0) {
-    shots.push({ shotNumber: 1, duration: 10, description: scriptText.slice(0, 500), dialogue: "" })
+    shots.push({ shotNumber: 1, duration: 10, description: (promptText || scriptText).slice(0, 500), dialogue: "" })
   }
 
-  return shots.slice(0, 6) // 最多6个镜头，控制成本
+  return shots.slice(0, 6)
 }
 
 export async function executeStage(
@@ -391,7 +395,10 @@ export async function executeStage(
   if (stageId === "visual_generation") {
     try {
       const prevOutput = previousStageOutput || ""
-      const shots = parseShotsFromScript(prevOutput)
+      // 从 script_breakdown 阶段获取镜头结构
+      const sbStage = project.stages.find(s => s.stageId === "script_breakdown")
+      const sbOutput = sbStage?.output || ""
+      const shots = parseShotsFromScript(prevOutput, sbOutput)
       stage.input = prevOutput.slice(0, 300) || "视觉生成"
 
       const frames: Array<{
@@ -659,7 +666,10 @@ export async function runFullPipeline(projectId: string): Promise<VideoProject> 
       stage.input = previousOutput.slice(0, 300)
 
       try {
-        const shots = parseShotsFromScript(previousOutput)
+        // 从 script_breakdown 获取镜头结构，从 previousOutput(prompt_engineering) 获取提示词
+        const sbStage = project.stages.find(s => s.stageId === "script_breakdown")
+        const sbOutput = sbStage?.output || ""
+        const shots = parseShotsFromScript(previousOutput, sbOutput)
         const frames: Array<{
           shotNumber: number; duration: number; imageUrl: string; description: string; dialogue: string
           seedanceTaskId: string | null
