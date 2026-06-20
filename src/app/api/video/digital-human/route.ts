@@ -12,6 +12,7 @@ const REGION = "cn-north-1"
 const SERVICE = "cv"
 const API_VERSION = "2022-08-31"
 const REQ_KEY = "jimeng_realman_avatar_picture_omni_v15"
+const ENDPOINT_HOST = "visual.volcengineapi.com"  // 即梦数字人的实际服务地址
 
 // ── HMAC-SHA256 签名 ──
 function hmac(key: string | Buffer, data: string): Buffer {
@@ -31,6 +32,15 @@ function signRequest(
   ak: string,
   sk: string,
 ): Record<string, string> {
+  // 火山引擎 IAM SK 可能是多层 base64 编码的，解码到真实密钥
+  let rawSk = sk
+  let prev = ""
+  while (rawSk !== prev && /^[A-Za-z0-9+/=]+$/.test(rawSk)) {
+    prev = rawSk
+    try { rawSk = Buffer.from(rawSk, "base64").toString("utf-8") } catch { break }
+  }
+  // 如果有不可打印字符，回到上一层的值
+  if (/[^\x20-\x7E]/.test(rawSk)) rawSk = prev
   const now = new Date()
   const pad = (n: number) => n.toString().padStart(2, "0")
   const timestamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`
@@ -48,11 +58,6 @@ function signRequest(
     "host": HOST,
     "x-date": timestamp,
     "content-type": "application/json",
-  }
-  // x-content-sha256 作为实际 Header 但不参与签名（火山引擎视觉服务不要求）
-  const allHeaders: Record<string, string> = {
-    ...signedHeaders,
-    "x-content-sha256": bodyHash,
   }
   const canonicalHeaders = Object.keys(signedHeaders).sort()
     .map(k => `${k}:${signedHeaders[k]}`)
@@ -79,7 +84,7 @@ function signRequest(
   ].join("\n")
 
   // 派生签名密钥
-  const kDate = hmac(sk, shortDate)
+  const kDate = hmac(rawSk, shortDate)
   const kRegion = hmac(kDate, REGION)
   const kService = hmac(kRegion, SERVICE)
   const kSigning = hmac(kService, "request")
@@ -90,7 +95,9 @@ function signRequest(
   const authorization = `HMAC-SHA256 Credential=${ak}/${credentialScope}, SignedHeaders=${signedHeadersStr}, Signature=${signature}`
 
   return {
-    ...allHeaders,
+    "Host": HOST,
+    "X-Date": timestamp,
+    "Content-Type": "application/json",
     "Authorization": authorization,
   }
 }
