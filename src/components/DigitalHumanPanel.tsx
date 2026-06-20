@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { assembleTalkingHead, downloadVideo } from "@/lib/video-assembler"
+import { assembleTalkingHead } from "@/lib/video-assembler"
 
 export default function DigitalHumanPanel() {
   const [portrait, setPortrait] = useState<string | null>(null)
@@ -11,10 +11,20 @@ export default function DigitalHumanPanel() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
   const [progress, setProgress] = useState(0)
   const [statusMsg, setStatusMsg] = useState("")
-  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [recording, setRecording] = useState(false)
+  const [recordingSec, setRecordingSec] = useState(0)
+  const streamRef = useRef<MediaStream | null>(null)
+  const mrRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // 清理
   useEffect(() => {
-    return () => { if (pollTimerRef.current) clearInterval(pollTimerRef.current) }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+      if (mrRef.current && mrRef.current.state !== "inactive") mrRef.current.stop()
+      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop())
+    }
   }, [])
 
   const handlePortrait = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -22,12 +32,91 @@ export default function DigitalHumanPanel() {
     const reader = new FileReader(); reader.onload = () => setPortrait(reader.result as string); reader.readAsDataURL(file)
   }, [])
 
-  const handleAudio = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAudioFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return
     setAudioBlob(file)
-    const url = URL.createObjectURL(file)
-    setAudioUrl(url)
+    setAudioUrl(URL.createObjectURL(file))
   }, [])
+
+  const handleRecord = useCallback(async () => {
+    // 正在录音 → 停止
+    if (recording) {
+      if (mrRef.current && mrRef.current.state !== "inactive") {
+        mrRef.current.stop()
+      }
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+      setRecording(false)
+      setRecordingSec(0)
+      return
+    }
+
+    // 开始录音
+    chunksRef.current = []
+    setRecordingSec(0)
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+
+      // 选浏览器支持的 mime type
+      const mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"]
+        .find(m => MediaRecorder.isTypeSupported(m)) || ""
+
+      const mr = new MediaRecorder(stream, mimeType ? { mimeType } : {})
+      mrRef.current = mr
+
+      // 先绑定回调，再 start
+      mr.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunksRef.current.push(e.data)
+      }
+
+      mr.onstop = () => {
+        if (chunksRef.current.length > 0) {
+          const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" })
+          setAudioBlob(blob)
+          setAudioUrl(URL.createObjectURL(blob))
+        }
+        // 释放麦克风
+        stream.getTracks().forEach(t => t.stop())
+        streamRef.current = null
+        mrRef.current = null
+      }
+
+      mr.onerror = () => {
+        stream.getTracks().forEach(t => t.stop())
+        streamRef.current = null
+        setRecording(false)
+        setRecordingSec(0)
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+      }
+
+      mr.start()
+      setRecording(true)
+
+      // 计时器 + 最长 120 秒自动停止
+      timerRef.current = setInterval(() => {
+        setRecordingSec(s => {
+          const next = s + 1
+          if (next >= 120) {
+            if (mrRef.current && mrRef.current.state !== "inactive") mrRef.current.stop()
+            if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+            setRecording(false)
+            return 0
+          }
+          return next
+        })
+      }, 1000)
+    } catch (err: any) {
+      const msg = err?.message || ""
+      if (msg.includes("NotAllowed") || msg.includes("Permission denied")) {
+        alert("麦克风权限被拒绝。请在浏览器地址栏左侧点🔒图标，开启麦克风权限后重试。")
+      } else if (msg.includes("NotFound") || msg.includes("No device")) {
+        alert("未检测到麦克风设备。请插入麦克风，或改用文件上传。")
+      } else {
+        alert(`无法录音（${msg.slice(0, 80)}）。请改用文件上传。`)
+      }
+    }
+  }, [recording])
 
   const handleGenerate = useCallback(async () => {
     if (!portrait || !audioBlob) return
@@ -101,16 +190,26 @@ export default function DigitalHumanPanel() {
                     <span className="text-[10px] block mt-1 text-gray-300">建议用手机录音 App 先录好</span>
                   </div>
               }
-              <input type="file" accept="audio/*" onChange={handleAudio} className="hidden" />
+              <input type="file" accept="audio/*" onChange={handleAudioFile} className="hidden" />
             </label>
 
-            {!audioUrl && (
-              <p className="text-[10px] text-gray-400 text-center mt-3 leading-relaxed">
-                没有音频文件？<br />
-                打开手机自带「录音机」App 录一段话，<br />
-                然后回到这里点上方框上传。
-              </p>
-            )}
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-px bg-gray-100" />
+              <span className="text-[10px] text-gray-300">或者</span>
+              <div className="flex-1 h-px bg-gray-100" />
+            </div>
+
+            <button onClick={handleRecord}
+              className={`w-full rounded-xl py-3 text-sm font-medium transition-all ${
+                recording
+                  ? "bg-red-600 text-white animate-pulse"
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+              }`}>
+              {recording ? `🔴 录音中 ${recordingSec}s · 点击停止（最长120s）` : "🎤 直接录音"}
+            </button>
+            <p className="text-[10px] text-gray-400 text-center">
+              点击开始录音，说完点停止，自动就绪
+            </p>
           </div>
         </div>
 
