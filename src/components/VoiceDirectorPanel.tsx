@@ -2,39 +2,83 @@
 
 import { useState, useRef, useCallback, useEffect } from "react"
 import { createVoiceDirectorSession, VoiceDirectorSession, NarratedScene } from "@/lib/voice-video"
+import { createProject, loadProjects } from "@/lib/video-factory"
 
-export default function VoiceDirectorPanel() {
+export default function VoiceDirectorPanel({ onProjectCreated }: { onProjectCreated?: () => void }) {
   const [session, setSession] = useState<VoiceDirectorSession | null>(null)
   const [narrative, setNarrative] = useState("")
   const [listening, setListening] = useState(false)
   const [loading, setLoading] = useState(false)
   const [selectedScene, setSelectedScene] = useState<NarratedScene | null>(null)
   const [voiceSupported, setVoiceSupported] = useState(false)
+  const [micPermission, setMicPermission] = useState<"prompt" | "granted" | "denied" | "unknown">("unknown")
   const recognitionRef = useRef<any>(null)
   const lastResultIdx = useRef(0)
 
   useEffect(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     setVoiceSupported(!!SR)
+    // 检查麦克风权限
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: "microphone" as PermissionName }).then(
+        (result) => {
+          setMicPermission(result.state as any)
+          result.onchange = () => setMicPermission(result.state as any)
+        }
+      ).catch(() => setMicPermission("unknown"))
+    }
     if (SR) {
-      const r = new SR(); r.lang = "zh-CN"; r.interimResults = false; r.continuous = true
+      const r = new SR(); r.lang = "zh-CN"; r.interimResults = true; r.continuous = true
       r.onresult = (e: any) => {
         let transcript = ""
         for (let i = lastResultIdx.current; i < e.results.length; i++) {
-          if (e.results[i].isFinal) { transcript += e.results[i][0].transcript; lastResultIdx.current = i + 1 }
+          transcript += e.results[i][0].transcript
+          if (e.results[i].isFinal) lastResultIdx.current = i + 1
         }
         if (transcript) setNarrative(p => p + transcript)
       }
-      r.onerror = () => setListening(false)
+      r.onerror = (e: any) => {
+        if (e.error === "not-allowed") setMicPermission("denied")
+        setListening(false)
+      }
       r.onend = () => { setListening(false); lastResultIdx.current = 0 }
       recognitionRef.current = r
     }
+    return () => {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort() } catch {}
+      }
+    }
   }, [])
+
+  const requestMicAndStart = useCallback(async () => {
+    if (!recognitionRef.current) return
+    if (micPermission === "denied") {
+      alert("麦克风权限已被拒绝。请在浏览器设置中允许麦克风访问后重试。")
+      return
+    }
+    try {
+      // 显式请求麦克风权限（触发浏览器授权弹窗）
+      await navigator.mediaDevices.getUserMedia({ audio: true })
+      setMicPermission("granted")
+    } catch {
+      setMicPermission("denied")
+      alert("需要麦克风权限才能使用口述功能。请在浏览器设置中允许麦克风访问。")
+      return
+    }
+    recognitionRef.current.start()
+    setListening(true)
+  }, [micPermission])
 
   const toggleVoice = useCallback(() => {
     if (!recognitionRef.current) return
-    listening ? (recognitionRef.current.stop(), setListening(false)) : (recognitionRef.current.start(), setListening(true))
-  }, [listening])
+    if (listening) {
+      recognitionRef.current.stop()
+      setListening(false)
+    } else {
+      requestMicAndStart()
+    }
+  }, [listening, requestMicAndStart])
 
   const handleGenerate = useCallback(async () => {
     if (!narrative.trim() || loading) return; setLoading(true)
@@ -42,15 +86,43 @@ export default function VoiceDirectorPanel() {
     setLoading(false)
   }, [narrative, loading])
 
+  const handleSendToVideoFactory = useCallback(() => {
+    if (!session) return
+    const project = createProject(
+      session.title || narrative.slice(0, 50),
+      "storytelling",
+      session.thinkingOverlay?.visualStyle || "写实风格",
+      60,
+      "16:9",
+    )
+    onProjectCreated?.()
+    alert(`已创建作品「${session.title || narrative.slice(0, 20)}」，请在"我的作品"中查看并运行流水线。`)
+  }, [session, narrative, onProjectCreated])
+
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl border border-indigo-800 p-8 text-center">
         <div className="text-6xl mb-4">🎙️</div>
         <h2 className="text-xl font-bold text-white mb-2">口述成片</h2>
-        <p className="text-sm text-indigo-300 mb-6">{voiceSupported ? "对着麦克风讲故事，AI实时拆解分镜头" : "手动输入叙事文本，AI拆解分镜头"}</p>
-        <button onClick={toggleVoice} className={`inline-flex items-center gap-3 px-8 py-4 rounded-full text-lg font-bold transition-all ${voiceSupported ? (listening ? "bg-red-600 animate-pulse text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white") : "bg-gray-600 text-gray-300 cursor-not-allowed"}`}>
-          <span className={`w-4 h-4 rounded-full ${voiceSupported && listening ? "bg-red-300" : "bg-indigo-300"}`} />
-          {voiceSupported ? (listening ? "🔴 录音中...点击停止" : "🎤 开始口述") : "语音不可用"}
+        <p className="text-sm text-indigo-300 mb-6">
+          {!voiceSupported ? "您的浏览器不支持语音识别，请使用 Chrome" :
+           micPermission === "denied" ? "麦克风权限已拒绝，请在浏览器设置中允许" :
+           micPermission === "granted" ? "对着麦克风讲故事，AI实时拆解分镜头" :
+           "点击下方按钮开始口述，AI自动拆解分镜头"}
+        </p>
+        <button onClick={toggleVoice}
+          className={`inline-flex items-center gap-3 px-8 py-4 rounded-full text-lg font-bold transition-all ${
+            !voiceSupported ? "bg-gray-600 text-gray-300 cursor-not-allowed" :
+            micPermission === "denied" ? "bg-red-600 text-white" :
+            listening ? "bg-red-600 animate-pulse text-white" :
+            "bg-indigo-600 hover:bg-indigo-700 text-white"
+          }`}
+          disabled={!voiceSupported}>
+          <span className={`w-4 h-4 rounded-full ${listening ? "bg-red-300" : "bg-indigo-300"}`} />
+          {!voiceSupported ? "语音不可用" :
+           micPermission === "denied" ? "🔒 麦克风已禁用（点击重试）" :
+           listening ? "🔴 录音中...点击停止" :
+           "🎤 开始口述"}
         </button>
         <textarea value={narrative} onChange={e => setNarrative(e.target.value)} placeholder="一个少年站在废墟上，远处是燃烧的城市……" rows={6}
           className="w-full max-w-2xl mx-auto mt-6 rounded-xl border border-indigo-700 bg-indigo-900/30 p-4 text-sm text-white placeholder-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none" />
@@ -63,12 +135,17 @@ export default function VoiceDirectorPanel() {
         </div>
       </div>
 
-      {session && <RenderSession session={session} selectedScene={selectedScene} setSelectedScene={setSelectedScene} />}
+      {session && <RenderSession session={session} selectedScene={selectedScene} setSelectedScene={setSelectedScene} onSendToVideoFactory={handleSendToVideoFactory} />}
     </div>
   )
 }
 
-function RenderSession({ session, selectedScene, setSelectedScene }: { session: VoiceDirectorSession; selectedScene: NarratedScene | null; setSelectedScene: (s: NarratedScene | null) => void }) {
+function RenderSession({ session, selectedScene, setSelectedScene, onSendToVideoFactory }: {
+  session: VoiceDirectorSession
+  selectedScene: NarratedScene | null
+  setSelectedScene: (s: NarratedScene | null) => void
+  onSendToVideoFactory: () => void
+}) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-4">
@@ -120,6 +197,7 @@ function RenderSession({ session, selectedScene, setSelectedScene }: { session: 
         </div>
         <div className="flex gap-3 mt-4 pt-4 border-t border-gray-100">
           <button onClick={() => navigator.clipboard.writeText(session.scenes.map(s => s.promptMJ).join("\n"))} className="text-xs text-gray-500 border px-3 py-1.5 rounded-lg">📋 复制所有MJ提示词</button>
+          <button onClick={handleSendToVideoFactory} className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-medium">🎬 发送到即影生成视频</button>
         </div>
       </div>
     </div>

@@ -267,7 +267,7 @@ export const GENRE_PRESETS: Record<string, GenrePreset> = {
 }
 
 // ═══════════════════════════════════════════════════
-// 项目存储
+// 作品存储
 // ═══════════════════════════════════════════════════
 
 const PROJECTS_KEY = "sijian_video_projects"
@@ -280,6 +280,11 @@ export function loadProjects(): VideoProject[] {
 export function saveProjects(projects: VideoProject[]) {
   if (typeof window === "undefined") return
   localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects))
+}
+
+export function deleteProject(projectId: string) {
+  const projects = loadProjects()
+  saveProjects(projects.filter(p => p.id !== projectId))
 }
 
 export function createProject(
@@ -327,7 +332,7 @@ export async function executeStage(
   // ── 视觉生成：调 /api/video/frame ──
   if (stageId === "visual_generation") {
     try {
-      // 从上一阶段输出提取 prompt，或从项目一句话生成兜底提示词
+      // 从上一阶段输出提取 prompt，或从作品一句话生成兜底提示词
       const prevOutput = previousStageOutput || ""
       const promptLines = prevOutput.split("\n").filter(l => l.startsWith("[即梦]") || l.startsWith("[Midjourney]"))
       const firstPrompt = promptLines[0] || prevOutput.slice(0, 500) || project.oneLiner
@@ -504,7 +509,7 @@ export async function executeStage(
 export async function runFullPipeline(projectId: string): Promise<VideoProject> {
   const projects = loadProjects()
   const project = projects.find(p => p.id === projectId)
-  if (!project) throw new Error("项目不存在")
+  if (!project) throw new Error("作品不存在")
 
   project.status = "running"
   saveProjects(projects)

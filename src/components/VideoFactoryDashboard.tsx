@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import {
   VideoProject, PipelineStageId,
   PIPELINE_STAGES, GENRE_PRESETS,
-  createProject, loadProjects,
+  createProject, loadProjects, deleteProject,
   executeStage, runFullPipeline, getAvailableModels,
   VIDEO_MODELS, pollSeedanceTask,
 } from "@/lib/video-factory"
@@ -26,6 +26,9 @@ export default function VideoFactoryDashboard() {
   const [running, setRunning] = useState(false)
   const [seedanceStatus, setSeedanceStatus] = useState<{ status: string; videoUrl?: string; message?: string } | null>(null)
   const [seedancePollTimer, setSeedancePollTimer] = useState<ReturnType<typeof setInterval> | null>(null)
+  const [downloadProgress, setDownloadProgress] = useState(0)
+  const [downloadStatus, setDownloadStatus] = useState<"idle" | "loading" | "done" | "error">("idle")
+  const downloadInProgress = useRef(false)
 
   // New project form
   const [oneLiner, setOneLiner] = useState("")
@@ -117,10 +120,10 @@ export default function VideoFactoryDashboard() {
       {/* ═══ 顶部切换 ═══ */}
       <div className="bg-white rounded-2xl border border-[#e8e5df] p-3 flex items-center gap-1.5 flex-wrap">
         {[
-          { id: "create" as const, icon: "🎬", label: "新建项目" },
+          { id: "create" as const, icon: "🎬", label: "新建作品" },
           { id: "voice" as const, icon: "🎙️", label: "口述成片" },
           { id: "digital_human" as const, icon: "🎭", label: "数字人口播" },
-          { id: "projects" as const, icon: "📂", label: `我的项目 (${projects.length})` },
+          { id: "projects" as const, icon: "📂", label: `我的作品 (${projects.length})` },
           { id: "models" as const, icon: "🔧", label: "模型工坊" },
         ].map(t => (
           <button key={t.id} onClick={() => setViewMode(t.id)}
@@ -183,7 +186,7 @@ export default function VideoFactoryDashboard() {
 
             <button onClick={handleCreate} disabled={!oneLiner.trim()}
               className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-3 text-sm font-bold transition-all disabled:opacity-40">
-              🎬 创建视频项目
+              🎬 创建视频作品
             </button>
           </div>
         </div>
@@ -192,7 +195,10 @@ export default function VideoFactoryDashboard() {
       {/* ════════════════════════════════════════
           口述成片
           ════════════════════════════════════════ */}
-      {viewMode === "voice" && <VoiceDirectorPanel />}
+      {viewMode === "voice" && <VoiceDirectorPanel onProjectCreated={() => {
+        setProjects(loadProjects())
+        setViewMode("projects")
+      }} />}
 
       {/* ════════════════════════════════════════
           数字人口播
@@ -200,17 +206,17 @@ export default function VideoFactoryDashboard() {
       {viewMode === "digital_human" && <DigitalHumanPanel />}
 
       {/* ════════════════════════════════════════
-          项目详情 / 流水线控制
+          作品详情 / 流水线控制
           ════════════════════════════════════════ */}
       {viewMode === "projects" && (
         <div className="space-y-4">
-          {/* 项目列表 */}
+          {/* 作品列表 */}
           {projects.length === 0 ? (
             <div className="bg-white rounded-2xl border border-[#e8e5df] p-12 text-center">
               <div className="text-5xl mb-4 opacity-20">🎬</div>
-              <p className="text-gray-500 text-sm">还没有视频项目</p>
+              <p className="text-gray-500 text-sm">还没有作品</p>
               <button onClick={() => setViewMode("create")}
-                className="mt-3 text-sm text-indigo-600 hover:text-indigo-700">→ 创建第一个项目</button>
+                className="mt-3 text-sm text-indigo-600 hover:text-indigo-700">→ 创建第一个作品</button>
             </div>
           ) : (
             <div className="space-y-3">
@@ -226,13 +232,21 @@ export default function VideoFactoryDashboard() {
                         {GENRE_PRESETS[p.genre]?.icon} {GENRE_PRESETS[p.genre]?.label}
                       </span>
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      p.status === "completed" ? "bg-green-100 text-green-700" :
-                      p.status === "running" ? "bg-blue-100 text-blue-700 animate-pulse" :
-                      "bg-gray-100 text-gray-500"
-                    }`}>
-                      {p.status === "completed" ? "✅ 完成" : p.status === "running" ? "⏳ 执行中" : "📝 草稿"}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs px-2 py-0.5 rounded-full">{
+                        p.status === "completed" ? "✅ 完成" : p.status === "running" ? "⏳ 执行中" : "📝 草稿"
+                      }</span>
+                      <button onClick={(e) => {
+                        e.stopPropagation()
+                        if (confirm(`确定删除作品「${p.oneLiner.slice(0, 30)}」？`)) {
+                          deleteProject(p.id)
+                          if (activeId === p.id) setActiveId(null)
+                          setProjects(loadProjects())
+                        }
+                      }}
+                        className="text-[10px] text-gray-400 hover:text-red-500 px-1 py-0.5 leading-none"
+                        title="删除作品">✕</button>
+                    </div>
                   </div>
                   {/* 迷你流水线进度 */}
                   <div className="flex items-center gap-1">
@@ -353,43 +367,80 @@ export default function VideoFactoryDashboard() {
                         <div className="mt-2 space-y-2">
                           {/* Seedance AI 视频下载（优先） */}
                           {seedanceStatus?.status === "succeeded" && seedanceStatus.videoUrl && (
-                            <a href={seedanceStatus.videoUrl} target="_blank" rel="noopener noreferrer" download
+                            <a href={seedanceStatus.videoUrl} target="_blank" rel="noopener noreferrer"
                               className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-3 text-sm font-bold transition-all flex items-center justify-center gap-2">
                               <span>🎥</span> 下载 Seedance AI 视频
                             </a>
                           )}
                           {/* Canvas 合成下载（兜底） */}
-                          <button onClick={async () => {
-                            try {
-                              const parsed = JSON.parse(stage.output)
-                              if (parsed.requiresClientRender) {
-                                // 找到视觉生成阶段的图片URL
-                                const visStage = active?.stages.find(s => s.stageId === "visual_generation")
-                                let frameUrl = ""
-                                if (visStage?.output) {
-                                  try { frameUrl = JSON.parse(visStage.output).url || "" } catch {}
-                                }
-                                if (frameUrl && !frameUrl.includes("placehold.co")) {
-                                  // 加载客户端合成器
-                                  const { assembleVideoClientSide, downloadVideo } = await import("@/lib/video-assembler")
-                                  try {
+                          {downloadStatus === "idle" && (
+                            <button onClick={async () => {
+                              if (downloadInProgress.current) return
+                              downloadInProgress.current = true
+                              setDownloadStatus("loading")
+                              setDownloadProgress(0)
+                              try {
+                                const parsed = JSON.parse(stage.output)
+                                if (parsed.requiresClientRender) {
+                                  const visStage = active?.stages.find(s => s.stageId === "visual_generation")
+                                  let frameUrl = ""
+                                  if (visStage?.output) {
+                                    try { frameUrl = JSON.parse(visStage.output).url || "" } catch {}
+                                  }
+                                  if (frameUrl && !frameUrl.includes("placehold.co")) {
+                                    const { assembleVideoClientSide, downloadVideo } = await import("@/lib/video-assembler")
                                     const blob = await assembleVideoClientSide({
                                       frames: [{ url: frameUrl, startTime: 0, endTime: active?.duration || 10, index: 0 }],
                                       width: 1920, height: 1080, fps: 24,
-                                    }, (pct: number) => {})
-                                    downloadVideo(blob, `思见视频-${active?.id?.slice(0, 8) || "output"}.webm`)
-                                  } catch {
-                                    alert("视频合成需要即梦真实图片。请先配置 JIMENG_API_KEY 并重新运行视觉生成阶段。")
+                                    }, (pct: number) => setDownloadProgress(pct))
+                                    downloadVideo(blob, `思见-${active?.id?.slice(0, 8) || "output"}.webm`)
+                                    setDownloadStatus("done")
+                                  } else {
+                                    setDownloadStatus("error")
+                                    alert("请先运行视觉生成阶段获取真实图片。当前为占位图无法合成。")
                                   }
-                                } else {
-                                  alert("请先运行视觉生成阶段获取真实图片。当前为占位图无法合成。")
                                 }
+                              } catch (err: any) {
+                                setDownloadStatus("error")
+                                const msg = err?.message || ""
+                                if (msg.includes("Failed to load frame") || msg.includes("CORS")) {
+                                  alert(`图片加载失败（可能是跨域限制）：${msg.slice(0, 100)}。请尝试下载 Seedance AI 视频。`)
+                                } else if (msg.includes("MediaRecorder") || msg.includes("captureStream")) {
+                                  alert("您的浏览器不支持视频合成，请使用 Chrome 或下载 Seedance AI 视频。")
+                                } else {
+                                  alert(`合成失败：${msg.slice(0, 100) || "未知错误"}。如需帮助请检查图片链接是否可访问。`)
+                                }
+                              } finally {
+                                downloadInProgress.current = false
                               }
-                            } catch { alert("合成失败") }
-                          }}
-                            className="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white py-3 text-sm font-bold transition-all flex items-center justify-center gap-2">
-                            <span>📥</span> Canvas 合成下载
-                          </button>
+                            }}
+                              className="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white py-3 text-sm font-bold transition-all flex items-center justify-center gap-2">
+                              <span>📥</span> Canvas 合成下载
+                            </button>
+                          )}
+                          {downloadStatus === "loading" && (
+                            <div className="w-full rounded-xl bg-green-50 border border-green-200 p-3">
+                              <div className="flex items-center gap-2 text-sm text-green-700 mb-2">
+                                <span className="animate-spin">⏳</span> 正在合成视频...
+                              </div>
+                              <div className="w-full bg-green-200 rounded-full h-2">
+                                <div className="bg-green-600 h-2 rounded-full transition-all duration-300" style={{ width: `${downloadProgress}%` }} />
+                              </div>
+                              <div className="text-[10px] text-green-500 mt-1 text-right">{downloadProgress}%</div>
+                            </div>
+                          )}
+                          {downloadStatus === "done" && (
+                            <div className="text-sm text-green-600 font-medium flex items-center gap-2">
+                              <span>✅</span> 视频已下载
+                              <button onClick={() => setDownloadStatus("idle")} className="text-[10px] text-gray-400 underline">重新下载</button>
+                            </div>
+                          )}
+                          {downloadStatus === "error" && (
+                            <div className="text-sm text-red-500 flex items-center gap-2">
+                              <span>❌</span> 合成失败
+                              <button onClick={() => setDownloadStatus("idle")} className="text-[10px] text-indigo-500 underline">重试</button>
+                            </div>
+                          )}
                         </div>
                       )}
 
