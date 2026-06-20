@@ -575,6 +575,7 @@ export async function executeStage(
 ▪ 热门关键词：${vt.keywords?.join("、") || ""}
 
 请借鉴以上爆款模板的结构和节奏，将关键元素融入故事中，但用新的创意重新构建内容。`
+    }
 
     // 调用LLM
     const response = await fetch("/api/chat", {

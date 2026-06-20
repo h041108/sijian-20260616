@@ -197,7 +197,7 @@ function RenderSession({ session, selectedScene, setSelectedScene, onSendToVideo
         </div>
         <div className="flex gap-3 mt-4 pt-4 border-t border-gray-100">
           <button onClick={() => navigator.clipboard.writeText(session.scenes.map(s => s.promptMJ).join("\n"))} className="text-xs text-gray-500 border px-3 py-1.5 rounded-lg">📋 复制所有MJ提示词</button>
-          <button onClick={handleSendToVideoFactory} className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-medium">🎬 发送到即影生成视频</button>
+          <button onClick={onSendToVideoFactory} className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-medium">🎬 发送到即影生成视频</button>
         </div>
       </div>
     </div>
