@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { assembleTalkingHead, downloadVideo } from "@/lib/video-assembler"
 
 export default function DigitalHumanPanel() {
@@ -11,8 +11,16 @@ export default function DigitalHumanPanel() {
   const [resultUrl, setResultUrl] = useState<string | null>(null)
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
   const [progress, setProgress] = useState(0)
+  const [statusMsg, setStatusMsg] = useState("")
+  const [usingOmniHuman, setUsingOmniHuman] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // 清理轮询
+  useEffect(() => {
+    return () => { if (pollTimerRef.current) clearInterval(pollTimerRef.current) }
+  }, [])
 
   const handlePortrait = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return
@@ -42,22 +50,118 @@ export default function DigitalHumanPanel() {
 
   const handleGenerate = useCallback(async () => {
     if (!portrait || !audioBlob) return
-    setGenerating(true); setResultUrl(null); setProgress(0)
+    setGenerating(true); setResultUrl(null); setProgress(0); setUsingOmniHuman(false)
+    setStatusMsg("正在上传素材...")
 
     try {
-      const blob = await assembleTalkingHead({
-        portraitUrl: portrait,
-        audioBlob,
-        width: 1080,
-        height: 1920,
-        fps: 24,
-      }, (pct: number) => setProgress(pct))
-      setResultUrl(URL.createObjectURL(blob))
+      // ── 1. 上传照片和音频到服务器，获取可访问的 URL ──
+      setProgress(5)
+
+      // 上传照片
+      let imageUrl = portrait
+      if (portrait.startsWith("data:")) {
+        const imgResp = await fetch(portrait)
+        const imgBlob = await imgResp.blob()
+        const fd = new FormData()
+        fd.append("file", imgBlob, `portrait-${Date.now()}.png`)
+        const upRes = await fetch("/api/upload", { method: "POST", body: fd })
+        if (upRes.ok) {
+          const upData = await upRes.json()
+          imageUrl = upData.url || portrait
+        }
+      }
+
+      // 上传音频
+      const audioFd = new FormData()
+      audioFd.append("file", audioBlob, `audio-${Date.now()}.webm`)
+      const audioUpRes = await fetch("/api/upload", { method: "POST", body: audioFd })
+      let uploadedAudioUrl = ""
+      if (audioUpRes.ok) {
+        const audioUpData = await audioUpRes.json()
+        uploadedAudioUrl = audioUpData.url || ""
+      }
+
+      setProgress(10)
+
+      // ── 2. 尝试 OmniHuman API ──
+      let useOmniHumanFallback = false
+      try {
+        setStatusMsg("正在调用实时数字人生成...")
+        const dhRes = await fetch("/api/video/digital-human", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            imageUrl: imageUrl.startsWith("http") ? imageUrl : portrait,
+            audioUrl: uploadedAudioUrl || audioUrl || "",
+          }),
+        })
+        const dhData = await dhRes.json()
+
+        if (dhData.taskId) {
+          // OmniHuman 已就绪，开始轮询
+          setUsingOmniHuman(true)
+          setStatusMsg("数字人正在生成中...（约 30-60 秒）")
+
+          await new Promise<void>((resolve, reject) => {
+            const poll = async () => {
+              try {
+                const pollRes = await fetch(`/api/video/digital-human?task_id=${dhData.taskId}`)
+                const pollData = await pollRes.json()
+                setProgress(10 + Math.round(Math.random() * 30)) // 轮询中进度估计
+
+                if (pollData.status === "done" && pollData.videoUrl) {
+                  setProgress(95)
+                  // 下载 OmniHuman 视频为 Blob
+                  const videoResp = await fetch(pollData.videoUrl)
+                  const videoBlob = await videoResp.blob()
+                  setResultUrl(URL.createObjectURL(videoBlob))
+                  setStatusMsg("✅ 数字人视频已生成（OmniHuman）")
+                  resolve()
+                } else if (pollData.status === "failed" || pollData.status === "expired" || pollData.status === "not_found") {
+                  useOmniHumanFallback = true
+                  resolve()
+                }
+              } catch {
+                useOmniHumanFallback = true
+                resolve()
+              }
+            }
+            pollTimerRef.current = setInterval(poll, 3000)
+            // 首次立即查询
+            poll()
+          })
+
+          if (pollTimerRef.current) { clearInterval(pollTimerRef.current); pollTimerRef.current = null }
+        } else if (dhData.needConfig) {
+          // AK/SK 未配置，直接走 Canvas 降级
+          useOmniHumanFallback = true
+        } else {
+          useOmniHumanFallback = true
+        }
+      } catch {
+        useOmniHumanFallback = true
+      }
+
+      // ── 3. Canvas 降级（OmniHuman 不可用或失败时） ──
+      if (useOmniHumanFallback && !resultUrl) {
+        setUsingOmniHuman(false)
+        setStatusMsg("正在用 Canvas 引擎合成...（纯浏览器，零GPU）")
+        setProgress(25)
+        const blob = await assembleTalkingHead({
+          portraitUrl: portrait,
+          audioBlob,
+          width: 1080,
+          height: 1920,
+          fps: 24,
+        }, (pct: number) => setProgress(25 + Math.round(pct * 0.7)))
+        setResultUrl(URL.createObjectURL(blob))
+        setStatusMsg("✅ 视频已生成（Canvas 合成）")
+      }
     } catch (err: any) {
       alert(`视频合成失败: ${err?.message || "未知错误"}`)
     }
     setGenerating(false)
-  }, [portrait, audioBlob])
+  }, [portrait, audioBlob, audioUrl])
 
   const handleDownload = useCallback(() => {
     if (!resultUrl || resultUrl.startsWith("data:")) return
