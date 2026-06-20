@@ -1,7 +1,8 @@
 // ─── POST /api/video/seedance ──────────────────────────
-// Seedance 2.0 视频生成 API
+// Seedance 视频生成 API
 // 火山引擎 ARK 平台 → 异步任务 → 轮询获取视频
-// 模型：doubao-seedance-2-0-260128 / doubao-seedance-2-0-fast-260128
+// 已验证可用：2.0 / 2.0-fast / 1.5-pro / 1.0-pro / 1.0-pro-fast / 1.0-lite
+// doubao-seedance-2-0-mini 仅限 ARK Playground，不支持 API
 
 import { NextRequest, NextResponse } from "next/server"
 
@@ -11,7 +12,12 @@ const SEEDANCE_TASKS = `${ARK_BASE}/contents/generations/tasks`
 const MODEL_IDS: Record<string, string> = {
   "seedance-2.0": "doubao-seedance-2-0-260128",
   "seedance-2.0-fast": "doubao-seedance-2-0-fast-260128",
+  "seedance-2.0-mini": "doubao-seedance-2-0-mini-260615",
+  "seedance-1.5-pro": "doubao-seedance-1-5-pro-251215",
+  "seedance-1.0-pro": "doubao-seedance-1-0-pro-250528",
+  "seedance-1.0-pro-fast": "doubao-seedance-1-0-pro-fast-251015",
   "seedance-1.0-lite-i2v": "doubao-seedance-1-0-lite-i2v-250428",
+  "seedance-1.0-lite-t2v": "doubao-seedance-1-0-lite-t2v-250428",
 }
 
 function getApiKey(): string | null {

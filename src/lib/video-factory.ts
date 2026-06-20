@@ -36,6 +36,15 @@ export interface VideoProject {
   style: string              // "日系动漫"/"写实"/"水墨风"/"赛博朋克"/"皮克斯3D"
   duration: number           // 目标时长（秒），默认60
   aspectRatio: string        // "16:9" | "9:16" | "1:1"
+  viralTemplate?: {          // 爆款模板（可选，来自 /api/trends/deconstruct）
+    hookStyle: string
+    scriptStructure: string
+    pacing: string
+    emotionalCurve: string
+    conversionTactic: string
+    visualStyle: string
+    keywords: string[]
+  }
   createdAt: string
   status: "draft" | "running" | "completed" | "failed"
   stages: PipelineStageResult[]
@@ -276,10 +285,11 @@ export function saveProjects(projects: VideoProject[]) {
 export function createProject(
   oneLiner: string, genre: VideoProject["genre"], style: string,
   duration: number = 60, aspectRatio: string = "16:9",
+  viralTemplate?: VideoProject["viralTemplate"],
 ): VideoProject {
   const project: VideoProject = {
     id: `vp_${Date.now()}`,
-    oneLiner, genre, style, duration, aspectRatio,
+    oneLiner, genre, style, duration, aspectRatio, viralTemplate,
     createdAt: new Date().toISOString(),
     status: "draft",
     stages: PIPELINE_STAGES.map(s => ({
@@ -412,13 +422,30 @@ export async function executeStage(
       .replace("{genre}", GENRE_PRESETS[project.genre]?.label || project.genre)
       .replace("{sceneCount}", String(GENRE_PRESETS[project.genre]?.sceneCount || 6))
 
+    // ── 注入爆款模板到故事创世阶段 ──
+    let finalSystemPrompt = fullPrompt
+    if (stageId === "story_genesis" && project.viralTemplate) {
+      const vt = project.viralTemplate
+      finalSystemPrompt = `${fullPrompt}
+
+【参考爆款模板——已分析抖音/TikTok热门趋势】
+▪ 钩子策略：${vt.hookStyle}
+▪ 脚本结构：${vt.scriptStructure}
+▪ 节奏控制：${vt.pacing}
+▪ 情绪曲线：${vt.emotionalCurve}
+▪ 转化话术：${vt.conversionTactic}
+▪ 视觉风格：${vt.visualStyle}
+▪ 热门关键词：${vt.keywords?.join("、") || ""}
+
+请借鉴以上爆款模板的结构和节奏，将关键元素融入故事中，但用新的创意重新构建内容。`
+
     // 调用LLM
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         messages: [
-          { role: "system", content: fullPrompt },
+          { role: "system", content: finalSystemPrompt },
           { role: "user", content: input },
         ],
         existingNodes: [],
@@ -438,6 +465,29 @@ export async function executeStage(
       try {
         const { analyzeScript } = await import("./video-cognition-qa")
         stage.qaResult = analyzeScript(stage.output)
+
+        // ── 自动修复：评分低于阈值时自动调用DeepSeek修正 ──
+        const qaThreshold = 65
+        if (stage.qaResult.overallScore < qaThreshold && stage.output.length > 100) {
+          try {
+            const { autoFixScript } = await import("./script-auto-fix")
+            const fixResult = await autoFixScript({
+              originalScript: stage.output,
+              stage: stageId === "story_genesis" ? "story" : "script_breakdown",
+              qaReport: stage.qaResult,
+              style: project.style,
+              genre: GENRE_PRESETS[project.genre]?.label || project.genre,
+              targetDuration: project.duration,
+            })
+            if (fixResult && fixResult.fixedScript.length > 50) {
+              stage.output = fixResult.fixedScript
+              // 对修复后脚本重新质检
+              try {
+                stage.qaResult = analyzeScript(fixResult.fixedScript)
+              } catch {}
+            }
+          } catch {}
+        }
       } catch {}
     }
 
