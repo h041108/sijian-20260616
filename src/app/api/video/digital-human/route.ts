@@ -32,15 +32,6 @@ function signRequest(
   ak: string,
   sk: string,
 ): Record<string, string> {
-  // 火山引擎 IAM SK 可能是多层 base64 编码的，解码到真实密钥
-  let rawSk = sk
-  let prev = ""
-  while (rawSk !== prev && /^[A-Za-z0-9+/=]+$/.test(rawSk)) {
-    prev = rawSk
-    try { rawSk = Buffer.from(rawSk, "base64").toString("utf-8") } catch { break }
-  }
-  // 如果有不可打印字符，回到上一层的值
-  if (/[^\x20-\x7E]/.test(rawSk)) rawSk = prev
   const now = new Date()
   const pad = (n: number) => n.toString().padStart(2, "0")
   const timestamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`
@@ -57,6 +48,7 @@ function signRequest(
   const signedHeaders: Record<string, string> = {
     "host": HOST,
     "x-date": timestamp,
+    "x-content-sha256": bodyHash,
     "content-type": "application/json",
   }
   const canonicalHeaders = Object.keys(signedHeaders).sort()
@@ -84,7 +76,7 @@ function signRequest(
   ].join("\n")
 
   // 派生签名密钥
-  const kDate = hmac(rawSk, shortDate)
+  const kDate = hmac(sk, shortDate)
   const kRegion = hmac(kDate, REGION)
   const kService = hmac(kRegion, SERVICE)
   const kSigning = hmac(kService, "request")
@@ -97,6 +89,7 @@ function signRequest(
   return {
     "Host": HOST,
     "X-Date": timestamp,
+    "X-Content-Sha256": bodyHash,
     "Content-Type": "application/json",
     "Authorization": authorization,
   }
