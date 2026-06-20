@@ -57,32 +57,62 @@ export function analyzeScript(scriptText: string): ScriptCognitionReport {
     }
   }
 
-  // 按句号/换行拆段落
-  const paragraphs = scriptText.split(/[。！？\n]/).map(s => s.trim()).filter(s => s.length >= 6)
-  const lines = detectThinkingLines(scriptText)
-  const cognition = fullCognitionAnalysis(scriptText, lines)
+  // ── 段落拆分：按空行（\n\n）→ 按换行 → 2-3句一组 ──
+  let rawParagraphs = scriptText
+    .split(/\n\n+/)
+    .map(s => s.trim())
+    .filter(s => s.length >= 10)
+  if (rawParagraphs.length < 3) {
+    rawParagraphs = scriptText
+      .split(/\n/)
+      .map(s => s.trim())
+      .filter(s => s.length >= 10)
+  }
+  // 如果拆分后仍太多（按句号拆出了每句话），按3句一组重新合并
+  let paragraphs: string[]
+  if (rawParagraphs.length > 20) {
+    const sentences = scriptText.split(/[。！？\n]/).map(s => s.trim()).filter(s => s.length >= 6)
+    paragraphs = []
+    let chunk = ""
+    for (let i = 0; i < sentences.length; i++) {
+      chunk += (chunk ? "。" : "") + sentences[i]
+      if ((i + 1) % 3 === 0 || i === sentences.length - 1) {
+        if (chunk.length >= 10) paragraphs.push(chunk)
+        chunk = ""
+      }
+    }
+    if (paragraphs.length < 3) paragraphs = rawParagraphs.slice(0, 15)
+  } else {
+    paragraphs = rawParagraphs
+  }
 
-  // 因果清晰度
+  const totalChars = scriptText.replace(/\s/g, "").length
+  const lines = detectThinkingLines(scriptText)
+
+  // ── 因果清晰度：因果关键词密度 ──
   const causalKeywords = ["因为","所以","导致","原因","结果","因此","由于","于是","从而"]
   const logicalKeywords = ["第一","第二","首先","然后","接着","最后","第一步","其次","接下来"]
   const causalHits = causalKeywords.filter(k => scriptText.includes(k)).length
   const logicalHits = logicalKeywords.filter(k => scriptText.includes(k)).length
-  const causalClarity = Math.min(1, causalHits / Math.max(paragraphs.length / 2, 1))
-  const logicalFlow = Math.min(1, (logicalHits / Math.max(paragraphs.length / 3, 1)) * 1.2)
+  const causalClarity = Math.min(1, causalHits / Math.max(paragraphs.length / 3, 1))
+  const logicalFlow = Math.min(1, logicalHits / Math.max(paragraphs.length / 4, 1))
 
-  // 逻辑跳跃检测
+  // ── 逻辑跳跃检测：相邻段共享关键词 ≥ 1 即视为连贯 ──
   const gaps: string[] = []
   for (let i = 1; i < paragraphs.length; i++) {
     const prev = paragraphs[i - 1]
     const curr = paragraphs[i]
-    // 检查语义跳跃：如果两段之间没有连接词，标记为潜在跳跃
-    const hasConnector = /但是|然而|不过|而且|此外|另外|同时|另一方面|接着|然后|所以|因此/.test(curr)
-    if (!hasConnector && prev.length > 10 && curr.length > 10) {
-      gaps.push(`第${i}段→第${i+1}段: "${prev.slice(0, 15)}..." → "${curr.slice(0, 15)}..." 缺乏过渡`)
+    // 提取前一段的关键词（2字以上的中文词+4字以上英文词）
+    const prevWords = new Set(prev.match(/[一-龥]{2,}|[a-zA-Z]{4,}/g) || [])
+    const currWords = curr.match(/[一-龥]{2,}|[a-zA-Z]{4,}/g) || []
+    const hasOverlap = currWords.some(w => prevWords.has(w))
+    const hasConnector = /但是|然而|不过|而且|此外|另外|同时|接着|然后|所以|因此|接下来|于是|总之|综上所述/.test(curr)
+    if (!hasOverlap && !hasConnector && prev.length > 15 && curr.length > 15) {
+      gaps.push(`第${i}段→第${i+1}段缺乏主题衔接`)
     }
   }
 
-  // 情绪曲线
+  // ── 情绪曲线：采样每段情绪 ──
   const curve = paragraphs.map((p, i) => {
     const emo = detectEmotion(p)
     return { position: i / Math.max(paragraphs.length - 1, 1), intensity: emo.intensity * 0.6 + (emo.emotion !== "neutral" ? 0.4 : 0) }
@@ -90,30 +120,34 @@ export function analyzeScript(scriptText: string): ScriptCognitionReport {
   const peakPosition = curve.length > 0
     ? curve.reduce((max, c) => c.intensity > max.intensity ? c : max, curve[0]).position
     : 0
-  const isMonotone = curve.filter(c => c.intensity > 0.5).length < 2
+  const isMonotone = curve.filter(c => c.intensity > 0.5).length < Math.max(2, paragraphs.length * 0.2)
 
   const emotionSuggestions: string[] = []
   if (isMonotone) emotionSuggestions.push("情绪曲线太平，建议在开头或中段加入冲突、悬念或反转")
-  if (peakPosition > 0.9) emotionSuggestions.push("情绪高潮在结尾——观众可能在前半段就流失了。建议把亮点前置到前30%")
+  if (peakPosition > 0.85) emotionSuggestions.push("情绪高潮过于靠后——观众可能在前半段流失，建议亮点前置到前30%")
 
-  // 认知负荷分析
+  // ── 认知负荷分析 ──
   const segments: ScriptCognitionReport["cognitiveLoad"]["segments"] = []
   const overloadPoints: string[] = []
   const boringZones: string[] = []
 
-  for (const p of paragraphs) {
+  for (const p of paragraphs.slice(0, 15)) {
     const cog = fullCognitionAnalysis(p, detectThinkingLines(p))
     const load = cog.l3.cognitiveLoad
     const label = load > 0.7 ? "⚠️ 高负荷" : load > 0.4 ? "适中" : "偏低"
     segments.push({ start: p.slice(0, 20), end: p.slice(-20), load, label })
-    if (load > 0.75) overloadPoints.push(p.slice(0, 30) + "...")
-    if (load < 0.2 && p.length > 20) boringZones.push(p.slice(0, 30) + "...")
+    if (load > 0.75) overloadPoints.push(p.slice(0, 40) + "...")
+    if (load < 0.15 && p.length > 20) boringZones.push(p.slice(0, 40) + "...")
   }
 
-  const avgLoad = segments.length > 0 ? segments.reduce((s, seg) => s + seg.load, 0) / segments.length : 0
-  const optimalDuration = Math.round(paragraphs.length * 20 / Math.max(avgLoad, 0.3))
+  const avgLoad = segments.length > 0 ? segments.reduce((s, seg) => s + seg.load, 0) / segments.length : 0.5
 
-  // 思维框架匹配
+  // ── 建议时长：按字数估算（中文口播约 4字/秒）+ 画面停留 ──
+  const optimalDuration = Math.round(
+    Math.min(300, Math.max(15, totalChars / 4 + paragraphs.length * 3))
+  )
+
+  // ── 思维框架检测 ──
   const detectedFrames = lines.slice(0, 3).map(l => {
     const info = getLineInfo(l.lineId as ThinkingLineId)
     return info?.name || l.lineId
@@ -121,11 +155,13 @@ export function analyzeScript(scriptText: string): ScriptCognitionReport {
   const bestMatch = detectedFrames[0] || "叙事线"
   const alternative = detectedFrames.length > 1 ? detectedFrames[1] : "对比线"
 
-  // 综合评分
+  // ── 综合评分：每个维度加权 ──
+  const gapPenalty = Math.max(0, 1 - gaps.length / Math.max(paragraphs.length, 1))
+  const emotionScore = isMonotone ? 0.3 : 0.8
   const overallScore = Math.round(
-    (causalClarity * 25) + (logicalFlow * 25) +
-    ((1 - gaps.length / Math.max(paragraphs.length, 1)) * 20) +
-    (isMonotone ? 5 : 20) + (Math.min(1, avgLoad * 1.2) * 10)
+    Math.min(100, Math.max(10,
+      causalClarity * 25 + logicalFlow * 25 + gapPenalty * 25 + emotionScore * 15 + Math.min(1, avgLoad * 1.2) * 10
+    ))
   )
 
   let grade: ScriptCognitionReport["grade"] = "weak"
@@ -133,23 +169,25 @@ export function analyzeScript(scriptText: string): ScriptCognitionReport {
   else if (overallScore >= 60) grade = "good"
   else if (overallScore >= 40) grade = "average"
 
-  // AI 建议
+  // ── AI 建议：按严重程度排序 ──
   const advice: string[] = []
-  if (gaps.length > 2) advice.push(`检测到${gaps.length}处逻辑跳跃，建议在段落间增加过渡句`)
+  if (causalClarity < 0.3) advice.push(`因果清晰度仅${Math.round(causalClarity*100)}%，建议增加"因为/所以/导致/因此"等因果词连接段落逻辑`)
+  if (logicalFlow < 0.3) advice.push(`逻辑结构不够清晰，建议使用"首先/然后/接着/最后"等序列词组织内容`)
+  if (gaps.length > 2) advice.push(`${gaps.length}处段落间主题跳跃，建议增加过渡句或保持主题连贯`)
   if (isMonotone) advice.push("叙事节奏太平，建议加入对比、冲突或悬念元素")
   if (overloadPoints.length > 2) advice.push("部分段落认知负荷过高，建议拆分长句或降低信息密度")
   if (boringZones.length > 2) advice.push("存在信息密度偏低的段落，可能让观众走神")
   if (advice.length === 0) advice.push("整体思维结构良好，可以继续优化细节")
 
   return {
-    scriptText: scriptText.slice(0, 200),
+    scriptText: scriptText.slice(0, 300),
     analyzedAt: new Date().toISOString(),
     overallScore, grade,
-    narrative: { causalClarity, logicalFlow, gaps: gaps.slice(0, 5) },
+    narrative: { causalClarity, logicalFlow, gaps },
     emotion: { curve, peakPosition, isMonotone, suggestions: emotionSuggestions },
-    cognitiveLoad: { segments: segments.slice(0, 8), overloadPoints, boringZones, optimalDuration },
+    cognitiveLoad: { segments, overloadPoints, boringZones, optimalDuration },
     thinkingFramework: { detected: detectedFrames, bestMatch, alternative },
-    aiAdvice: advice.join("。"),
+    aiAdvice: advice.join("；"),
   }
 }
 
