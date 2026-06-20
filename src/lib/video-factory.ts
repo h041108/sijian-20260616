@@ -271,20 +271,6 @@ export const GENRE_PRESETS: Record<string, GenrePreset> = {
 // ═══════════════════════════════════════════════════
 
 const PROJECTS_KEY = "sijian_video_projects"
-let _cloudSyncEnabled: boolean | null = null
-
-export function isCloudSyncEnabled(): boolean {
-  if (typeof window === "undefined") return false
-  if (_cloudSyncEnabled !== null) return _cloudSyncEnabled
-  try { _cloudSyncEnabled = localStorage.getItem("sijian_cloud_sync") === "true" } catch { _cloudSyncEnabled = false }
-  return _cloudSyncEnabled
-}
-
-export function setCloudSyncEnabled(enabled: boolean) {
-  _cloudSyncEnabled = enabled
-  try { localStorage.setItem("sijian_cloud_sync", String(enabled)) } catch {}
-  if (enabled) syncAllToCloud()
-}
 
 export function loadProjects(): VideoProject[] {
   if (typeof window === "undefined") return []
@@ -299,59 +285,6 @@ export function saveProjects(projects: VideoProject[]) {
 export function deleteProject(projectId: string) {
   const projects = loadProjects()
   saveProjects(projects.filter(p => p.id !== projectId))
-  // 同步删除云端
-  if (isCloudSyncEnabled()) {
-    fetch(`/api/video/projects?id=${encodeURIComponent(projectId)}`, { method: "DELETE" }).catch(() => {})
-  }
-}
-
-// ── 云端同步 ──
-export async function syncProjectToCloud(project: VideoProject) {
-  if (!isCloudSyncEnabled()) return
-  try {
-    await fetch("/api/video/projects", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: project.id,
-        oneLiner: project.oneLiner,
-        genre: project.genre,
-        style: project.style,
-        duration: project.duration,
-        aspectRatio: project.aspectRatio,
-        status: project.status,
-        stages: project.stages,
-        createdAt: project.createdAt,
-      }),
-    })
-  } catch {}
-}
-
-export async function syncAllToCloud() {
-  if (!isCloudSyncEnabled()) return
-  const projects = loadProjects()
-  for (const p of projects) await syncProjectToCloud(p)
-}
-
-export async function loadProjectsFromCloud(): Promise<VideoProject[]> {
-  try {
-    const res = await fetch("/api/video/projects")
-    if (!res.ok) return []
-    const data = await res.json()
-    return (data.projects || []).map((p: any) => ({
-      id: p.id,
-      oneLiner: p.one_liner || p.oneLiner || "",
-      genre: p.genre || "short_drama",
-      style: p.style || "",
-      duration: p.duration || 60,
-      aspectRatio: p.aspect_ratio || p.aspectRatio || "16:9",
-      status: p.status || "draft",
-      stages: p.stages || [],
-      createdAt: p.created_at || p.createdAt || new Date().toISOString(),
-    }))
-  } catch {
-    return []
-  }
 }
 
 export function createProject(
@@ -372,7 +305,6 @@ export function createProject(
   const projects = loadProjects()
   projects.unshift(project)
   saveProjects(projects)
-  syncProjectToCloud(project)
   return project
 }
 
@@ -689,7 +621,6 @@ export async function runFullPipeline(projectId: string): Promise<VideoProject> 
 
   project.status = "completed"
   saveProjects(projects)
-  syncProjectToCloud(project)
   return project
 }
 
@@ -717,14 +648,7 @@ export function getAvailableModels(): { byType: Record<string, VideoModel[]>; to
   return { byType, total: available, recommended }
 }
 
-export {
-  isCloudSyncEnabled,
-  setCloudSyncEnabled,
-  syncAllToCloud,
-  loadProjectsFromCloud,
-  syncProjectToCloud,
-  VIDEO_MODELS,
-}
+export { VIDEO_MODELS }
 
 // ── 浏览器语音合成（TTS兜底，无需API Key） ──
 export function speakTextInBrowser(text: string, opts?: { voice?: string; rate?: number; pitch?: number; volume?: number }): Promise<void> {
