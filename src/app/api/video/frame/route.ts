@@ -1,6 +1,7 @@
 // ─── POST /api/video/frame ───────────────────────────
 // 即梦 / 火山引擎图片生成 API
-// 接入: 火山引擎 ARK 平台 → OpenAI-compatible → 即梦模型
+// 接入: 火山引擎 ARK 平台 → 豆包 Seedream 4.5
+// Seedream 4.5 要求 width/height（非 size），最小 3686400 像素
 
 import { NextRequest, NextResponse } from "next/server"
 
@@ -11,18 +12,27 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { prompt, width = 1920, height = 1080 } = body
 
+    // Seedream 4.5 最低要求：3686400 像素（≈1920×1920）
+    // 如果低于最低要求，自动放大
+    const MIN_PIXELS = 3686400
+    let w = Number(width) || 1920
+    let h = Number(height) || 1080
+    if (w * h < MIN_PIXELS) {
+      const scale = Math.sqrt(MIN_PIXELS / (w * h))
+      w = Math.ceil(w * scale)
+      h = Math.ceil(h * scale)
+    }
+
     if (!prompt) {
       return NextResponse.json({ error: "prompt is required" }, { status: 400 })
     }
 
     const apiKey = process.env.JIMENG_API_KEY || process.env.SEEDANCE_API_KEY || null
     const modelId = process.env.JIMENG_MODEL || "doubao-seedream-4-5-251128"
-    console.log("[即影Debug] JIMENG_API_KEY exists:", !!process.env.JIMENG_API_KEY, "SEEDANCE_API_KEY exists:", !!process.env.SEEDANCE_API_KEY)
     if (!apiKey) {
       return NextResponse.json({
         url: `https://placehold.co/${width}x${height}/6366F1/FFFFFF?text=${encodeURIComponent(prompt.slice(0, 30))}`,
         placeholder: true,
-        debug: { hasEnv: false, allKeys: Object.keys(process.env).filter(k => k.includes("JIMENG") || k.includes("SEEDANCE") || k.includes("API")) },
         message: "配置 JIMENG_API_KEY 或 SEEDANCE_API_KEY 环境变量以启用真实图片生成",
       })
     }
@@ -36,8 +46,8 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: modelId,
         prompt,
-        n: 1,
-        size: `${width}x${height}`,
+        width: w,
+        height: h,
         response_format: "url",
       }),
     })
@@ -46,11 +56,11 @@ export async function POST(req: NextRequest) {
       const errText = await res.text()
       return NextResponse.json({
         url: `https://placehold.co/${width}x${height}/EF4444/FFFFFF?text=API${res.status}`,
+        placeholder: true,
         error: true,
         statusCode: res.status,
         apiResponse: errText.slice(0, 300),
         message: `即梦 API 返回 ${res.status}`,
-        debug: { apiKeyType: apiKey.slice(0, 10) + "...", apiBase: JIMENG_API_BASE, model: modelId },
       }, { status: 502 })
     }
 
@@ -60,11 +70,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       url: imageUrl,
       prompt,
-      model: "doubao-seedream-2-0",
+      model: modelId,
       generatedAt: new Date().toISOString(),
     })
-  } catch (err) {
+  } catch (err: any) {
     console.error("Frame API error:", err)
-    return NextResponse.json({ error: "图片生成失败" }, { status: 500 })
+    return NextResponse.json({ error: "图片生成失败", detail: err.message }, { status: 500 })
   }
 }
