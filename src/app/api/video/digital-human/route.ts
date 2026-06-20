@@ -47,8 +47,12 @@ function signRequest(
   const signedHeaders: Record<string, string> = {
     "host": HOST,
     "x-date": timestamp,
-    "x-content-sha256": bodyHash,
     "content-type": "application/json",
+  }
+  // x-content-sha256 作为实际 Header 但不参与签名（火山引擎视觉服务不要求）
+  const allHeaders: Record<string, string> = {
+    ...signedHeaders,
+    "x-content-sha256": bodyHash,
   }
   const canonicalHeaders = Object.keys(signedHeaders).sort()
     .map(k => `${k}:${signedHeaders[k]}`)
@@ -86,10 +90,7 @@ function signRequest(
   const authorization = `HMAC-SHA256 Credential=${ak}/${credentialScope}, SignedHeaders=${signedHeadersStr}, Signature=${signature}`
 
   return {
-    "Host": HOST,
-    "X-Date": timestamp,
-    "X-Content-Sha256": bodyHash,
-    "Content-Type": "application/json",
+    ...allHeaders,
     "Authorization": authorization,
   }
 }
