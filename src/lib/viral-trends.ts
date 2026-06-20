@@ -65,7 +65,7 @@ export function buildDeconstructPrompt(results: { title: string; content: string
 
 ${context}
 
-请拆解这些爆款内容，提取可复用的「爆款模板」。严格按照以下JSON格式返回（不要```json标记，直接返回JSON）：
+请拆解这些爆款内容，提取可复用的「爆款模板」。严格按照以下JSON格式返回（不要json标记，直接返回JSON）：
 
 {
   "viralTemplates": [
