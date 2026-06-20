@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback } from "react"
-import { assembleVideoClientSide, downloadVideo } from "@/lib/video-assembler"
+import { assembleTalkingHead, downloadVideo } from "@/lib/video-assembler"
 
 export default function DigitalHumanPanel() {
   const [portrait, setPortrait] = useState<string | null>(null)
@@ -10,6 +10,7 @@ export default function DigitalHumanPanel() {
   const [generating, setGenerating] = useState(false)
   const [resultUrl, setResultUrl] = useState<string | null>(null)
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
+  const [progress, setProgress] = useState(0)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
 
@@ -41,40 +42,22 @@ export default function DigitalHumanPanel() {
 
   const handleGenerate = useCallback(async () => {
     if (!portrait || !audioBlob) return
-    setGenerating(true); setResultUrl(null)
+    setGenerating(true); setResultUrl(null); setProgress(0)
 
-    const audio = new Audio(audioUrl || "")
-    await new Promise<void>((resolve) => {
-      if (audio.duration && !isNaN(audio.duration)) { resolve(); return }
-      audio.addEventListener("loadedmetadata", () => resolve()); audio.load()
-    })
-    const dur = Math.max(audio.duration || 3, 3)
-
-    // 先尝试本地 InfiniteTalk
     try {
-      const formData = new FormData()
-      const resp = await fetch(portrait)
-      const imgBlob = await resp.blob()
-      formData.append("image", imgBlob, "portrait.png")
-      formData.append("audio", audioBlob, "audio.webm")
-      const ir = await fetch("http://localhost:7860/api/generate", { method: "POST", body: formData, signal: AbortSignal.timeout(5000) })
-      if (ir.ok) {
-        const videoBlob = await ir.blob()
-        setResultUrl(URL.createObjectURL(videoBlob)); setGenerating(false)
-        return
-      }
-    } catch {}
-
-    // Canvas 降级合成
-    try {
-      const blob = await assembleVideoClientSide({
-        frames: [{ url: portrait, startTime: 0, endTime: dur, index: 0 }],
-        width: 1920, height: 1080, fps: 24,
-      }, (pct: number) => { if (pct % 25 < 5) console.log(`合成: ${pct}%`) })
+      const blob = await assembleTalkingHead({
+        portraitUrl: portrait,
+        audioBlob,
+        width: 1080,
+        height: 1920,
+        fps: 24,
+      }, (pct: number) => setProgress(pct))
       setResultUrl(URL.createObjectURL(blob))
-    } catch { alert("视频合成失败，请检查浏览器是否支持 Canvas API") }
+    } catch (err: any) {
+      alert(`视频合成失败: ${err?.message || "未知错误"}`)
+    }
     setGenerating(false)
-  }, [portrait, audioBlob, audioUrl])
+  }, [portrait, audioBlob])
 
   const handleDownload = useCallback(() => {
     if (!resultUrl || resultUrl.startsWith("data:")) return
