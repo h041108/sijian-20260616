@@ -10,7 +10,7 @@ import { saveChat, loadLatestChat, loadAllChats, deleteChat, generateTitle, Save
 import ExperimentBar from "@/components/ExperimentBar"
 import SharedList from "@/components/SharedList"
 import AuthBar from "@/components/AuthBar"
-import { getCurrentUser, loginAs, logout, updateUserRole, UserRole, SijianUser } from "@/lib/sijian-user"
+import { getCurrentUser, loginAs, logout, updateUserRole, UserRole, SijianUser, generateMockWechatLogin, registerUser } from "@/lib/sijian-user"
 import { getLineInfo } from "@/lib/thinking-lines"
 import ParentReportView from "@/components/ParentReportView"
 import MindReviewCard from "@/components/MindReviewCard"
@@ -91,7 +91,14 @@ export default function Home() {
 
   useEffect(() => {
     const cu = getCurrentUser()
-    if (cu) setUser(cu)
+    if (cu) {
+      setUser(cu)
+    } else {
+      // 首次访问自动创建用户，零门槛
+      const autoUser = generateMockWechatLogin("student")
+      const registered = registerUser(autoUser)
+      setUser(registered)
+    }
   }, [])
 
   const handleLogin = useCallback((u: SijianUser) => {

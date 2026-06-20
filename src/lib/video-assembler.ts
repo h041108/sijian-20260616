@@ -246,41 +246,48 @@ async function analyzeAudioVolume(
   }
 }
 
-// ── 嘴部缩放：基于音量的嘴唇张合 ──
-function applyMouthTransform(
+// ── 嘴部效果：提取嘴部区域，上下拉伸模拟张合 ──
+// 比 clip+scale 更明显，因为直接修改了嘴部像素位置
+function drawMouthEffect(
   ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
   width: number, height: number,
-  mouthY: number, mouthScaleX: number, mouthScaleY: number,
+  mouthY: number, mouthH: number,
   volume: number,
 ) {
-  // 音量 → 嘴部张开程度（有声音才开始张，静音时微张）
-  const openness = 0.02 + volume * 0.12  // 最大张开约 12%
-  const mouthCenterX = width / 2
-  const mouthCenterY = height * mouthY
+  const mh = mouthH * 0.5 // 嘴部区域半高
+  const my = height * mouthY - mh  // 嘴部区域顶部
+  const stretch = volume * 0.45   // 拉伸量 (0~0.45，音量最大时嘴张到1.45倍)
 
-  // 垂直方向：嘴张开
-  const scaleY = openness
-  // 水平方向：嘴微变宽（说话时嘴角向两边拉）
-  const scaleX = 1 + volume * 0.04
+  // 嘴部以上 → 往上推（上唇提）
+  const upperLipY = my - mh * 0.8
+  ctx.drawImage(img, 0, upperLipY, width, my - upperLipY,   // source: 上唇以上区域
+    0, upperLipY - mh * stretch * 0.5, width, my - upperLipY)
 
-  // 只缩放嘴部区域
-  ctx.save()
-  ctx.translate(mouthCenterX, mouthCenterY)
-  ctx.scale(scaleX, 1 + scaleY)
-  ctx.translate(-mouthCenterX, -mouthCenterY)
+  // 嘴部以下 → 往下推（下唇降）
+  const lowerLipEnd = my + mh * 1.6
+  ctx.drawImage(img, 0, my, width, lowerLipEnd - my,        // source: 下唇以下区域
+    0, my + mh * stretch * 0.5, width, lowerLipEnd - my)
+
+  // 嘴部区域：上下同时拉伸
+  ctx.drawImage(img,
+    0, my, width, mh * 2,                                  // source: 嘴部
+    0, my - mh * stretch * 0.3, width, mh * 2 * (1 + stretch)  // dest: 拉伸
+  )
 }
 
-// ── 头部微晃：自然的轻微点头/摇头 ──
-function applyHeadShake(
+// ── 头部微晃 ──
+function drawWithHeadShake(
   ctx: CanvasRenderingContext2D,
-  frameIndex: number,
-  amplitude: number,
-  volume: number,
+  img: HTMLImageElement,
+  width: number, height: number,
+  frameIndex: number, amplitude: number, volume: number,
 ) {
-  // 正弦波 + 音量驱动的微动
-  const xShake = Math.sin(frameIndex * 0.05) * amplitude * 0.4
-  const yShake = Math.cos(frameIndex * 0.07) * amplitude * 0.5 + volume * amplitude * 0.3
-  ctx.translate(xShake, yShake)
+  const xShake = Math.sin(frameIndex * 0.05) * amplitude * 0.3
+  const yShake = Math.cos(frameIndex * 0.07) * amplitude * 0.4 + volume * amplitude * 0.2
+  ctx.setTransform(1, 0, 0, 1, xShake, yShake)
+  ctx.drawImage(img, 0, 0, width, height)
+  ctx.setTransform(1, 0, 0, 1, 0, 0) // 重置变换
 }
 
 export async function assembleTalkingHead(
@@ -293,10 +300,9 @@ export async function assembleTalkingHead(
     width = 1080,
     height = 1920,
     fps = 24,
-    mouthY = 0.62,
-    mouthScaleX = 0.35,
-    mouthScaleY = 0.08,
-    headShakeAmplitude = 3,
+    mouthY = 0.60,
+    mouthScaleY = 0.07,   // 嘴部区域高度比例
+    headShakeAmplitude = 4,
   } = req
 
   // 1. 加载肖像
@@ -371,36 +377,20 @@ export async function assembleTalkingHead(
 
       const vol = volumeData[currentFrame] || 0
 
+      // ── 清除 ──
       ctx.clearRect(0, 0, width, height)
 
-      // ── 画肖像，带唇动和头部微晃 ──
-      ctx.save()
+      // ── 1. 画带头部微晃的底图 ──
+      drawWithHeadShake(ctx, img, width, height, currentFrame, headShakeAmplitude, vol)
 
-      // 先在原位置画静态底图（避免缩放导致边缘透出背景）
-      ctx.drawImage(img, 0, 0, width, height)
+      // ── 2. 在底图上叠加嘴部效果 ──
+      const mouthH = height * mouthScaleY
+      drawMouthEffect(ctx, img, width, height, mouthY, mouthH, vol)
 
-      // 嘴部缩放
-      applyMouthTransform(ctx, width, height, mouthY, mouthScaleX, mouthScaleY, vol)
-      // 头部微晃
-      applyHeadShake(ctx, currentFrame, headShakeAmplitude, vol)
-
-      // 只画嘴部以下区域（覆盖原图，产生嘴唇动的效果）
-      // 限制影响范围：嘴部上下各 8% 高度
-      const mouthRegionTop = height * (mouthY - 0.06)
-      const mouthRegionBottom = height * (mouthY + 0.06)
-
-      ctx.beginPath()
-      ctx.rect(0, mouthRegionTop, width, mouthRegionBottom - mouthRegionTop)
-      ctx.clip()
-      // 稍微偏移源图片区域使缩放看起来自然
-      ctx.drawImage(img, 0, 0, width, height)
-
-      ctx.restore()
-
-      // ── 音量指示器（右下角小条，调试用，可去掉） ──
-      ctx.fillStyle = "rgba(255,255,255,0.15)"
+      // ── 3. 音量指示器 ──
+      ctx.fillStyle = "rgba(255,255,255,0.12)"
       ctx.fillRect(width - 52, height - 22, 44, 8)
-      ctx.fillStyle = vol > 0.1 ? "#4ade80" : "#94a3b8"
+      ctx.fillStyle = vol > 0.15 ? "#4ade80" : "#64748b"
       ctx.fillRect(width - 50, height - 20, Math.round(40 * vol), 4)
 
       currentFrame++

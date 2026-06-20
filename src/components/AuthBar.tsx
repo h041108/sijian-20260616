@@ -48,7 +48,7 @@ export default function AuthBar({ user, onLogin, onLogout, onRoleChange }: AuthB
       <>
         <button onClick={() => { setPanelMode("login"); setShowPanel(true) }}
           className="text-[10px] text-gray-400 hover:text-indigo-600 px-1.5 py-0.5 rounded transition-colors whitespace-nowrap">
-          登录
+          切换身份
         </button>
         {showPanel && (
           <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setShowPanel(false)}>
