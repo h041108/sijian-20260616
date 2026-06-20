@@ -429,8 +429,16 @@ export default function VideoFactoryDashboard() {
                                 }
                                 if (frames.length > 0 && frames.every((f: any) => f.url)) {
                                   const { assembleVideoClientSide, downloadVideo } = await import("@/lib/video-assembler")
+                                  // 收集配音片段
+                                  const audioClips = parsed.audioClips || []
+                                  // 给每帧附加字幕文本
+                                  const framesWithSubs = frames.map((f: any, i: number) => ({
+                                    ...f,
+                                    dialogue: f.dialogue || "",
+                                  }))
                                   const blob = await assembleVideoClientSide({
-                                    frames,
+                                    frames: framesWithSubs,
+                                    audioClips: audioClips.length > 0 ? audioClips : undefined,
                                     width: 1920, height: 1080, fps: 24,
                                   }, (pct: number) => setDownloadProgress(pct))
                                   downloadVideo(blob, `思见-${active?.id?.slice(0, 8) || "output"}.webm`)

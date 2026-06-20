@@ -144,15 +144,23 @@ export const PIPELINE_STAGES: StageAgent[] = [
     inputFormat: "完整故事大纲",
     outputFormat: "分镜脚本表（N个镜头）",
     systemPrompt: `你是一位分镜导演。请将故事拆解为逐一镜头的拍摄脚本。
+
+⚠️ 视觉连贯性要求（最重要！）：
+1. 主角外观一次性定义：第一个镜头必须给出主角的"性别、年龄、发型、上衣颜色、裤子颜色、体型"，后续镜头直接引用（如"穿着同一件蓝色外套的他"），不得重新描述
+2. 色调统一：所有镜头使用同一色调（如"全程暖金色夕阳"或"全程蓝灰冷调"），光影方向一致
+3. 动作桥接：镜头之间的主体动作要连贯，用"他继续往前走""她转身面对镜头"等衔接
+4. 画面描述必须包含四要素：主体是谁 + 在做什么动作 + 环境/光线 + 镜头构图（特写/全景/仰拍/逆光等）
+
 每个镜头严格按此格式输出：
 ---
 镜头{N} | 时长{t}秒 | 景别{CU/MS/LS/WS} | 运镜{固定/推/拉/摇/跟}
-画面描述：{详细描述这个镜头中的画面内容——构图、光线、色彩、人物动作}
-对白/旁白：{这个镜头的台词或旁白，如无则写"无"}
+画面描述：{主体+动作+环境+构图，50-150字，具体到能直接喂给AI图像生成器}
+对白/旁白：{本镜头台词或旁白，如无则写"无"}
 情绪氛围：{紧张/温馨/悬疑/燃/悲/日常}
 转场：{切/淡入淡出/擦除}
 ---
-共生成{sceneCount}个镜头，总时长控制在{duration}秒。画面描述要具体到可以被AI图像生成器直接使用。格式：16:9横屏。`,
+
+共生成{sceneCount}个镜头，总时长控制在{duration}秒。风格：{style}。`,
     estimatedTime: 15,
   },
   {
@@ -391,52 +399,110 @@ export async function executeStage(
   stage.startedAt = new Date().toISOString()
   saveProjects(projects)
 
-  // ── 视觉生成：为每个镜头生成图片 + Seedance 视频 ──
+  // ── 视觉生成：为每个镜头生成图片 + Seedance 视频 + TTS 音频 ──
   if (stageId === "visual_generation") {
     try {
       const prevOutput = previousStageOutput || ""
-      // 从 script_breakdown 阶段获取镜头结构
       const sbStage = project.stages.find(s => s.stageId === "script_breakdown")
       const sbOutput = sbStage?.output || ""
+      const storyStage = project.stages.find(s => s.stageId === "story_genesis")
+      const storyOutput = storyStage?.output || ""
       const shots = parseShotsFromScript(prevOutput, sbOutput)
       stage.input = prevOutput.slice(0, 300) || "视觉生成"
 
+      // ── 从故事大纲提取视觉上下文（角色外观 + 世界观 + 色调） ──
+      function extractVisualContext(storyText: string): string {
+        const context: string[] = []
+        const charMatch = storyText.match(/角色名[：:]([^\n]+)(?:[\s\S]*?)(?:性格[：:]([^\n]+))?(?:[\s\S]*?)(?:外貌[：:]([^\n]+))?/i)
+        if (charMatch) {
+          context.push(`角色视觉参考: ${charMatch.slice(1).filter(Boolean).join("，")}`)
+        }
+        const styleMatch = storyText.match(/风格[：:]([^\n]+)/i)
+        if (styleMatch) context.push(`整体风格: ${styleMatch[1].trim()}`)
+        const worldMatch = storyText.match(/世界观[：:]([^\n]+)/i)
+        if (worldMatch) context.push(`世界观: ${worldMatch[1].trim()}`)
+        // 从故事标题提取主题
+        const titleMatch = storyText.match(/故事标题[：:]([^\n]+)/i)
+        if (titleMatch) context.push(`故事: ${titleMatch[1].trim()}`)
+        return context.join("。")
+      }
+
+      // ── 从 prompt_engineering 提取即梦格式提示词 ──
+      function extractJimengPrompts(peText: string): string[] {
+        return peText
+          .split("\n")
+          .filter(l => /\[即梦\]/.test(l))
+          .map(l => l.replace(/\[即梦\]\s*/i, "").trim())
+          .filter(l => l.length >= 10)
+      }
+
+      const visualContext = extractVisualContext(storyOutput)
+      const peStage = project.stages.find(s => s.stageId === "prompt_engineering")
+      const jimengPrompts = peStage?.output ? extractJimengPrompts(peStage.output) : []
+      const prevShotDescs: string[] = [] // 累积前一个镜头的描述用于链接
+
       const frames: Array<{
-        shotNumber: number
-        duration: number
-        imageUrl: string
-        description: string
-        dialogue: string
-        seedanceTaskId: string | null
+        shotNumber: number; duration: number; imageUrl: string
+        description: string; dialogue: string; seedanceTaskId: string | null
+        audioUrl: string | null
       }> = []
 
-      // 逐个镜头生成图片，每帧 2-3 秒出图
       for (let i = 0; i < shots.length; i++) {
         const shot = shots[i]
         try {
+          // ── 构建上下文感知的图像提示词 ──
+          // 优先使用 prompt_engineering 的即梦格式提示词，否则用镜头描述
+          const jimengDesc = jimengPrompts[i] || ""
+          const baseDesc = jimengDesc || shot.description
+          // 拼接：故事上下文 + 前一个镜头的视觉延续 + 本镜头描述
+          const prevRef = i > 0 && prevShotDescs.length > 0
+            ? `延续上一个镜头: ${prevShotDescs[prevShotDescs.length - 1].slice(0, 80)}`
+            : ""
+          const imagePrompt = [
+            visualContext ? `${visualContext}。` : "",
+            project.style ? `${project.style}风格。` : "",
+            prevRef,
+            baseDesc,
+            "电影级光影，高质量画面，16:9" // 质量兜底词
+          ].filter(Boolean).join(" ").slice(0, 380)
+
           const frameRes = await fetch("/api/video/frame", {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              prompt: `cinematic shot, ${shot.description.slice(0, 400)}`,
-              width: 1920, height: 1080,
-            }),
+            body: JSON.stringify({ prompt: imagePrompt, width: 1920, height: 1080 }),
           })
           const frameData = await frameRes.json()
           const imageUrl = frameData.url || ""
+          // 记录本镜头描述供下一个镜头引用
+          if (imageUrl && !frameData.placeholder) {
+            prevShotDescs.push(baseDesc.slice(0, 120))
+          }
 
-          // 为每个镜头异步提交 Seedance 任务（取前3个关键镜头生成视频片段）
+          // ── TTS 语音生成（有对白的镜头） ──
+          let audioUrl: string | null = null
+          if (shot.dialogue && shot.dialogue.length > 5 && shot.dialogue !== "无") {
+            try {
+              const ttsRes = await fetch("/api/video/tts", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: shot.dialogue.slice(0, 300) }),
+              })
+              const ttsData = await ttsRes.json()
+              if (ttsData.audioUrl) audioUrl = ttsData.audioUrl
+            } catch {}
+          }
+
+          // ── Seedance 视频生成（前3个关键镜头 + 启用音频） ──
           let seedanceTaskId: string | null = null
           if (imageUrl && !frameData.placeholder && i < 3) {
             try {
               const sdRes = await fetch("/api/video/seedance", {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  prompt: shot.description.slice(0, 400),
+                  prompt: baseDesc.slice(0, 400),
                   imageUrl,
                   model: "seedance-2.0-fast",
                   ratio: project.aspectRatio === "9:16" ? "9:16" : "16:9",
                   duration: Math.min(5, Math.max(3, Math.ceil(shot.duration * 0.6))),
-                  generateAudio: false,
+                  generateAudio: !!shot.dialogue && shot.dialogue.length > 5,
                 }),
               })
               const sdData = await sdRes.json()
@@ -445,32 +511,27 @@ export async function executeStage(
           }
 
           frames.push({
-            shotNumber: shot.shotNumber,
-            duration: shot.duration,
-            imageUrl,
-            description: shot.description.slice(0, 100),
+            shotNumber: shot.shotNumber, duration: shot.duration,
+            imageUrl, description: shot.description.slice(0, 100),
             dialogue: shot.dialogue.slice(0, 80),
-            seedanceTaskId,
+            seedanceTaskId, audioUrl,
           })
         } catch {
-          frames.push({
-            shotNumber: shot.shotNumber,
-            duration: shot.duration,
-            imageUrl: "",
-            description: shot.description.slice(0, 100),
-            dialogue: shot.dialogue.slice(0, 80),
-            seedanceTaskId: null,
-          })
+          frames.push({ shotNumber: shot.shotNumber, duration: shot.duration, imageUrl: "", description: shot.description.slice(0, 100), dialogue: shot.dialogue.slice(0, 80), seedanceTaskId: null, audioUrl: null })
         }
       }
 
+      const realFrames = frames.filter(f => f.imageUrl && !f.imageUrl.includes("placehold.co"))
       stage.output = JSON.stringify({
         frames,
         totalShots: shots.length,
-        generatedShots: frames.filter(f => f.imageUrl && !f.imageUrl.includes("placehold.co")).length,
-        placeholder: frames.every(f => !f.imageUrl || f.imageUrl.includes("placehold.co")),
+        generatedShots: realFrames.length,
+        hasAudio: frames.some(f => f.audioUrl),
+        placeholder: realFrames.length === 0,
         message: frames.length > 0
-          ? `已生成 ${frames.length} 个镜头画面${frames.some(f => f.seedanceTaskId) ? "，视频片段生成中" : ""}`
+          ? `已生成 ${realFrames.length}/${frames.length} 个镜头画面` +
+            (frames.some(f => f.audioUrl) ? `，${frames.filter(f => f.audioUrl).length} 个镜头已配音` : "") +
+            (frames.some(f => f.seedanceTaskId) ? "，视频片段生成中" : "")
           : "视觉生成失败",
       })
       stage.status = "done"
@@ -486,13 +547,13 @@ export async function executeStage(
     }
   }
 
-  // ── 最终合成：返回多镜头组装指令 ──
+  // ── 最终合成：返回多镜头组装指令（含音频） ──
   if (stageId === "final_assembly") {
     try {
       const visStage = project.stages.find(s => s.stageId === "visual_generation")
       let frames: Array<{
         shotNumber: number; duration: number; imageUrl: string; description: string; dialogue: string
-        seedanceTaskId: string | null
+        seedanceTaskId: string | null; audioUrl: string | null
       }> = []
       let seedanceTaskIds: string[] = []
       if (visStage?.output) {
@@ -502,8 +563,7 @@ export async function executeStage(
             frames = vo.frames
             seedanceTaskIds = frames.filter((f: any) => f.seedanceTaskId).map((f: any) => f.seedanceTaskId as string)
           } else if (vo.url) {
-            // 兼容旧格式（单图）
-            frames = [{ shotNumber: 1, duration: project.duration || 10, imageUrl: vo.url, description: "", dialogue: "", seedanceTaskId: vo.seedance?.taskId || null }]
+            frames = [{ shotNumber: 1, duration: project.duration || 10, imageUrl: vo.url, description: "", dialogue: "", seedanceTaskId: vo.seedance?.taskId || null, audioUrl: null }]
           }
         } catch {}
       }
@@ -519,16 +579,24 @@ export async function executeStage(
           description: f.description,
           dialogue: f.dialogue,
           seedanceTaskId: f.seedanceTaskId,
+          audioUrl: f.audioUrl || null,
         }))
       const totalDuration = videoClips.length > 0 ? videoClips[videoClips.length - 1].endTime : 10
+      // 收集所有有音频的镜头 -> 用于 Canvas 合成时播放
+      const audioClips = videoClips
+        .filter((c: any) => c.audioUrl)
+        .map((c: any) => ({ startTime: c.startTime, audioUrl: c.audioUrl, dialogue: c.dialogue }))
       stage.output = JSON.stringify({
         status: videoClips.length > 0 ? "ready_for_client_assembly" : "no_frames",
         frames: videoClips,
         totalDuration,
         requiresClientRender: true,
         seedanceTaskIds,
+        hasAudio: audioClips.length > 0,
+        audioClips,
         message: videoClips.length > 0
-          ? `${videoClips.length} 个镜头准备就绪，总时长约 ${totalDuration} 秒。点击下载合成完整短片。`
+          ? `${videoClips.length} 个镜头准备就绪，总时长约 ${totalDuration} 秒` +
+            (audioClips.length > 0 ? `，${audioClips.length} 段配音已就绪。点击下载合成完整短片。` : `。点击下载合成完整短片。`)
           : "请先运行视觉生成阶段",
       })
       stage.status = "done"
@@ -657,7 +725,7 @@ export async function runFullPipeline(projectId: string): Promise<VideoProject> 
   let previousOutput = ""
 
   for (const stageAgent of PIPELINE_STAGES) {
-    // ── 视觉生成：为每个镜头生成图片 + Seedance 视频片段 ──
+    // ── 视觉生成：为每个镜头生成图片 + Seedance 视频片段 + TTS 配音 ──
     if (stageAgent.id === "visual_generation") {
       const stage = project.stages.find(s => s.stageId === stageAgent.id)
       if (!stage) continue
@@ -666,27 +734,68 @@ export async function runFullPipeline(projectId: string): Promise<VideoProject> 
       stage.input = previousOutput.slice(0, 300)
 
       try {
-        // 从 script_breakdown 获取镜头结构，从 previousOutput(prompt_engineering) 获取提示词
         const sbStage = project.stages.find(s => s.stageId === "script_breakdown")
         const sbOutput = sbStage?.output || ""
         const shots = parseShotsFromScript(previousOutput, sbOutput)
+
+        // ── 提取故事上下文 ──
+        const storyStage = project.stages.find(s => s.stageId === "story_genesis")
+        const storyOutput = storyStage?.output || ""
+        const visualContextParts: string[] = []
+        const charMatch = storyOutput.match(/角色名[：:]([^\n]+)/i)
+        if (charMatch) visualContextParts.push(`角色: ${charMatch[1].trim()}`)
+        const styleMatch = storyOutput.match(/风格[：:]([^\n]+)/i)
+        if (styleMatch) visualContextParts.push(`风格: ${styleMatch[1].trim()}`)
+        const visualContext = visualContextParts.join("。")
+
+        // ── 提取 prompt_engineering 的即梦提示词 ──
+        const peStage = project.stages.find(s => s.stageId === "prompt_engineering")
+        const jimengLines = peStage?.output
+          ? peStage.output.split("\n").filter((l: string) => /\[即梦\]/.test(l)).map((l: string) => l.replace(/\[即梦\]\s*/i, "").trim()).filter((l: string) => l.length >= 10)
+          : []
+        const prevShotDescs: string[] = []
+
         const frames: Array<{
           shotNumber: number; duration: number; imageUrl: string; description: string; dialogue: string
-          seedanceTaskId: string | null
+          seedanceTaskId: string | null; audioUrl: string | null
         }> = []
 
         for (let i = 0; i < shots.length; i++) {
           const shot = shots[i]
           try {
+            const jimengDesc = jimengLines[i] || ""
+            const baseDesc = jimengDesc || shot.description
+            const prevRef = i > 0 && prevShotDescs.length > 0
+              ? `延续上一镜头: ${prevShotDescs[prevShotDescs.length - 1].slice(0, 80)}`
+              : ""
+            const imagePrompt = [
+              visualContext ? `${visualContext}。` : "",
+              project.style ? `${project.style}风格。` : "",
+              prevRef,
+              baseDesc,
+              "电影级光影，高质量画面，16:9"
+            ].filter(Boolean).join(" ").slice(0, 380)
+
             const frameRes = await fetch("/api/video/frame", {
               method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                prompt: `cinematic shot, ${shot.description.slice(0, 400)}`,
-                width: 1920, height: 1080,
-              }),
+              body: JSON.stringify({ prompt: imagePrompt, width: 1920, height: 1080 }),
             })
             const frameData = await frameRes.json()
             const imageUrl = frameData.url || ""
+            if (imageUrl && !frameData.placeholder) prevShotDescs.push(baseDesc.slice(0, 120))
+
+            // TTS 配音
+            let audioUrl: string | null = null
+            if (shot.dialogue && shot.dialogue.length > 5 && shot.dialogue !== "无") {
+              try {
+                const ttsRes = await fetch("/api/video/tts", {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ text: shot.dialogue.slice(0, 300) }),
+                })
+                const ttsData = await ttsRes.json()
+                if (ttsData.audioUrl) audioUrl = ttsData.audioUrl
+              } catch {}
+            }
 
             let seedanceTaskId: string | null = null
             if (imageUrl && !frameData.placeholder && i < 3) {
@@ -694,12 +803,12 @@ export async function runFullPipeline(projectId: string): Promise<VideoProject> 
                 const sdRes = await fetch("/api/video/seedance", {
                   method: "POST", headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
-                    prompt: shot.description.slice(0, 400),
+                    prompt: baseDesc.slice(0, 400),
                     imageUrl,
                     model: "seedance-2.0-fast",
                     ratio: project.aspectRatio === "9:16" ? "9:16" : "16:9",
                     duration: Math.min(5, Math.max(3, Math.ceil(shot.duration * 0.6))),
-                    generateAudio: false,
+                    generateAudio: !!shot.dialogue && shot.dialogue.length > 5,
                   }),
                 })
                 const sdData = await sdRes.json()
@@ -710,23 +819,22 @@ export async function runFullPipeline(projectId: string): Promise<VideoProject> 
             frames.push({
               shotNumber: shot.shotNumber, duration: shot.duration,
               imageUrl, description: shot.description.slice(0, 100),
-              dialogue: shot.dialogue.slice(0, 80), seedanceTaskId,
+              dialogue: shot.dialogue.slice(0, 80), seedanceTaskId, audioUrl,
             })
           } catch {
-            frames.push({
-              shotNumber: shot.shotNumber, duration: shot.duration,
-              imageUrl: "", description: shot.description.slice(0, 100),
-              dialogue: shot.dialogue.slice(0, 80), seedanceTaskId: null,
-            })
+            frames.push({ shotNumber: shot.shotNumber, duration: shot.duration, imageUrl: "", description: shot.description.slice(0, 100), dialogue: shot.dialogue.slice(0, 80), seedanceTaskId: null, audioUrl: null })
           }
         }
+        const realFrames = frames.filter(f => f.imageUrl && !f.imageUrl.includes("placehold.co"))
         stage.output = JSON.stringify({
-          frames,
-          totalShots: shots.length,
-          generatedShots: frames.filter(f => f.imageUrl && !f.imageUrl.includes("placehold.co")).length,
-          placeholder: frames.every(f => !f.imageUrl || f.imageUrl.includes("placehold.co")),
+          frames, totalShots: shots.length,
+          generatedShots: realFrames.length,
+          hasAudio: frames.some(f => f.audioUrl),
+          placeholder: realFrames.length === 0,
           message: frames.length > 0
-            ? `已生成 ${frames.length} 个镜头画面${frames.some(f => f.seedanceTaskId) ? "，前3个镜头视频片段生成中" : ""}`
+            ? `已生成 ${realFrames.length}/${frames.length} 个镜头` +
+              (frames.some(f => f.audioUrl) ? `，${frames.filter(f => f.audioUrl).length} 个已配音` : "") +
+              (frames.some(f => f.seedanceTaskId) ? "，AI视频片段生成中" : "")
             : "视觉生成失败",
         })
         stage.status = "done"
@@ -741,7 +849,7 @@ export async function runFullPipeline(projectId: string): Promise<VideoProject> 
       continue
     }
 
-    // ── 最终合成：多镜头组装 ──
+    // ── 最终合成：多镜头组装（含音频） ──
     if (stageAgent.id === "final_assembly") {
       const stage = project.stages.find(s => s.stageId === stageAgent.id)
       if (!stage) continue
@@ -751,7 +859,7 @@ export async function runFullPipeline(projectId: string): Promise<VideoProject> 
       const visStage = project.stages.find(s => s.stageId === "visual_generation")
       let frames: Array<{
         shotNumber: number; duration: number; imageUrl: string; description: string; dialogue: string
-        seedanceTaskId: string | null
+        seedanceTaskId: string | null; audioUrl: string | null
       }> = []
       let seedanceTaskIds: string[] = []
       if (visStage?.output) {
@@ -761,7 +869,7 @@ export async function runFullPipeline(projectId: string): Promise<VideoProject> 
             frames = vo.frames
             seedanceTaskIds = frames.filter((f: any) => f.seedanceTaskId).map((f: any) => f.seedanceTaskId as string)
           } else if (vo.url) {
-            frames = [{ shotNumber: 1, duration: project.duration || 10, imageUrl: vo.url, description: "", dialogue: "", seedanceTaskId: vo.seedance?.taskId || null }]
+            frames = [{ shotNumber: 1, duration: project.duration || 10, imageUrl: vo.url, description: "", dialogue: "", seedanceTaskId: vo.seedance?.taskId || null, audioUrl: null }]
           }
         } catch {}
       }
@@ -777,16 +885,23 @@ export async function runFullPipeline(projectId: string): Promise<VideoProject> 
           description: f.description,
           dialogue: f.dialogue,
           seedanceTaskId: f.seedanceTaskId,
+          audioUrl: f.audioUrl || null,
         }))
       const totalDuration = videoClips.length > 0 ? videoClips[videoClips.length - 1].endTime : 10
+      const audioClips = videoClips
+        .filter((c: any) => c.audioUrl)
+        .map((c: any) => ({ startTime: c.startTime, audioUrl: c.audioUrl, dialogue: c.dialogue }))
       stage.output = JSON.stringify({
         status: videoClips.length > 0 ? "ready_for_client_assembly" : "no_frames",
         frames: videoClips,
         totalDuration,
         requiresClientRender: true,
         seedanceTaskIds,
+        hasAudio: audioClips.length > 0,
+        audioClips,
         message: videoClips.length > 0
-          ? `${videoClips.length} 个镜头准备就绪，总时长约 ${totalDuration} 秒。点击下载合成完整短片。`
+          ? `${videoClips.length} 个镜头准备就绪，总时长约 ${totalDuration} 秒` +
+            (audioClips.length > 0 ? `，${audioClips.length} 段配音已就绪。点击下载合成完整短片。` : `。点击下载合成完整短片。`)
           : "请先运行视觉生成阶段",
       })
       stage.modelUsed = stageAgent.primaryModel

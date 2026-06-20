@@ -1,16 +1,25 @@
 // ─── 客户端视频合成器 ────────────────────────────────
 // Canvas 绘制图像帧 → MediaRecorder 录制 → Blob → 下载
+// 支持多镜头 + 分段配音 + 字幕叠加
 
 export interface FrameClip {
   url: string
   startTime: number
   endTime: number
   index: number
+  dialogue?: string       // 字幕文本
+}
+
+export interface AudioClip {
+  startTime: number
+  audioUrl: string
+  dialogue?: string
 }
 
 export interface AssembleRequest {
   frames: FrameClip[]
-  audioUrl?: string
+  audioUrl?: string         // 单音轨（向后兼容）
+  audioClips?: AudioClip[]  // 多段配音（新）
   width: number
   height: number
   fps?: number
@@ -121,11 +130,28 @@ export async function assembleVideoClientSide(
       ctx.clearRect(0, 0, width, height)
       ctx.drawImage(img, 0, 0, width, height)
 
-      // 添加字幕水印（帧序号）
-      ctx.fillStyle = "rgba(0,0,0,0.5)"
-      ctx.fillRect(16, height - 40, 120, 28)
+      // ── 字幕叠加 ──
+      // 当前帧所属的镜头
+      const currentFrameClip = frames.find(f => currentTime >= f.startTime && currentTime < f.endTime)
+      const clipDialogue = (currentFrameClip as any)?.dialogue
+      if (clipDialogue && clipDialogue !== "无" && clipDialogue.length > 1) {
+        // 半透明黑底
+        const fontSize = Math.round(height * 0.04)
+        ctx.font = `bold ${fontSize}px "PingFang SC", "Microsoft YaHei", system-ui`
+        const textWidth = ctx.measureText(clipDialogue).width
+        const tx = (width - textWidth) / 2
+        const ty = height - fontSize * 2.5
+        ctx.fillStyle = "rgba(0,0,0,0.65)"
+        ctx.fillRect(tx - 16, ty - fontSize - 4, textWidth + 32, fontSize + 12)
+        ctx.fillStyle = "#ffffff"
+        ctx.fillText(clipDialogue, tx, ty)
+      }
+
+      // 帧序号水印
+      ctx.fillStyle = "rgba(0,0,0,0.4)"
+      ctx.fillRect(16, height - 36, 100, 24)
       ctx.fillStyle = "#ffffff"
-      ctx.font = "14px system-ui"
+      ctx.font = "12px system-ui"
       ctx.fillText(`镜头 ${idx + 1}/${frames.length}`, 24, height - 20)
 
       currentFrame++
