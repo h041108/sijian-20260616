@@ -26,6 +26,7 @@ export default function VideoFactoryDashboard() {
   const [running, setRunning] = useState(false)
   const [seedanceStatus, setSeedanceStatus] = useState<{ status: string; videoUrl?: string; message?: string } | null>(null)
   const [seedancePollTimer, setSeedancePollTimer] = useState<ReturnType<typeof setInterval> | null>(null)
+  const [seedanceVideoMap, setSeedanceVideoMap] = useState<Record<string, string>>({})
   const downloadInProgress = useRef(false)
 
   // New project form
@@ -42,37 +43,31 @@ export default function VideoFactoryDashboard() {
     setCurrentStyles(GENRE_PRESETS[genre]?.styleSuggestions || [])
   }, [genre])
 
-  // ── Seedance 视频任务轮询 ──
+  // ── Seedance 多镜头视频轮询 ──
   useEffect(() => {
-    // 清理上一次轮询
     if (seedancePollTimer) { clearInterval(seedancePollTimer); setSeedancePollTimer(null) }
-    setSeedanceStatus(null)
-
     const active = activeId ? projects.find(p => p.id === activeId) : null
-    const visStage = active?.stages.find(s => s.stageId === "visual_generation")
-    if (!visStage?.output) return
-
-    let taskId: string | null = null
-    try {
-      const vo = JSON.parse(visStage.output)
-      taskId = vo.seedance?.taskId || null
-    } catch {}
-
-    if (!taskId) return
-
-    // 立即查询一次
-    pollSeedanceTask(taskId).then(r => setSeedanceStatus(r))
-
-    const timer = setInterval(async () => {
-      const r = await pollSeedanceTask(taskId!)
-      setSeedanceStatus(r)
-      if (r.status === "succeeded" || r.status === "failed" || r.status === "expired") {
-        clearInterval(timer)
-        setSeedancePollTimer(null)
+    const faStage = active?.stages.find(s => s.stageId === "final_assembly")
+    if (!faStage?.output) return
+    let ids: string[] = []
+    try { const p = JSON.parse(faStage.output); ids = p.seedanceTaskIds || [] } catch {}
+    if (ids.length === 0) return
+    const poll = async () => {
+      const newMap: Record<string, string> = {}
+      for (const tid of ids) {
+        try {
+          const r = await fetch(`/api/video/seedance?task_id=${tid}`)
+          const d = await r.json()
+          if (d.status === "succeeded" && d.videoUrl) newMap[tid] = d.videoUrl
+        } catch {}
       }
-    }, 5000)
+      if (Object.keys(newMap).length > 0) {
+        setSeedanceVideoMap(prev => ({ ...prev, ...newMap }))
+      }
+    }
+    poll()
+    const timer = setInterval(poll, 8000)
     setSeedancePollTimer(timer)
-
     return () => { clearInterval(timer); setSeedancePollTimer(null) }
   }, [activeId, projects])
 
@@ -380,26 +375,26 @@ export default function VideoFactoryDashboard() {
                             <div className="text-[10px] text-gray-500 mb-1">{parsed.message}</div>
                           )}
                           {/* 每个镜头的 Seedance 视频下载 */}
-                          {frames.map((f: any, i: number) => (
-                            f.seedanceTaskId ? (
-                              <div key={i} className="flex items-center justify-between p-2 bg-purple-50 rounded-lg border border-purple-100">
-                                <span className="text-xs text-purple-700">🎥 镜头{f.shotNumber} · {f.duration}秒
+                          {frames.map((f: any, i: number) => {
+                            const vidUrl = f.seedanceTaskId ? seedanceVideoMap[f.seedanceTaskId] : null
+                            return (
+                              <div key={i} className={`flex items-center justify-between p-2 rounded-lg border ${vidUrl ? "bg-green-50 border-green-200" : f.seedanceTaskId ? "bg-blue-50 border-blue-100" : "bg-gray-50 border-gray-100"}`}>
+                                <span className="text-xs text-gray-700">🎥 镜头{f.shotNumber} · {f.duration}秒
                                   {f.dialogue && <span className="text-gray-400 ml-1">· {f.dialogue.slice(0,30)}</span>}
                                 </span>
-                                <a href={`/api/video/seedance?task_id=${f.seedanceTaskId}`} target="_blank" rel="noopener noreferrer"
-                                  className="text-xs bg-purple-600 text-white px-3 py-1 rounded-lg hover:bg-purple-700">
-                                  查看/下载视频
-                                </a>
-                              </div>
-                            ) : (
-                              <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-100">
-                                <span className="text-xs text-gray-500">📷 镜头{f.shotNumber} · {f.duration}秒（静态帧）
-                                  {f.dialogue && <span className="text-gray-400 ml-1">· {f.dialogue.slice(0,30)}</span>}
-                                </span>
-                                {f.imageUrl && <img src={f.imageUrl} alt="" className="w-12 h-8 object-cover rounded" />}
+                                {vidUrl ? (
+                                  <a href={vidUrl} target="_blank" rel="noopener noreferrer" download
+                                    className="text-xs bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700">
+                                    📥 下载视频
+                                  </a>
+                                ) : f.seedanceTaskId ? (
+                                  <span className="text-xs text-blue-500 animate-pulse">生成中...</span>
+                                ) : (
+                                  <span className="text-xs text-gray-400">静态帧</span>
+                                )}
                               </div>
                             )
-                          ))}
+                          })}
                         </div>
                       )})()}
 
