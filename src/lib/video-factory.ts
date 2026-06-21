@@ -442,20 +442,33 @@ export async function executeStage(
         description: string; dialogue: string; seedanceTaskId: string | null
       }> = []
 
+      let previousImageUrl: string | null = null
       for (let i = 0; i < shots.length; i++) {
         const shot = shots[i]
         try {
-          // E04公式: 主体(角色锚点) + 场景(本镜头描述) + 镜语 + 氛围
           const jimengDesc = jimengLines[i] || ""
           const sceneDesc = jimengDesc || shot.description
-          const imagePrompt = `${shotPrefix}。${sceneDesc}，电影级画质，16:9`.slice(0, 380)
+
+          // 无缝衔接：镜头1用T2I，后续镜头用图生图（传到上一帧保证视觉连续）
+          const useImageRef = i > 0 && previousImageUrl && !previousImageUrl.includes("placehold.co")
+          const continuityNote = useImageRef
+            ? `延续上一帧画面，仅改变以下内容：${sceneDesc}。保持角色外观、色调、光影完全不变。`
+            : `${shotPrefix}。${sceneDesc}，电影级画质，16:9`
+          const imagePrompt = continuityNote.slice(0, 380)
+
+          const frameBody: any = { prompt: imagePrompt, width: 1920, height: 1080 }
+          if (useImageRef) {
+            frameBody.image = previousImageUrl
+            frameBody.image_strength = 0.35  // seedream 4.5 img2img 强度：低=保留原图多
+          }
 
           const frameRes = await fetch("/api/video/frame", {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt: imagePrompt, width: 1920, height: 1080 }),
+            body: JSON.stringify(frameBody),
           })
           const frameData = await frameRes.json()
           const imageUrl = frameData.url || ""
+          if (imageUrl && !frameData.placeholder) previousImageUrl = imageUrl
 
           // Seedance: 间隔1秒避免限流，失败重试1次
           if (i > 0) await new Promise(r => setTimeout(r, 1200))

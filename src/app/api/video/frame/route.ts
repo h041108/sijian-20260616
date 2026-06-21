@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
         width: w,
         height: h,
         response_format: "url",
+        ...(body.image ? { image: body.image, image_strength: body.image_strength ?? 0.35 } : {}),
       }),
     })
 
