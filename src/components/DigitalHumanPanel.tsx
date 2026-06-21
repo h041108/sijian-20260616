@@ -120,25 +120,75 @@ export default function DigitalHumanPanel() {
 
   const handleGenerate = useCallback(async () => {
     if (!portrait || !audioBlob) return
-    setGenerating(true); setResultUrl(null); setProgress(0); setStatusMsg("正在合成...")
+    setGenerating(true); setResultUrl(null); setProgress(0); setStatusMsg("正在上传素材...")
 
     try {
-      setStatusMsg("正在用 Canvas 引擎合成...（纯浏览器，零GPU）")
-      setProgress(5)
-      const blob = await assembleTalkingHead({
-        portraitUrl: portrait,
-        audioBlob,
-        width: 1080,
-        height: 1920,
-        fps: 24,
-      }, (pct: number) => setProgress(5 + Math.round(pct * 0.9)))
-      setResultUrl(URL.createObjectURL(blob))
-      setStatusMsg("✅ 视频已生成")
+      // ── 1. 上传素材 ──
+      let imageUrl = portrait
+      if (portrait.startsWith("data:")) {
+        const imgResp = await fetch(portrait)
+        const imgBlob = await imgResp.blob()
+        const fd = new FormData()
+        fd.append("file", imgBlob, `portrait-${Date.now()}.png`)
+        const upRes = await fetch("/api/upload", { method: "POST", body: fd })
+        if (upRes.ok) { const upData = await upRes.json(); imageUrl = upData.url || portrait }
+      }
+
+      const audioFd = new FormData()
+      audioFd.append("file", audioBlob, `audio-${Date.now()}.webm`)
+      const audioUpRes = await fetch("/api/upload", { method: "POST", body: audioFd })
+      let uploadedAudioUrl = ""
+      if (audioUpRes.ok) { const audioUpData = await audioUpRes.json(); uploadedAudioUrl = audioUpData.url || "" }
+
+      setProgress(10)
+
+      // ── 2. 尝试 OmniHuman 真实数字人 ──
+      let usedOmniHuman = false
+      try {
+        setStatusMsg("正在生成实时数字人视频...")
+        const dhRes = await fetch("/api/video/digital-human", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageUrl: imageUrl.startsWith("http") ? imageUrl : portrait, audioUrl: uploadedAudioUrl || audioUrl || "" }),
+        })
+        const dhData = await dhRes.json()
+        if (dhData.taskId) {
+          setStatusMsg("数字人渲染中（约 30-60 秒）...")
+          // 轮询等待
+          for (let attempt = 0; attempt < 40; attempt++) {
+            await new Promise(r => setTimeout(r, 3000))
+            const pollRes = await fetch(`/api/video/digital-human?task_id=${dhData.taskId}`)
+            const pollData = await pollRes.json()
+            setProgress(10 + Math.min(75, attempt * 2))
+            if (pollData.status === "done" && pollData.videoUrl) {
+              const videoResp = await fetch(pollData.videoUrl)
+              const videoBlob = await videoResp.blob()
+              setResultUrl(URL.createObjectURL(videoBlob))
+              setStatusMsg("✅ 数字人视频已生成（OmniHuman 1.5 真唇同步）")
+              setProgress(100)
+              usedOmniHuman = true
+              break
+            }
+            if (pollData.status === "failed" || pollData.status === "expired" || pollData.status === "not_found") break
+          }
+        }
+      } catch {}
+
+      // ── 3. Canvas 降级（OmniHuman 不可用时） ──
+      if (!usedOmniHuman) {
+        setStatusMsg("正在用 Canvas 引擎合成...（纯浏览器，零GPU）")
+        setProgress(25)
+        const blob = await assembleTalkingHead({
+          portraitUrl: portrait, audioBlob,
+          width: 1080, height: 1920, fps: 24,
+        }, (pct: number) => setProgress(25 + Math.round(pct * 0.7)))
+        setResultUrl(URL.createObjectURL(blob))
+        setStatusMsg("✅ 视频已生成（Canvas 合成）")
+      }
     } catch (err: any) {
       alert(`视频合成失败: ${err?.message || "未知错误"}`)
     }
     setGenerating(false)
-  }, [portrait, audioBlob])
+  }, [portrait, audioBlob, audioUrl])
 
   const handleDownload = useCallback(() => {
     if (!resultUrl) return

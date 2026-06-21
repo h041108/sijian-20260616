@@ -88,15 +88,34 @@ export default function VoiceDirectorPanel({ onProjectCreated }: { onProjectCrea
 
   const handleSendToVideoFactory = useCallback(() => {
     if (!session) return
+    // 将口述成片的分镜内容构建为"故事大纲+分镜脚本"注入即影
+    const scriptContent = session.scenes.map((s, i) => {
+      return `镜头${i + 1} | 时长5秒 | 景别中景 | 运镜固定\n画面描述：${s.sceneDescription}${s.visualKeywords.length > 0 ? `，${s.visualKeywords.join("，")}` : ""}\n对白/旁白：无\n情绪氛围：${s.moodKeywords.slice(0, 2).join("，") || "日常"}\n转场：切\n---`
+    }).join("\n")
+
+    const fullStory = `## 故事标题\n${session.title || "口述作品"}\n\n## 故事梗概\n${session.fullTranscript.slice(0, 200)}\n\n## 视觉风格\n${session.thinkingOverlay?.visualStyle || "写实风格"}\n\n## 分镜脚本\n${scriptContent}`
+
     const project = createProject(
       session.title || narrative.slice(0, 50),
       "storytelling",
       session.thinkingOverlay?.visualStyle || "写实风格",
-      60,
+      session.scenes.length * 5,
       "16:9",
     )
     onProjectCreated?.()
-    alert(`已创建作品「${session.title || narrative.slice(0, 20)}」，请在"我的作品"中查看并运行流水线。`)
+    // 将口述内容作为 story_genesis 阶段的输出
+    const projects = loadProjects()
+    const p = projects.find(pp => pp.id === project.id)
+    if (p) {
+      const storyStage = p.stages.find(s => s.stageId === "story_genesis")
+      if (storyStage) {
+        storyStage.output = fullStory
+        storyStage.status = "done"
+        const { saveProjects } = require("@/lib/video-factory")
+        saveProjects(projects)
+      }
+    }
+    alert(`已创建作品「${session.title || narrative.slice(0, 20)}」，并注入口述分镜内容。请在"我的作品"中直接运行视觉生成阶段。`)
   }, [session, narrative, onProjectCreated])
 
   return (
