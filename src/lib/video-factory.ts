@@ -467,7 +467,7 @@ export async function executeStage(
                   prompt: imagePrompt.slice(0, 400), imageUrl,
                   model: shot.dialogue && shot.dialogue.length > 5 && shot.dialogue !== "无" ? "seedance-1.5-pro" : "seedance-2.0-fast",
                   ratio: project.aspectRatio === "9:16" ? "9:16" : "16:9",
-                  duration: Math.min(5, Math.max(3, Math.ceil(shot.duration * 0.6))),
+                  duration: 5,
                   generateAudio: !!shot.dialogue && shot.dialogue.length > 5,
                 }),
               })
