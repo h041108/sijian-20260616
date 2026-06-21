@@ -457,25 +457,27 @@ export async function executeStage(
           const frameData = await frameRes.json()
           const imageUrl = frameData.url || ""
 
-          // Seedance（前3个镜头）
+          // Seedance: 间隔1秒避免限流，失败重试1次
+          if (i > 0) await new Promise(r => setTimeout(r, 1200))
           let seedanceTaskId: string | null = null
           if (imageUrl && !frameData.placeholder) {
-            try {
-              const sdRes = await fetch("/api/video/seedance", {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  prompt: imagePrompt.slice(0, 400), imageUrl,
-                  model: shot.dialogue && shot.dialogue.length > 5 && shot.dialogue !== "无" ? "seedance-1.5-pro" : "seedance-2.0-fast",
-                  ratio: project.aspectRatio === "9:16" ? "9:16" : "16:9",
-                  duration: 5,
-                  generateAudio: !!shot.dialogue && shot.dialogue.length > 5,
-                }),
-              })
-              const sdData = await sdRes.json()
-              if (sdData.taskId) seedanceTaskId = sdData.taskId
-            } catch {}
+            for (let attempt = 0; attempt < 2 && !seedanceTaskId; attempt++) {
+              try {
+                const sdRes = await fetch("/api/video/seedance", {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    prompt: imagePrompt.slice(0, 400), imageUrl,
+                    model: shot.dialogue && shot.dialogue.length > 5 && shot.dialogue !== "无" ? "seedance-1.5-pro" : "seedance-2.0-fast",
+                    ratio: project.aspectRatio === "9:16" ? "9:16" : "16:9",
+                    duration: 5,
+                    generateAudio: !!shot.dialogue && shot.dialogue.length > 5,
+                  }),
+                })
+                const sdData = await sdRes.json()
+                if (sdData.taskId) seedanceTaskId = sdData.taskId
+              } catch {}
+            }
           }
-
           frames.push({ shotNumber: shot.shotNumber, duration: shot.duration, imageUrl, description: shot.description.slice(0, 100), dialogue: shot.dialogue.slice(0, 80), seedanceTaskId })
         } catch {
           frames.push({ shotNumber: shot.shotNumber, duration: shot.duration, imageUrl: "", description: shot.description.slice(0, 100), dialogue: shot.dialogue.slice(0, 80), seedanceTaskId: null })
