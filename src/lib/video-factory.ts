@@ -439,7 +439,7 @@ export async function executeStage(
 
       const frames: Array<{
         shotNumber: number; duration: number; imageUrl: string
-        description: string; dialogue: string; seedanceTaskId: string | null; audioUrl: string | null
+        description: string; dialogue: string; seedanceTaskId: string | null
       }> = []
 
       for (let i = 0; i < shots.length; i++) {
@@ -457,19 +457,6 @@ export async function executeStage(
           const frameData = await frameRes.json()
           const imageUrl = frameData.url || ""
 
-          // TTS配音
-          let audioUrl: string | null = null
-          if (shot.dialogue && shot.dialogue.length > 5 && shot.dialogue !== "无") {
-            try {
-              const ttsRes = await fetch("/api/video/tts", {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text: shot.dialogue.slice(0, 300) }),
-              })
-              const data = await ttsRes.json()
-              if (data.audioUrl) audioUrl = data.audioUrl
-            } catch {}
-          }
-
           // Seedance（前3个镜头）
           let seedanceTaskId: string | null = null
           if (imageUrl && !frameData.placeholder) {
@@ -478,7 +465,7 @@ export async function executeStage(
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   prompt: imagePrompt.slice(0, 400), imageUrl,
-                  model: "seedance-2.0-fast",
+                  model: shot.dialogue && shot.dialogue.length > 5 && shot.dialogue !== "无" ? "seedance-1.5-pro" : "seedance-2.0-fast",
                   ratio: project.aspectRatio === "9:16" ? "9:16" : "16:9",
                   duration: Math.min(5, Math.max(3, Math.ceil(shot.duration * 0.6))),
                   generateAudio: !!shot.dialogue && shot.dialogue.length > 5,
@@ -489,19 +476,19 @@ export async function executeStage(
             } catch {}
           }
 
-          frames.push({ shotNumber: shot.shotNumber, duration: shot.duration, imageUrl, description: shot.description.slice(0, 100), dialogue: shot.dialogue.slice(0, 80), seedanceTaskId, audioUrl })
+          frames.push({ shotNumber: shot.shotNumber, duration: shot.duration, imageUrl, description: shot.description.slice(0, 100), dialogue: shot.dialogue.slice(0, 80), seedanceTaskId })
         } catch {
-          frames.push({ shotNumber: shot.shotNumber, duration: shot.duration, imageUrl: "", description: shot.description.slice(0, 100), dialogue: shot.dialogue.slice(0, 80), seedanceTaskId: null, audioUrl: null })
+          frames.push({ shotNumber: shot.shotNumber, duration: shot.duration, imageUrl: "", description: shot.description.slice(0, 100), dialogue: shot.dialogue.slice(0, 80), seedanceTaskId: null })
         }
       }
 
       const realFrames = frames.filter(f => f.imageUrl && !f.imageUrl.includes("placehold.co"))
       stage.output = JSON.stringify({
         frames, totalShots: shots.length, generatedShots: realFrames.length,
-        hasAudio: frames.some(f => f.audioUrl), placeholder: realFrames.length === 0,
+        placeholder: realFrames.length === 0,
         message: frames.length > 0
           ? `${realFrames.length}/${frames.length} 个镜头`
-            + (frames.some(f => f.audioUrl) ? `，${frames.filter(f => f.audioUrl).length} 个已配音` : "")
+           
             + (frames.some(f => f.seedanceTaskId) ? "，视频片段生成中" : "")
           : "视觉生成失败",
       })
@@ -519,7 +506,7 @@ export async function executeStage(
       const visStage = project.stages.find(s => s.stageId === "visual_generation")
       let frames: Array<{
         shotNumber: number; duration: number; imageUrl: string; description: string; dialogue: string
-        seedanceTaskId: string | null; audioUrl: string | null
+        seedanceTaskId: string | null
       }> = []
       let seedanceTaskIds: string[] = []
       if (visStage?.output) {
@@ -529,7 +516,7 @@ export async function executeStage(
             frames = vo.frames
             seedanceTaskIds = frames.filter((f: any) => f.seedanceTaskId).map((f: any) => f.seedanceTaskId as string)
           } else if (vo.url) {
-            frames = [{ shotNumber: 1, duration: project.duration || 10, imageUrl: vo.url, description: "", dialogue: "", seedanceTaskId: vo.seedance?.taskId || null, audioUrl: null }]
+            frames = [{ shotNumber: 1, duration: project.duration || 10, imageUrl: vo.url, description: "", dialogue: "", seedanceTaskId: vo.seedance?.taskId || null }]
           }
         } catch {}
       }
@@ -545,7 +532,6 @@ export async function executeStage(
           description: f.description,
           dialogue: f.dialogue,
           seedanceTaskId: f.seedanceTaskId,
-          audioUrl: f.audioUrl || null,
         }))
       const totalDuration = videoClips.length > 0 ? videoClips[videoClips.length - 1].endTime : 10
       stage.output = JSON.stringify({
