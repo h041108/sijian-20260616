@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { assembleTalkingHead } from "@/lib/video-assembler"
 
 export default function DigitalHumanPanel() {
   const [portrait, setPortrait] = useState<string | null>(null)
@@ -173,22 +172,16 @@ export default function DigitalHumanPanel() {
         }
       } catch {}
 
-      // ── 3. Canvas 降级（OmniHuman 不可用时） ──
+      // ── 3. OmniHuman 不可用时提示 ──
       if (!usedOmniHuman) {
-        setStatusMsg("正在用 Canvas 引擎合成...（纯浏览器，零GPU）")
-        setProgress(25)
-        const blob = await assembleTalkingHead({
-          portraitUrl: portrait, audioBlob,
-          width: 1080, height: 1920, fps: 24,
-        }, (pct: number) => setProgress(25 + Math.round(pct * 0.7)))
-        setResultUrl(URL.createObjectURL(blob))
-        setStatusMsg("✅ 视频已生成（Canvas 合成）")
+        setStatusMsg("❌ 数字人服务暂时不可用，请稍后重试或联系管理员")
+        setProgress(0)
       }
     } catch (err: any) {
-      alert(`视频合成失败: ${err?.message || "未知错误"}`)
+      setStatusMsg(`❌ 生成失败: ${err?.message || "未知错误"}`)
     }
     setGenerating(false)
-  }, [portrait, audioBlob, audioUrl])
+  }, [portrait, audioBlob])
 
   const handleDownload = useCallback(() => {
     if (!resultUrl) return
