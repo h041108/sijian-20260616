@@ -1,0 +1,5 @@
+- [思见核心商业逻辑](sijian-business-logic.md) — 产品定位、痛点分析、Polsia对比、副业引擎方向、技术债务
+- [AI提示词工程最佳实践](ai-prompt-engineering.md) — 系统提示词黄金结构、7个技巧、Agent架构、DeepSeek缓存优化
+- [AI+自媒体变现知识库](ai-self-media-monetization.md) — 工具矩阵、平台策略、变现路径、案例数据
+- [Coze vs 思见对比分析](coze-vs-sijian-analysis.md) — Coze 3.0 全能力、思见差异化空间、技能商店模式
+- [商业爆款引擎系统](commercial-engine-system.md) — 四维引擎矩阵(1000+组合)、提示词工程库(100个)、定价模型

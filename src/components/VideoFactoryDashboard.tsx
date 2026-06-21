@@ -5,7 +5,7 @@ import {
   VideoProject, PipelineStageId,
   PIPELINE_STAGES, GENRE_PRESETS,
   createProject, loadProjects, deleteProject,
-  executeStage, runFullPipeline, getAvailableModels,
+  executeStage, getAvailableModels,
   VIDEO_MODELS, pollSeedanceTask,
 } from "@/lib/video-factory"
 import VoiceDirectorPanel from "@/components/VoiceDirectorPanel"
@@ -26,8 +26,6 @@ export default function VideoFactoryDashboard() {
   const [running, setRunning] = useState(false)
   const [seedanceStatus, setSeedanceStatus] = useState<{ status: string; videoUrl?: string; message?: string } | null>(null)
   const [seedancePollTimer, setSeedancePollTimer] = useState<ReturnType<typeof setInterval> | null>(null)
-  const [downloadProgress, setDownloadProgress] = useState(0)
-  const [downloadStatus, setDownloadStatus] = useState<"idle" | "loading" | "done" | "error">("idle")
   const downloadInProgress = useRef(false)
 
   // New project form
@@ -106,10 +104,18 @@ export default function VideoFactoryDashboard() {
   const handleRunAll = useCallback(async () => {
     if (!activeId || running) return
     setRunning(true)
-    await runFullPipeline(activeId)
+    const proj = projects.find(p => p.id === activeId)
+    if (!proj) { setRunning(false); return }
+    let prevOutput = ""
+    for (const s of PIPELINE_STAGES) {
+      await executeStage(activeId, s.id, prevOutput)
+      const latest = loadProjects().find(p => p.id === activeId)
+      const stageResult = latest?.stages.find(ss => ss.stageId === s.id)
+      prevOutput = stageResult?.output || prevOutput
+    }
     setProjects(loadProjects())
     setRunning(false)
-  }, [activeId, running])
+  }, [activeId, running, projects])
 
   const active = activeId ? projects.find(p => p.id === activeId) : null
 
@@ -362,7 +368,7 @@ export default function VideoFactoryDashboard() {
                         </div>
                       )}
 
-                      {/* 最终合成阶段：Seedance AI 视频 + Canvas 多镜头合成 */}
+                      {/* 最终合成阶段：每个镜头视频下载链接 */}
                       {stage.stageId === "final_assembly" && stage.status === "done" && stage.output && (() => {
                         let parsed: any = null
                         try { parsed = JSON.parse(stage.output) } catch {}
@@ -373,121 +379,27 @@ export default function VideoFactoryDashboard() {
                           {parsed?.message && (
                             <div className="text-[10px] text-gray-500 mb-1">{parsed.message}</div>
                           )}
-                          {/* 多镜头时间轴预览 */}
-                          {frames.length > 1 && (
-                            <div className="flex items-end gap-1 h-10 mb-2">
-                              {frames.map((f: any, i: number) => {
-                                const w = Math.max(8, (f.endTime - f.startTime) / totalDuration * 100)
-                                return (
-                                  <div key={i} className="flex-1 rounded bg-gradient-to-b from-indigo-400 to-purple-500 flex items-end justify-center"
-                                    style={{ height: `${30 + (i % 3) * 20}%` }}>
-                                    <span className="text-[7px] text-white pb-0.5">镜{i + 1}</span>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          )}
-                          {/* Seedance 视频下载链接 */}
-                          {parsed?.seedanceTaskIds?.map((tid: string, i: number) => (
-                            <a key={tid} href={`/api/video/seedance?task_id=${tid}`} target="_blank" rel="noopener noreferrer"
-                              className="w-full rounded-lg bg-purple-50 border border-purple-200 hover:bg-purple-100 text-purple-700 py-2 px-3 text-xs font-medium transition-all flex items-center gap-2">
-                              <span>🎥</span> 查看镜头{i + 1} AI视频（轮询中，完成后自动出现下载链接）
-                            </a>
+                          {/* 每个镜头的 Seedance 视频下载 */}
+                          {frames.map((f: any, i: number) => (
+                            f.seedanceTaskId ? (
+                              <div key={i} className="flex items-center justify-between p-2 bg-purple-50 rounded-lg border border-purple-100">
+                                <span className="text-xs text-purple-700">🎥 镜头{f.shotNumber} · {f.duration}秒
+                                  {f.dialogue && <span className="text-gray-400 ml-1">· {f.dialogue.slice(0,30)}</span>}
+                                </span>
+                                <a href={`/api/video/seedance?task_id=${f.seedanceTaskId}`} target="_blank" rel="noopener noreferrer"
+                                  className="text-xs bg-purple-600 text-white px-3 py-1 rounded-lg hover:bg-purple-700">
+                                  查看/下载视频
+                                </a>
+                              </div>
+                            ) : (
+                              <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-100">
+                                <span className="text-xs text-gray-500">📷 镜头{f.shotNumber} · {f.duration}秒（静态帧）
+                                  {f.dialogue && <span className="text-gray-400 ml-1">· {f.dialogue.slice(0,30)}</span>}
+                                </span>
+                                {f.imageUrl && <img src={f.imageUrl} alt="" className="w-12 h-8 object-cover rounded" />}
+                              </div>
+                            )
                           ))}
-                          {/* Canvas 合成下载（多镜头短片） */}
-                          {downloadStatus === "idle" && (
-                            <button onClick={async () => {
-                              if (downloadInProgress.current) return
-                              downloadInProgress.current = true
-                              setDownloadStatus("loading")
-                              setDownloadProgress(0)
-                              try {
-                                const parsed = JSON.parse(stage.output)
-                                if (!parsed.requiresClientRender) { setDownloadStatus("idle"); downloadInProgress.current = false; return }
-                                // 优先使用 final_assembly 自己的 frames（多镜头）
-                                let frames = parsed.frames || []
-                                if (frames.length === 0) {
-                                  // 兜底：从 visual_generation 阶段取
-                                  const visStage = active?.stages.find(s => s.stageId === "visual_generation")
-                                  if (visStage?.output) {
-                                    try {
-                                      const vo = JSON.parse(visStage.output)
-                                      if (vo.frames) {
-                                        frames = vo.frames
-                                          .filter((f: any) => f.imageUrl && !f.imageUrl.includes("placehold.co"))
-                                          .map((f: any, idx: number) => ({
-                                            url: f.imageUrl,
-                                            startTime: vo.frames.slice(0, idx).reduce((s: number, p: any) => s + (p.duration || 5), 0),
-                                            endTime: vo.frames.slice(0, idx + 1).reduce((s: number, p: any) => s + (p.duration || 5), 0),
-                                            index: idx,
-                                          }))
-                                      } else if (vo.url && !vo.url.includes("placehold.co")) {
-                                        frames = [{ url: vo.url, startTime: 0, endTime: active?.duration || 10, index: 0 }]
-                                      }
-                                    } catch {}
-                                  }
-                                }
-                                if (frames.length > 0 && frames.every((f: any) => f.url)) {
-                                  const { assembleVideoClientSide, downloadVideo } = await import("@/lib/video-assembler")
-                                  // 收集配音片段
-                                  const audioClips = parsed.audioClips || []
-                                  // 给每帧附加字幕文本
-                                  const framesWithSubs = frames.map((f: any, i: number) => ({
-                                    ...f,
-                                    dialogue: f.dialogue || "",
-                                  }))
-                                  const blob = await assembleVideoClientSide({
-                                    frames: framesWithSubs,
-                                    audioClips: audioClips.length > 0 ? audioClips : undefined,
-                                    width: 1920, height: 1080, fps: 24,
-                                  }, (pct: number) => setDownloadProgress(pct))
-                                  downloadVideo(blob, `思见-${active?.id?.slice(0, 8) || "output"}.webm`)
-                                  setDownloadStatus("done")
-                                } else {
-                                  setDownloadStatus("error")
-                                  alert("请先运行视觉生成阶段获取真实图片。当前为占位图无法合成。")
-                                }
-                              } catch (err: any) {
-                                setDownloadStatus("error")
-                                const msg = err?.message || ""
-                                if (msg.includes("Failed to load frame") || msg.includes("CORS")) {
-                                  alert(`图片加载失败（可能是跨域限制）：${msg.slice(0, 100)}。请尝试下载 Seedance AI 视频。`)
-                                } else if (msg.includes("MediaRecorder") || msg.includes("captureStream")) {
-                                  alert("您的浏览器不支持视频合成，请使用 Chrome 或下载 Seedance AI 视频。")
-                                } else {
-                                  alert(`合成失败：${msg.slice(0, 100) || "未知错误"}。如需帮助请检查图片链接是否可访问。`)
-                                }
-                              } finally {
-                                downloadInProgress.current = false
-                              }
-                            }}
-                              className="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white py-3 text-sm font-bold transition-all flex items-center justify-center gap-2">
-                              <span>📥</span> Canvas 合成下载
-                            </button>
-                          )}
-                          {downloadStatus === "loading" && (
-                            <div className="w-full rounded-xl bg-green-50 border border-green-200 p-3">
-                              <div className="flex items-center gap-2 text-sm text-green-700 mb-2">
-                                <span className="animate-spin">⏳</span> 正在合成视频...
-                              </div>
-                              <div className="w-full bg-green-200 rounded-full h-2">
-                                <div className="bg-green-600 h-2 rounded-full transition-all duration-300" style={{ width: `${downloadProgress}%` }} />
-                              </div>
-                              <div className="text-[10px] text-green-500 mt-1 text-right">{downloadProgress}%</div>
-                            </div>
-                          )}
-                          {downloadStatus === "done" && (
-                            <div className="text-sm text-green-600 font-medium flex items-center gap-2">
-                              <span>✅</span> 视频已下载
-                              <button onClick={() => setDownloadStatus("idle")} className="text-[10px] text-gray-400 underline">重新下载</button>
-                            </div>
-                          )}
-                          {downloadStatus === "error" && (
-                            <div className="text-sm text-red-500 flex items-center gap-2">
-                              <span>❌</span> 合成失败
-                              <button onClick={() => setDownloadStatus("idle")} className="text-[10px] text-indigo-500 underline">重试</button>
-                            </div>
-                          )}
                         </div>
                       )})()}
 
