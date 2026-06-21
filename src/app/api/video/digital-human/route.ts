@@ -138,9 +138,10 @@ async function getTaskResult(taskId: string): Promise<{
   const ak = process.env.VOLC_ACCESS_KEY || ""
   const sk = process.env.VOLC_SECRET_KEY || ""
 
-  const query = { Action: "CVGetResult", Version: API_VERSION, task_id: taskId }
+  const query = { Action: "CVGetResult", Version: API_VERSION }
   const body = JSON.stringify({
     req_key: REQ_KEY,
+    task_id: taskId,
   })
 
   const headers = signRequest("POST", query, body, ak, sk)
