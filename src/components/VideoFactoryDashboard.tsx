@@ -27,6 +27,7 @@ export default function VideoFactoryDashboard() {
   const [seedanceStatus, setSeedanceStatus] = useState<{ status: string; videoUrl?: string; message?: string } | null>(null)
   const [seedancePollTimer, setSeedancePollTimer] = useState<ReturnType<typeof setInterval> | null>(null)
   const [seedanceVideoMap, setSeedanceVideoMap] = useState<Record<string, string>>({})
+  const [previewVideo, setPreviewVideo] = useState<string | null>(null)
   const downloadInProgress = useRef(false)
 
   // New project form
@@ -383,10 +384,10 @@ export default function VideoFactoryDashboard() {
                                   {f.dialogue && <span className="text-gray-400 ml-1">· {f.dialogue.slice(0,30)}</span>}
                                 </span>
                                 {vidUrl ? (
-                                  <a href={vidUrl} target="_blank" rel="noopener noreferrer" download
+                                  <button onClick={() => setPreviewVideo(vidUrl)}
                                     className="text-xs bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700">
                                     📥 下载视频
-                                  </a>
+                                  </button>
                                 ) : f.seedanceTaskId ? (
                                   <span className="text-xs text-blue-500 animate-pulse">生成中...</span>
                                 ) : (
@@ -521,6 +522,26 @@ export default function VideoFactoryDashboard() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+      {/* ── 视频预览弹窗（不离开页面） ── */}
+      {previewVideo && (
+        <div className="fixed inset-0 bg-black/80 z-[100] flex flex-col" onClick={() => setPreviewVideo(null)}>
+          <div className="flex items-center justify-between px-4 py-3 bg-black/60">
+            <span className="text-white text-sm font-medium">视频预览</span>
+            <button onClick={() => setPreviewVideo(null)} className="text-white text-2xl leading-none">&times;</button>
+          </div>
+          <div className="flex-1 flex items-center justify-center p-2" onClick={e => e.stopPropagation()}>
+            <video src={previewVideo} controls autoPlay playsInline className="max-w-full max-h-full rounded-lg" />
+          </div>
+          <div className="flex justify-center gap-3 px-4 py-4 bg-black/60">
+            <a href={previewVideo} download className="rounded-xl bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-sm font-bold">
+              下载视频
+            </a>
+            <button onClick={() => setPreviewVideo(null)} className="rounded-xl bg-white/20 hover:bg-white/30 text-white px-6 py-3 text-sm">
+              返回
+            </button>
           </div>
         </div>
       )}
