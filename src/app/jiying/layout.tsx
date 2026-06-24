@@ -9,12 +9,15 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
             <span className="text-[10px] text-gray-400 hidden sm:inline">自媒体工厂</span>
           </a>
           <div className="flex items-center gap-1 text-xs">
-            <a href="/jiying/orchestrator" className="text-gray-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-indigo-50 hidden md:inline">🧠 调度</a>
-            <a href="/jiying/studio" className="text-gray-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-indigo-50 hidden md:inline">🖼️ 图片</a>
-            <a href="/jiying/manga" className="text-gray-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-indigo-50 hidden md:inline">📚 漫剧</a>
-            <a href="/jiying/review" className="text-gray-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-indigo-50 hidden md:inline">✅ 审核</a>
-            <a href="/jiying/agents" className="text-gray-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-indigo-50">🤖 Agent</a>
-            <a href="/" className="text-gray-400 hover:text-gray-600 px-2 py-1">首页</a>
+            <a href="/jiying/orchestrator" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🧠 调度</a>
+            <a href="/jiying/studio" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🖼️ 图片</a>
+            <a href="/jiying/manga" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">📚 漫剧</a>
+            <a href="/jiying/review" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">✅ 审核</a>
+            <a href="/jiying/compass" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🧭 赚钱</a>
+            <a href="/jiying/portfolio" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🖼️ 作品</a>
+            <a href="/jiying/competition" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🏆 大赛</a>
+            <a href="/jiying/agents" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🤖 Agent</a>
+            <a href="/" className="text-gray-400 hover:text-gray-600 px-1.5 py-1">首页</a>
           </div>
         </div>
       </header>
