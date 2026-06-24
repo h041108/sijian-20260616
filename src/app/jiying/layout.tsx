@@ -6,12 +6,16 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
           <a href="/jiying" className="flex items-center gap-2">
             <span className="text-xl">🎬</span>
             <span className="text-base font-bold text-gray-800">即影</span>
-            <span className="text-[10px] text-gray-400 hidden sm:inline">15 Agent · 自媒体工厂</span>
+            <span className="text-[10px] text-gray-400 hidden sm:inline">自媒体工厂</span>
           </a>
-          <nav className="flex items-center gap-2 text-xs">
-            <a href="/jiying/agents" className="text-gray-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-indigo-50">🤖 Agent中心</a>
-            <a href="/" className="text-gray-400 hover:text-gray-600 px-2 py-1">思见首页</a>
-          </nav>
+          <div className="flex items-center gap-1 text-xs">
+            <a href="/jiying/orchestrator" className="text-gray-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-indigo-50 hidden md:inline">🧠 调度</a>
+            <a href="/jiying/studio" className="text-gray-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-indigo-50 hidden md:inline">🖼️ 图片</a>
+            <a href="/jiying/manga" className="text-gray-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-indigo-50 hidden md:inline">📚 漫剧</a>
+            <a href="/jiying/review" className="text-gray-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-indigo-50 hidden md:inline">✅ 审核</a>
+            <a href="/jiying/agents" className="text-gray-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-indigo-50">🤖 Agent</a>
+            <a href="/" className="text-gray-400 hover:text-gray-600 px-2 py-1">首页</a>
+          </div>
         </div>
       </header>
       <main>{children}</main>
