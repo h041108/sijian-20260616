@@ -2,6 +2,9 @@ import { NextResponse } from "next/server"
 import { AGENT_META, AGENT_GROUPS } from "@/lib/agents/types"
 import type { AgentId } from "@/lib/agents/types"
 
+// Agents that have standalone UI pages
+const HAS_UI: string[] = ["agent_03", "agent_10", "agent_12", "agent_14"]
+
 export async function GET() {
   const grouped: Record<string, { id: AgentId; name: string; icon: string; description: string; hasStandaloneUI: boolean }[]> = {
     planning: [], production: [], optimization: [],
@@ -12,7 +15,7 @@ export async function GET() {
       grouped[group].push({
         id: id as AgentId, name: meta.name, icon: meta.icon,
         description: meta.description,
-        hasStandaloneUI: ["agent_10", "agent_14"].includes(id),
+        hasStandaloneUI: HAS_UI.includes(id),
       })
     }
   }
