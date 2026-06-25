@@ -28,15 +28,14 @@ export abstract class BaseAgent {
   }
 
   protected async callLLM(systemPrompt: string, userMessage: string, options?: { temperature?: number; maxTokens?: number }): Promise<string> {
-    // 客户端模式：走 /api/chat
+    const apiKey = typeof window !== "undefined" ? undefined : process.env.DEEPSEEK_API_KEY
+
+    // 浏览器环境：走 /api/chat
     if (typeof window !== "undefined") {
       const res = await fetch("/api/chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userMessage },
-          ],
+          messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userMessage }],
           existingNodes: [], stream: false,
           temperature: options?.temperature ?? 0.7,
           maxTokens: options?.maxTokens ?? 2048,
@@ -47,11 +46,10 @@ export abstract class BaseAgent {
       return data.message || ""
     }
 
-    // 服务端模式：直接调 DeepSeek API
-    const apiKey = process.env.DEEPSEEK_API_KEY
-    if (!apiKey) throw new Error("DEEPSEEK_API_KEY 未配置")
-
-    const res = await fetch(process.env.DEEPSEEK_API_BASE || "https://api.deepseek.com/v1/chat/completions", {
+    // 服务端：直接调 DeepSeek
+    if (!apiKey) throw new Error("DEEPSEEK_API_KEY 未配置（请在Vercel环境变量中设置）")
+    const base = process.env.DEEPSEEK_API_BASE || "https://api.deepseek.com/v1"
+    const res = await fetch(base + "/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -59,15 +57,12 @@ export abstract class BaseAgent {
       },
       body: JSON.stringify({
         model: process.env.DEEPSEEK_MODEL || "deepseek-chat",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage },
-        ],
+        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userMessage }],
         temperature: options?.temperature ?? 0.7,
         max_tokens: options?.maxTokens ?? 2048,
       }),
     })
-    if (!res.ok) throw new Error("DeepSeek API失败 [" + res.status + "]")
+    if (!res.ok) throw new Error("DeepSeek API失败 [" + res.status + "]: " + (await res.text()).slice(0, 200))
     const data = await res.json()
     return data.choices?.[0]?.message?.content || ""
   }
