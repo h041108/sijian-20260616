@@ -1,6 +1,6 @@
 "use client"
 import { useState, useCallback, useRef } from "react"
-import { STUDIO_MODELS, type StudioModel, type AspectRatio, ASPECT_PIXELS, generateImage } from "@/lib/image-studio"
+import { STUDIO_MODELS, type StudioModel, type AspectRatio, generateImage } from "@/lib/image-studio"
 import { createStudioProject, saveProject, type StudioResult } from "@/lib/image-studio"
 
 const RATIOS: AspectRatio[] = ["1:1", "4:3", "16:9", "9:16", "3:4"]
@@ -26,11 +26,8 @@ export default function StudioPage() {
         body: JSON.stringify({ instruction: project.prompt, parameters: { style: project.style } }),
       })
       const data = await res.json()
-      if (data.structuredOutput?.prompts?.jimeng) {
-        setOptimizedPrompt(data.structuredOutput.prompts.jimeng)
-      } else if (data.mainOutput) {
-        setOptimizedPrompt(data.mainOutput.slice(0, 500))
-      }
+      if (data.structuredOutput?.prompts?.jimeng) setOptimizedPrompt(data.structuredOutput.prompts.jimeng)
+      else if (data.mainOutput) setOptimizedPrompt(data.mainOutput.slice(0, 500))
     } catch {}
     setOptimizing(false)
   }, [project.prompt, project.style])
@@ -41,42 +38,20 @@ export default function StudioPage() {
     setLoading(true)
     setError("")
     setActiveView("compare")
-
     const results: StudioResult[] = []
-
     try {
-      // 生成3版（同一prompt不同seed，通过加随机风格前缀实现变化）
-      const variations = [
-        prompt,
-        prompt + "，构图略有不同，整体风格一致",
-        prompt + "，色调略有变化，保持主体一致",
-      ]
-
+      const variations = [prompt, prompt + "，构图略有不同", prompt + "，色调略有变化"]
       for (let i = 0; i < variations.length; i++) {
         try {
           const lastUrl = i > 0 && results[i - 1]?.url ? results[i - 1].url : undefined
           const img = await generateImage(variations[i], project.model, project.aspectRatio, lastUrl)
-          results.push({
-            url: img.url,
-            score: [95, 90, 88][i] || 85,
-            model: project.model,
-            prompt: variations[i],
-            seed: img.seed,
-          })
+          results.push({ url: img.url, score: [95, 90, 88][i], model: project.model, prompt: variations[i], seed: img.seed })
         } catch (e: any) {
-          results.push({
-            url: "",
-            score: 0,
-            model: project.model,
-            prompt: variations[i],
-          })
+          results.push({ url: "", score: 0, model: project.model, prompt: variations[i] })
           setError(e.message || "第" + (i + 1) + "张图生成失败")
         }
       }
-    } catch (e: any) {
-      setError(e.message || "生成失败")
-    }
-
+    } catch (e: any) { setError(e.message || "生成失败") }
     const updated = { ...project, optimizedPrompt, results }
     setProject(updated)
     saveProject(updated)
@@ -86,16 +61,11 @@ export default function StudioPage() {
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = () => {
-        setProject(p => ({ ...p, referenceImages: [...p.referenceImages, reader.result as string].slice(0, 5) }))
-      }
-      reader.readAsDataURL(file)
-    }
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => setProject(p => ({ ...p, referenceImages: [...p.referenceImages, reader.result as string].slice(0, 5) }))
+    reader.readAsDataURL(file)
   }, [])
-
-  const currentModel = STUDIO_MODELS.find(m => m.id === project.model)
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
@@ -104,7 +74,6 @@ export default function StudioPage() {
         <div><h1 className="text-xl font-bold text-gray-800">图片工作室</h1><p className="text-sm text-gray-400">提示词编辑 · 即梦AI真图生成 · 3版对比</p></div>
       </div>
 
-      {/* Status bar */}
       {project.model === "jimeng" && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-1.5 text-xs text-green-700 flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
@@ -112,22 +81,22 @@ export default function StudioPage() {
         </div>
       )}
 
-      {/* Mode toggle */}
       <div className="flex gap-1 bg-gray-100 rounded-xl p-1 text-xs">
-        {["edit", "compare"].map(v => (
-          <button key={v} onClick={() => setActiveView(v as any)}
-            className={"flex-1 py-1.5 rounded-lg font-medium transition-colors " + (activeView === v ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600")}>
-            {v === "edit" ? "✏️ 编辑" : "🖼️ 结果"} ({project.results.length})
-          </button>
-        ))}
+        <button onClick={() => setActiveView("edit")}
+          className={"flex-1 py-1.5 rounded-lg font-medium " + (activeView === "edit" ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600")}>
+          ✏️ 编辑
+        </button>
+        <button onClick={() => setActiveView("compare")}
+          className={"flex-1 py-1.5 rounded-lg font-medium " + (activeView === "compare" ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600")}>
+          🖼️ 结果 ({project.results.length})
+        </button>
       </div>
 
       {activeView === "edit" && (
         <div className="space-y-4">
-          {/* Reference images */}
           <div className="bg-white rounded-2xl border border-gray-200 p-4">
             <div className="text-xs font-medium text-gray-500 mb-2">参考图（最多5张，即梦img2img）</div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               {project.referenceImages.map((img, i) => (
                 <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200">
                   <img src={img} alt="" className="w-full h-full object-cover" />
@@ -143,7 +112,6 @@ export default function StudioPage() {
             <input ref={fileRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
           </div>
 
-          {/* Style + Ratio + Model */}
           <div className="flex gap-2">
             <div className="flex-1">
               <label className="text-xs text-gray-500 mb-1 block">风格</label>
@@ -165,12 +133,11 @@ export default function StudioPage() {
               <label className="text-xs text-gray-500 mb-1 block">模型</label>
               <select value={project.model} onChange={e => setProject(p => ({ ...p, model: e.target.value as StudioModel }))}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                {STUDIO_MODELS.map(m => <option key={m.id} value={m.id} disabled={!m.apiAvailable}>{m.name + (m.apiAvailable ? " ✅" : " ⏳")}</option>)}
+                {STUDIO_MODELS.map(m => <option key={m.id} value={m.id} disabled={!m.apiAvailable}>{m.name}</option>)}
               </select>
             </div>
           </div>
 
-          {/* Prompt */}
           <div className="bg-white rounded-2xl border border-gray-200 p-4 space-y-2">
             <label className="text-xs font-medium text-gray-500">原始prompt</label>
             <textarea value={project.prompt} onChange={e => setProject(p => ({ ...p, prompt: e.target.value }))}
@@ -178,7 +145,7 @@ export default function StudioPage() {
               rows={3} className="w-full resize-none rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             <button onClick={handleOptimizePrompt} disabled={optimizing || !project.prompt.trim()}
               className="text-xs px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-200 hover:bg-indigo-100 disabled:opacity-50">
-              {optimizing ? "优化中..." : "✨ AI优化prompt"}
+              {optimizing ? "优化中..." : "AI优化prompt"}
             </button>
             {optimizedPrompt && (
               <>
@@ -189,68 +156,43 @@ export default function StudioPage() {
             )}
           </div>
 
-          {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-600">{error}</div>}
-
           <button onClick={handleGenerate} disabled={loading || (!optimizedPrompt && !project.prompt)}
             className="w-full py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 transition-colors">
-            {loading ? "生成中（约10-30秒）..." : "🚀 生成（3版对比）"}
+            {loading ? "生成中（约10-30秒）..." : "生成（3版对比）"}
           </button>
         </div>
       )}
 
       {activeView === "compare" && (
         <div className="space-y-4">
-          {/* Results grid */}
-          {project.results.length > 0 && (
-            <div className="grid grid-cols-3 gap-3">
-              {project.results.map((r, i) => (
-                <div key={i} onClick={() => setSelectedImg(i)}
-                  className={"rounded-2xl border-2 overflow-hidden cursor-pointer transition-all " + (selectedImg === i ? "border-indigo-500 shadow-lg ring-2 ring-indigo-200" : "border-gray-200 hover:border-indigo-300")}>
-                  {r.url ? (
-                    <img src={r.url} alt={"方案" + String.fromCharCode(65 + i)} className="w-full aspect-square object-cover" />
-                  ) : (
-                    <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-gray-300 text-xs">生成失败</div>
-                  )}
-                  <div className="p-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-gray-700">方案{String.fromCharCode(65 + i)}</span>
-                      {r.score > 0 && <span className="text-[10px] text-indigo-600 font-semibold">⭐ {r.score}</span>}
+          {project.results.length > 0 ? (
+            <>
+              <div className="grid grid-cols-3 gap-3">
+                {project.results.map((r, i) => (
+                  <div key={i} onClick={() => setSelectedImg(i)}
+                    className={"rounded-2xl border-2 overflow-hidden cursor-pointer transition-all " + (selectedImg === i ? "border-indigo-500 shadow-lg ring-2 ring-indigo-200" : "border-gray-200 hover:border-indigo-300")}>
+                    {r.url ? (
+                      <img src={r.url} alt={"方案" + String.fromCharCode(65 + i)} className="w-full aspect-square object-cover" />
+                    ) : (
+                      <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-gray-300 text-xs">生成失败</div>
+                    )}
+                    <div className="p-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-gray-700">方案{String.fromCharCode(65 + i)}</span>
+                        {r.score > 0 && <span className="text-[10px] text-indigo-600 font-semibold">⭐ {r.score}</span>}
+                      </div>
                     </div>
-                    {r.seed && <div className="text-[9px] text-gray-400 mt-0.5">seed: {r.seed}</div>}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Selected image detail */}
-          {selectedImg !== null && project.results[selectedImg]?.url && (
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <img src={project.results[selectedImg].url} alt="" className="w-full max-h-[500px] object-contain bg-gray-50" />
-              <div className="p-3 space-y-1">
-                <div className="text-xs text-gray-500">使用的prompt：</div>
-                <pre className="text-[10px] text-gray-600 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50 rounded-lg p-2 max-h-24 overflow-y-auto">
-                  {project.results[selectedImg].prompt}
-                </pre>
+                ))}
               </div>
-            </div>
-          )}
-
-          {/* Action buttons */}
-          {selectedImg !== null && project.results[selectedImg]?.url && (
-            <div className="flex gap-2 justify-center">
-              <a href={project.results[selectedImg].url} target="_blank" rel="noopener noreferrer"
-                className="px-4 py-2 bg-gray-900 text-white rounded-xl text-xs hover:bg-gray-800 transition-colors">
-                📥 下载原图
-              </a>
-              <button onClick={() => navigator.clipboard.writeText(project.results[selectedImg].prompt)}
-                className="px-4 py-2 bg-white text-gray-700 rounded-xl text-xs border border-gray-200 hover:border-indigo-300 transition-colors">
-                📋 复制prompt
-              </button>
-            </div>
-          )}
-
-          {project.results.length === 0 && (
+              {selectedImg !== null && project.results[selectedImg]?.url && (
+                <div className="flex gap-2 justify-center">
+                  <a href={project.results[selectedImg].url} target="_blank" rel="noopener noreferrer"
+                    className="px-4 py-2 bg-gray-900 text-white rounded-xl text-xs hover:bg-gray-800">下载原图</a>
+                </div>
+              )}
+            </>
+          ) : (
             <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center text-sm text-gray-400">
               还没有生成结果，回到编辑区填写prompt并点击生成
             </div>
