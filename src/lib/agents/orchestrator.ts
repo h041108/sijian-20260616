@@ -104,10 +104,11 @@ export async function runOrchestrator(input: OrchestratorInput): Promise<Orchest
   const pipeline = input.agents || intent.pipeline
 
   // 2. 构建步骤计划
-  const steps = pipeline.map((agentId) => ({
+  type StepStatus = "pending" | "running" | "done" | "skipped" | "failed"
+  const steps: { agentId: AgentId; agentName: string; status: StepStatus; input: string; output?: AgentOutput }[] = pipeline.map((agentId) => ({
     agentId,
     agentName: AGENT_META[agentId]?.name || agentId,
-    status: "pending" as const,
+    status: "pending" as StepStatus,
     input: input.userInput,
   }))
 

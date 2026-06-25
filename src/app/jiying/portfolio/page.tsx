@@ -1,9 +1,10 @@
 "use client"
 import { useState, useEffect, useCallback } from "react"
 import { loadPortfolio, savePortfolio, deletePortfolioItem, toggleFeatured, generateMockPortfolio } from "@/lib/portfolio"
+import type { PortfolioItem } from "@/lib/portfolio"
 
 export default function PortfolioPage() {
-  const [items, setItems] = useState<typeof import("@/lib/portfolio").PortfolioItem[]>([])
+  const [items, setItems] = useState<PortfolioItem[]>([])
   const [filter, setFilter] = useState<string>("all")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
 

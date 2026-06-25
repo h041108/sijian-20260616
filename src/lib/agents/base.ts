@@ -45,7 +45,7 @@ export abstract class BaseAgent {
     return data.message || ""
   }
 
-  protected parseJSON<T>(text: string): T | null {
+  protected parseJSON<T = Record<string, any>>(text: string): T | null {
     try { return JSON.parse(text.trim()) } catch {
       const match = text.match(/```(?:json)?\s*([\s\S]*?)```/)
       if (match) try { return JSON.parse(match[1].trim()) } catch {}

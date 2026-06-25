@@ -12,7 +12,7 @@ export default class Agent13 extends BaseAgent {
     const raw = await this.callLLM(sp, input.instruction, { temperature: 0.6, maxTokens: 2500 })
     const parsed = this.parseJSON(raw)
     if (parsed?.topics) {
-      return { success: true, agentId: this.id, agentName: "选题分析", mainOutput: parsed.topics.map((t,i) => (i+1) + ". " + t.title + "（热度" + t.heat + "）\n   " + t.angle).join("\n") + (parsed.strategy ? "\n\n策略：" + parsed.strategy : ""), structuredOutput: parsed, qualityScore: 82, confidence: 78 }
+      return { success: true, agentId: this.id, agentName: "选题分析", mainOutput: (parsed.topics as any[]).map((t: any,i: number) => (i+1) + ". " + t.title + "（热度" + t.heat + "）\n   " + t.angle).join("\n") + (parsed.strategy ? "\n\n策略：" + parsed.strategy : ""), structuredOutput: parsed, qualityScore: 82, confidence: 78 }
     }
     return { success: true, agentId: this.id, agentName: "选题分析", mainOutput: raw, qualityScore: 60, confidence: 50 }
   }

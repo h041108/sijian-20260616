@@ -5,9 +5,10 @@ import type { AgentId } from "@/lib/agents/types"
 
 const VALID_IDS = Object.keys(AGENT_META)
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const agentId = params.id as AgentId
+    const { id } = await params
+    const agentId = id as AgentId
     if (!VALID_IDS.includes(agentId)) {
       return NextResponse.json({ success: false, error: `未知Agent: ${agentId}` }, { status: 400 })
     }
@@ -29,9 +30,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 }
 
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
-  const meta = AGENT_META[params.id as AgentId]
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const meta = AGENT_META[id as AgentId]
   return meta
-    ? NextResponse.json({ id: params.id, ...meta })
+    ? NextResponse.json({ id, ...meta })
     : NextResponse.json({ error: "未知Agent" }, { status: 404 })
 }

@@ -23,9 +23,9 @@ export default class Agent12 extends BaseAgent {
     if (parsed?.schemes) {
       return {
         success: true, agentId: this.id, agentName: "封面灵感",
-        mainOutput: JSON.stringify(parsed.schemes.map((s,i) => "【" + s.name + "】\n视觉：" + s.visual).join("\n\n")),
+        mainOutput: JSON.stringify((parsed.schemes as any[]).map((s: any,i: number) => "【" + s.name + "】\n视觉：" + s.visual).join("\n\n")),
         structuredOutput: parsed, qualityScore: 85, confidence: 80,
-        alternatives: parsed.schemes.map(s => ({ title: s.name, content: s.title, score: parseInt(s.predictedCTR || "0") })),
+        alternatives: (parsed.schemes as any[]).map((s: any) => ({ title: s.name, content: s.title, score: parseInt(s.predictedCTR || "0") })),
       }
     }
     return { success: true, agentId: this.id, agentName: "封面灵感", mainOutput: raw, qualityScore: 65, confidence: 55 }
