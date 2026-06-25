@@ -12,6 +12,7 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
             <a href="/jiying/orchestrator" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🧠 调度</a>
             <a href="/jiying/studio" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🖼️ 图片</a>
             <a href="/jiying/manga" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">📚 漫剧</a>
+            <a href="/jiying/script-review" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">📝 质检</a>
             <a href="/jiying/review" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">✅ 审核</a>
             <a href="/jiying/compass" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🧭 赚钱</a>
             <a href="/jiying/portfolio" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🖼️ 作品</a>
