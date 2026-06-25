@@ -401,6 +401,8 @@ export default function Home() {
 
   const hamburgerLinks = (
     <>
+      <a href="/jiying" className="text-sm font-semibold text-gray-800 hover:text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-indigo-50 block">🎬 即影 · 自媒体工厂</a>
+      <hr className="border-gray-100 my-1" />
       <a href="/pricing" className="text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-50 block">定价</a>
       <a href="/b-end" className="text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-50 block">B端工作台</a>
       <div className="px-3 py-1.5"><SharedList /></div>
@@ -429,7 +431,12 @@ export default function Home() {
             所思即所见
           </span>
         </div>
-        <button onClick={() => setShowMobileMenu(!showMobileMenu)}
+        <div className="flex items-center gap-1.5">
+          <a href="/jiying"
+            className="text-[10px] font-medium text-indigo-600 hover:text-indigo-800 px-2 py-1 rounded-md hover:bg-indigo-50 transition-colors hidden sm:inline-block">
+            🎬 即影
+          </a>
+          <button onClick={() => setShowMobileMenu(!showMobileMenu)}
           className="w-7 h-7 flex items-center justify-center rounded-lg transition-all hover:scale-110"
           style={{ background: "linear-gradient(135deg, rgba(99,102,241,0.08), rgba(236,72,153,0.08))" }}>
           <span className="text-sm font-bold"
