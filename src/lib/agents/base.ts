@@ -28,7 +28,7 @@ export abstract class BaseAgent {
   }
 
   protected async callLLM(systemPrompt: string, userMessage: string, options?: { temperature?: number; maxTokens?: number }): Promise<string> {
-    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "https://sijian.cc.cd")
+    const baseUrl = typeof window !== "undefined" ? "" : ((globalThis as any).__AGENT_API_BASE || "https://sijian.cc.cd")
     const res = await fetch(baseUrl + "/api/chat", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

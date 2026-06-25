@@ -10,6 +10,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "缺少必填字段: userInput" }, { status: 400 })
     }
 
+    ;(globalThis as any).__AGENT_API_BASE = request.nextUrl.origin
     const output = await runOrchestrator({
       userInput: userInput.trim(),
       platform,

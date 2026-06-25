@@ -16,6 +16,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!body.instruction?.trim()) {
       return NextResponse.json({ success: false, error: "缺少必填字段: instruction" }, { status: 400 })
     }
+    // 为Agent提供正确的 API base URL（服务端fetch需要完整URL）
+    ;(globalThis as any).__AGENT_API_BASE = request.nextUrl.origin
     const output = await AgentRegistry.execute(agentId, {
       instruction: body.instruction.trim(),
       context: body.context,
