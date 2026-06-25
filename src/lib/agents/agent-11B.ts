@@ -4,15 +4,15 @@ import type { AgentInput, AgentOutput, AgentId, AgentRegistration } from "./type
 export default class Agent11B extends BaseAgent {
   id: AgentId = "agent_11B"
   getRegistration(): AgentRegistration {
-    return { id: "agent_11B", name: "\u8BC4\u8BBA\u5206\u6790", icon: "\uD83D\uDCAC", group: "optimization", description: "7\u5C42\u4EA4\u53C9\u5206\u6790+\u9884\u8B66", version: "1.0.0", isActive: true, triggers: ["\u8BC4\u8BBA\u5206\u6790", "\u8BC4\u8BBA\u533A"], requiredInputs: ["instruction"], optionalInputs: [], defaultModel: "deepseek", temperature: 0.4, maxTokens: 2000, hasStandaloneUI: false }
+    return { id: "agent_11B", name: "评论分析", icon: "💬", group: "optimization", description: "7层交叉分析+预警", version: "2.0.0", isActive: true, triggers: ["评论分析"], requiredInputs: ["instruction"], optionalInputs: [], defaultModel: "deepseek", temperature: 0.35, maxTokens: 2000, hasStandaloneUI: false }
   }
   async execute(input: AgentInput): Promise<AgentOutput> {
-    const sp = "\u4F60\u662F\u4E00\u4F4D\u793E\u4EA4\u5A92\u4F53\u8BC4\u8BBA\u5206\u6790\u5E08\u3002\u5206\u6790\u8BC4\u8BBA\u533A\u6570\u636E\uFF0C\u8F93\u51FA7\u5C42\u4EA4\u53C9\u5206\u6790\u62A5\u544A\u3002"
-    const raw = await this.callLLM(sp, input.instruction, { temperature: 0.4, maxTokens: 2000 })
+    const sp = "你是一位社交媒体评论分析师。输出7层交叉分析报告。严格JSON，不加markdown。\n\n{\"summary\":{\"totalComments\":0,\"positiveRate\":0.7,\"negativeRate\":0.1,\"engagementRate\":0.05},\"sentimentAnalysis\":{\"positive\":[\"正面话题\"],\"negative\":[\"负面话题\"],\"neutral\":[\"中性\"]},\"topicClusters\":[{\"topic\":\"话题\",\"count\":10,\"sentiment\":\"正面/负面\"}],\"userPortrait\":{\"ageGroup\":\"年龄\",\"painPoints\":[\"痛点\"],\"demands\":[\"需求\"]},\"alerts\":[\"预警\"],\"actionItems\":[\"建议\"]}"
+    const raw = await this.callLLM(sp, input.instruction, { temperature: 0.35, maxTokens: 2000 })
     const parsed = this.parseJSON(raw)
     if (parsed?.summary) {
-      return { success: true, agentId: this.id, agentName: "\u8BC4\u8BBA\u5206\u6790", mainOutput: "\u8BC4\u8BBA\u5206\u6790\u5B8C\u6210", structuredOutput: parsed, qualityScore: 85, confidence: 80 }
+      return { success: true, agentId: this.id, agentName: "评论分析", mainOutput: "评论"+parsed.summary.totalComments+"条 | 正面率"+Math.round(parsed.summary.positiveRate*100)+"%\n\n热门话题：\n"+(parsed.topicClusters?.map((t:any) => t.topic+"("+t.count+"条)").join("\n")||"")+"\n\n预警："+(parsed.alerts?.join("; ")||"无"), structuredOutput: parsed, qualityScore: 90, confidence: 88 }
     }
-    return { success: true, agentId: this.id, agentName: "\u8BC4\u8BBA\u5206\u6790", mainOutput: raw, qualityScore: 60, confidence: 50 }
+    return { success: true, agentId: this.id, agentName: "评论分析", mainOutput: raw, qualityScore: 60, confidence: 50 }
   }
 }

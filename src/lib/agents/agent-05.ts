@@ -4,15 +4,15 @@ import type { AgentInput, AgentOutput, AgentId, AgentRegistration } from "./type
 export default class Agent05 extends BaseAgent {
   id: AgentId = "agent_05"
   getRegistration(): AgentRegistration {
-    return { id: "agent_05", name: "BGM\u4F5C\u66F2", icon: "\uD83C\uDFB5", group: "production", description: "\u60C5\u611F\u5339\u914D+\u66F2\u76EE\u63A8\u8350", version: "1.0.0", isActive: true, triggers: ["BGM", "\u80CC\u666F\u97F3\u4E50"], requiredInputs: ["instruction"], optionalInputs: [], defaultModel: "deepseek", temperature: 0.5, maxTokens: 1500, hasStandaloneUI: false }
+    return { id: "agent_05", name: "BGM作曲", icon: "🎵", group: "production", description: "情感匹配+曲目推荐", version: "2.0.0", isActive: true, triggers: ["BGM", "背景音乐"], requiredInputs: ["instruction"], optionalInputs: [], defaultModel: "deepseek", temperature: 0.4, maxTokens: 1500, hasStandaloneUI: false }
   }
   async execute(input: AgentInput): Promise<AgentOutput> {
-    const sp = "\u4F60\u662F\u4E00\u4F4D\u5F71\u89C6\u914D\u4E50\u5E08\u3002\u5206\u6790\u89C6\u9891\u811A\u672C/\u6545\u4E8B\u7684\u60C5\u611F\u66F2\u7EBF\uFF0C\u63A8\u8350BGM\u65B9\u6848\u3002"
-    const raw = await this.callLLM(sp, input.instruction, { temperature: 0.5, maxTokens: 1500 })
+    const sp = "你是一位影视配乐师。推荐BGM方案。严格JSON，不加markdown。\n\n{\"analysis\":{\"primaryEmotion\":\"情绪\",\"emotionalArc\":\"情绪变化\",\"pace\":\"节奏\"},\"recommendations\":[{\"genre\":\"风格\",\"bpm\":120,\"mood\":\"适用情绪\",\"placement\":\"位置\",\"description\":\"描述\",\"referenceArtist\":\"参考艺人\"}],\"aiGenerationPrompt\":\"AI音乐提示词\"}"
+    const raw = await this.callLLM(sp, input.instruction, { temperature: 0.4, maxTokens: 1500 })
     const parsed = this.parseJSON(raw)
     if (parsed?.recommendations) {
-      return { success: true, agentId: this.id, agentName: "BGM\u4F5C\u66F2", mainOutput: "\u3010\u60C5\u611F\u57FA\u8C03\u3011" + (parsed.analysis?.primaryEmotion || ""), structuredOutput: parsed, qualityScore: 85, confidence: 80 }
+      return { success: true, agentId: this.id, agentName: "BGM作曲", mainOutput: "【情感基调】"+(parsed.analysis?.primaryEmotion||"")+"\n\n推荐：\n"+parsed.recommendations.map((r:any,i:number) => (i+1)+". "+r.genre+" ("+r.bpm+"BPM)\n   位置："+r.placement).join("\n"), structuredOutput: parsed, qualityScore: 90, confidence: 88 }
     }
-    return { success: true, agentId: this.id, agentName: "BGM\u4F5C\u66F2", mainOutput: raw, qualityScore: 60, confidence: 50 }
+    return { success: true, agentId: this.id, agentName: "BGM作曲", mainOutput: raw, qualityScore: 60, confidence: 50 }
   }
 }

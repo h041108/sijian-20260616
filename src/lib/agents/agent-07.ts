@@ -4,15 +4,15 @@ import type { AgentInput, AgentOutput, AgentId, AgentRegistration } from "./type
 export default class Agent07 extends BaseAgent {
   id: AgentId = "agent_07"
   getRegistration(): AgentRegistration {
-    return { id: "agent_07", name: "\u6570\u636E\u5206\u6790", icon: "\uD83D\uDCCA", group: "optimization", description: "\u4E09\u7EF4\u8BCA\u65AD\u62A5\u544A", version: "1.0.0", isActive: true, triggers: ["\u6570\u636E\u5206\u6790", "\u8FD0\u8425\u8BCA\u65AD"], requiredInputs: ["instruction"], optionalInputs: [], defaultModel: "deepseek", temperature: 0.3, maxTokens: 2000, hasStandaloneUI: false }
+    return { id: "agent_07", name: "数据分析", icon: "📊", group: "optimization", description: "三维诊断报告", version: "2.0.0", isActive: true, triggers: ["数据分析", "运营诊断"], requiredInputs: ["instruction"], optionalInputs: [], defaultModel: "deepseek", temperature: 0.3, maxTokens: 2000, hasStandaloneUI: false }
   }
   async execute(input: AgentInput): Promise<AgentOutput> {
-    const sp = "\u4F60\u662F\u4E00\u4F4D\u5185\u5BB9\u6570\u636E\u5206\u6790\u5E08\u3002\u5206\u6790\u89C6\u9891/\u56FE\u6587\u6570\u636E\uFF0C\u8F93\u51FA\u4E09\u7EF4\u8BCA\u65AD\u62A5\u544A\u3002"
+    const sp = "你是一位内容数据分析师。输出三维诊断报告。严格JSON，不加markdown。\n\n{\"contentDimension\":{\"bestPerforming\":[\"最好的内容\"],\"worstPerforming\":[\"最差的\"],\"pattern\":\"规律\"},\"timeDimension\":{\"bestTime\":\"最佳时间\",\"bestDay\":\"最佳天数\",\"frequency\":\"频率建议\"},\"audienceDimension\":{\"demographics\":\"人群\",\"behavior\":\"行为\",\"growth\":\"增长\"},\"recommendations\":[\"建议1\",\"建议2\",\"建议3\"]}"
     const raw = await this.callLLM(sp, input.instruction, { temperature: 0.3, maxTokens: 2000 })
     const parsed = this.parseJSON(raw)
     if (parsed?.contentDimension) {
-      return { success: true, agentId: this.id, agentName: "\u6570\u636E\u5206\u6790", mainOutput: "\u6570\u636E\u5206\u6790\u5B8C\u6210", structuredOutput: parsed, qualityScore: 85, confidence: 80 }
+      return { success: true, agentId: this.id, agentName: "数据分析", mainOutput: "【内容维度】\n最好："+(parsed.contentDimension.bestPerforming?.join(", ")||"")+"\n最差："+(parsed.contentDimension.worstPerforming?.join(", ")||""), structuredOutput: parsed, qualityScore: 90, confidence: 88 }
     }
-    return { success: true, agentId: this.id, agentName: "\u6570\u636E\u5206\u6790", mainOutput: raw, qualityScore: 60, confidence: 50 }
+    return { success: true, agentId: this.id, agentName: "数据分析", mainOutput: raw, qualityScore: 60, confidence: 50 }
   }
 }

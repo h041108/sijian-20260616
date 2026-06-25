@@ -4,15 +4,16 @@ import type { AgentInput, AgentOutput, AgentId, AgentRegistration } from "./type
 export default class Agent01 extends BaseAgent {
   id: AgentId = "agent_01"
   getRegistration(): AgentRegistration {
-    return { id: "agent_01", name: "\u5546\u4E1A\u7B56\u7565", icon: "\uD83C\uDFE2", group: "planning", description: "\u521B\u59CB\u4EBA\u5206\u6790+IP\u65B9\u5411", version: "1.0.0", isActive: true, triggers: ["\u521B\u59CB\u4EBAIP", "\u5546\u4E1A\u5206\u6790"], requiredInputs: ["instruction"], optionalInputs: ["context.platform"], defaultModel: "deepseek", temperature: 0.6, maxTokens: 2500, hasStandaloneUI: false }
+    return { id: "agent_01", name: "商业策略", icon: "🏢", group: "planning", description: "创始人分析+IP方向", version: "2.0.0", isActive: true, triggers: ["创始人IP", "商业分析"], requiredInputs: ["instruction"], optionalInputs: [], defaultModel: "deepseek", temperature: 0.5, maxTokens: 2500, hasStandaloneUI: false }
   }
   async execute(input: AgentInput): Promise<AgentOutput> {
-    const sp = "\u4F60\u662F\u4E00\u4F4D\u5546\u4E1A\u7B56\u7565\u5206\u6790\u5E08\u3002\u5BF9\u7528\u6237\u63D0\u4F9B\u7684\u521B\u59CB\u4EBA/\u54C1\u724C\u8FDB\u884C\u6DF1\u5EA6\u5206\u6790\uFF0C\u8F93\u51FA\u53EF\u505A\u77ED\u89C6\u9891\u7684IP\u65B9\u5411\u3002"
-    const raw = await this.callLLM(sp, input.instruction, { temperature: 0.6, maxTokens: 2500 })
+    const sp = "你是一位商业策略分析师。输出创始人IP方向和变现路径。必须返回严格JSON，不加markdown。\n\n{\"insight\":\"核心洞察\",\"founderProfile\":{\"background\":\"背景\",\"strengths\":[\"优势\"],\"blindspots\":[\"盲区\"]},\"ipDirections\":[{\"name\":\"方向名\",\"contentType\":\"内容类型\",\"targetAudience\":\"受众\"}],\"monetization\":{\"shortTerm\":\"短期\",\"midTerm\":\"中期\",\"longTerm\":\"长期\"}}"
+    const raw = await this.callLLM(sp, input.instruction, { temperature: 0.5, maxTokens: 2500 })
     const parsed = this.parseJSON(raw)
     if (parsed?.insight) {
-      return { success: true, agentId: this.id, agentName: "\u5546\u4E1A\u7B56\u7565", mainOutput: "\u3010\u6D1E\u5BDF\u3011" + parsed.insight, structuredOutput: parsed, qualityScore: 85, confidence: 80 }
+      const d = parsed.ipDirections?.map((d:any,i:number) => (i+1)+". "+d.name+" → "+d.contentType).join("\n")||""
+      return { success: true, agentId: this.id, agentName: "商业策略", mainOutput: "【洞察】"+parsed.insight+"\n\n【IP方向】\n"+d, structuredOutput: parsed, qualityScore: 90, confidence: 88 }
     }
-    return { success: true, agentId: this.id, agentName: "\u5546\u4E1A\u7B56\u7565", mainOutput: raw, qualityScore: 60, confidence: 50 }
+    return { success: true, agentId: this.id, agentName: "商业策略", mainOutput: raw, qualityScore: 60, confidence: 50 }
   }
 }
