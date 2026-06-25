@@ -445,6 +445,7 @@ export default function Home() {
           </span>
         </button>
       </div>
+      </div>
 
       {/* 下拉菜单 — 桌面端+移动端共用 */}
       {showMobileMenu && (
