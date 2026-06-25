@@ -13,7 +13,7 @@ export abstract class BaseAgent {
       const reg = this.getRegistration()
       for (const required of reg.requiredInputs) {
         if (required === "instruction" && !input.instruction?.trim()) {
-          return this.error(`缺少必填输入: ${required}`)
+          return this.error("缺少必填输入: " + required)
         }
       }
       const output = await this.execute(input)
@@ -28,22 +28,48 @@ export abstract class BaseAgent {
   }
 
   protected async callLLM(systemPrompt: string, userMessage: string, options?: { temperature?: number; maxTokens?: number }): Promise<string> {
-    const baseUrl = typeof window !== "undefined" ? "" : ((globalThis as any).__AGENT_API_BASE || "https://sijian.cc.cd")
-    const res = await fetch(baseUrl + "/api/chat", {
-      method: "POST", headers: { "Content-Type": "application/json" },
+    // 客户端模式：走 /api/chat
+    if (typeof window !== "undefined") {
+      const res = await fetch("/api/chat", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage },
+          ],
+          existingNodes: [], stream: false,
+          temperature: options?.temperature ?? 0.7,
+          maxTokens: options?.maxTokens ?? 2048,
+        }),
+      })
+      if (!res.ok) throw new Error("LLM调用失败 [" + res.status + "]")
+      const data = await res.json()
+      return data.message || ""
+    }
+
+    // 服务端模式：直接调 DeepSeek API
+    const apiKey = process.env.DEEPSEEK_API_KEY
+    if (!apiKey) throw new Error("DEEPSEEK_API_KEY 未配置")
+
+    const res = await fetch(process.env.DEEPSEEK_API_BASE || "https://api.deepseek.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + apiKey,
+      },
       body: JSON.stringify({
+        model: process.env.DEEPSEEK_MODEL || "deepseek-chat",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userMessage },
         ],
-        existingNodes: [], stream: false,
         temperature: options?.temperature ?? 0.7,
-        maxTokens: options?.maxTokens ?? 2048,
+        max_tokens: options?.maxTokens ?? 2048,
       }),
     })
-    if (!res.ok) throw new Error(`LLM调用失败 [${res.status}]`)
+    if (!res.ok) throw new Error("DeepSeek API失败 [" + res.status + "]")
     const data = await res.json()
-    return data.message || ""
+    return data.choices?.[0]?.message?.content || ""
   }
 
   protected parseJSON<T = Record<string, any>>(text: string): T | null {
@@ -55,6 +81,6 @@ export abstract class BaseAgent {
   }
 
   protected error(message: string): AgentOutput {
-    return { success: false, agentId: this.id, agentName: AGENT_META[this.id]?.name || this.id, mainOutput: `执行失败: ${message}`, qualityScore: 0, confidence: 0, error: message }
+    return { success: false, agentId: this.id, agentName: AGENT_META[this.id]?.name || this.id, mainOutput: "执行失败: " + message, qualityScore: 0, confidence: 0, error: message }
   }
 }
