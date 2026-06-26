@@ -1,7 +1,6 @@
 "use client"
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback } from "react"
 import { AGENT_META } from "@/lib/agents/types"
-import type { AgentId } from "@/lib/agents/types"
 
 export function GenericAgentPage({ agentId }: { agentId: string }) {
   const meta = (AGENT_META as any)[agentId]
