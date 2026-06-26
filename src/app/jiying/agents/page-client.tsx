@@ -23,7 +23,7 @@ export default function AgentsPage() {
             <h2 className="text-base font-bold text-gray-700 mb-3">{GROUP_LABELS[gk]}</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {g.agents.map((a: any) => (
-                <Link key={a.id} href={"/jiying/agents/" + a.id}
+                <Link key={a.id} href={"/jiying/agents/" + a.id.replace(/_/g, "-")}
                   className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/80 border border-gray-200/60 hover:border-indigo-300 hover:shadow-sm transition-all group">
                   <span className="text-lg">{a.icon}</span>
                   <div className="min-w-0">
