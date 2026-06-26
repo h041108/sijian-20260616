@@ -1,180 +1,141 @@
-// ─── 即影 · 主调度Agent ──────────────────────────
-// 15 Agent 协同的大脑：理解用户→拆解任务→分配→审核→汇总
+// ─── 即影 · 赛道专家 ──────────────────────────
+// 输入你的想法 → 自动调取合适的Agent → 汇总成完整方案
 
 import { AgentRegistry } from "./registry"
 import type { AgentInput, AgentOutput, AgentId } from "./types"
 import { AGENT_META } from "./types"
 
-export interface OrchestratorInput {
-  userInput: string                    // 用户的核心需求
-  platform?: string                    // 目标平台
-  niche?: string                       // 赛道/行业
-  brand?: string                       // 品牌名
+export interface TrackExpertInput {
+  userInput: string
+  platform?: string
+  niche?: string
   referenceImages?: string[]
   referenceText?: string
-  mode?: "auto" | "manual"            // 全自动/半自动
-  agents?: AgentId[]                   // 手动指定用哪些Agent
 }
 
-export interface OrchestratorOutput {
+export interface TrackExpertOutput {
   success: boolean
   taskId: string
-  plan: {
-    description: string               // 任务描述
-    steps: {                          // 执行步骤
-      agentId: AgentId
-      agentName: string
-      status: "pending" | "running" | "done" | "skipped" | "failed"
-      input: string
-      output?: AgentOutput
-    }[]
-  }
-  results: AgentOutput[]
-  summary: string
+  summary: string           // 整合后的最终方案
+  details: {
+    agentId: AgentId
+    agentName: string
+    output: string
+  }[]
   totalTime: number
 }
 
-// ═══════════════════════════════════════════════════
-// 意图分析 → 自动拆解为Agent任务链
-// ═══════════════════════════════════════════════════
-
-export interface IntentAnalysis {
-  type: "new_account" | "daily_content" | "single_image" | "single_video" | "strategy_adjust" | "data_review" | "custom"
-  description: string
-  pipeline: AgentId[]
-}
-
-export function analyzeIntent(input: string): IntentAnalysis {
+// ── 分析用户意图，拆解任务 ──
+function analyzeIntent(input: string): { description: string; pipeline: AgentId[] } {
   const lower = input.toLowerCase()
 
-  // 新账号启动：品牌定位→人设建模→知识图谱→选题分析
-  if (/^(我想|我准备|帮我注册|新账号|起号|刚开始|创业|自媒体公司)/.test(input)) {
+  // 新赛道启动：品牌定位→人设建模→知识图谱→选题分析
+  if (/^(我想|我准备|帮我|新账号|起号|刚开始|创业|自媒体|赛道|选方向|适合什么)/.test(input)) {
     return {
-      type: "new_account",
-      description: "新自媒体账号启动",
+      description: "赛道诊断与人设定位",
       pipeline: ["agent_00", "agent_02", "agent_09", "agent_13"],
     }
   }
 
-  // 单图生成：提示词大师→封面灵感（或只用提示词）
-  if (/^生成.*图|画.*|图片|封面|海报/.test(input)) {
-    return {
-      type: "single_image",
-      description: "单图/封面生成",
-      pipeline: ["agent_03", "agent_12"],
-    }
-  }
-
-  // 视频生成：选题→脚本→提示词→BGM→音效→封面
-  if (/^生成.*视频|拍.*|视频|短剧|漫剧/.test(input)) {
-    return {
-      type: "single_video",
-      description: "视频/短剧生成",
-      pipeline: ["agent_13", "agent_04", "agent_03", "agent_05", "agent_06", "agent_12"],
-    }
-  }
-
-  // 数据分析：数据→投流→评论
-  if (/^分析|数据|复盘|投流|评论/.test(input)) {
-    return {
-      type: "data_review",
-      description: "数据复盘与优化",
-      pipeline: ["agent_07", "agent_08", "agent_11B"],
-    }
-  }
-
-  // 默认：走完整内容链路
+  // 内容创作：选题→提示词→封面→标签
   return {
-    type: "daily_content",
-    description: "日常内容创作",
+    description: "日常内容创作方案",
     pipeline: ["agent_13", "agent_03", "agent_12", "agent_14"],
   }
 }
 
-// ═══════════════════════════════════════════════════
-// 执行引擎
-// ═══════════════════════════════════════════════════
+// ── 把多个Agent的输出合成一份完整方案 ──
+async function synthesizeSummary(
+  userInput: string,
+  results: { agentId: AgentId; agentName: string; output: string }[],
+): Promise<string> {
+  const outputs = results.map(r =>
+    `【${r.agentName}】\n${r.output.slice(0, 300)}`
+  ).join("\n\n")
 
-export async function runOrchestrator(input: OrchestratorInput): Promise<OrchestratorOutput> {
+  const prompt = `你是一位赛道专家。用户输入了以下需求：
+
+用户需求：${userInput}
+
+AI分析团队已经输出了以下结果：
+${outputs}
+
+请将以上结果整合成一份完整的、用户直接能用的方案。要求：
+1. 去掉"Agent"、"输出"等技术术语
+2. 用用户能看懂的语言重新组织
+3. 分三个板块输出：赛道分析、人设建议、行动建议
+4. 直接给结论，不要解释过程
+5. 控制在500字以内`
+
+  const res = await fetch(process.env.DEEPSEEK_API_BASE + "/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + process.env.DEEPSEEK_API_KEY,
+    },
+    body: JSON.stringify({
+      model: process.env.DEEPSEEK_MODEL || "deepseek-chat",
+      messages: [
+        { role: "system", content: "你是一位赛道专家。把多个AI分析结果整合成一份用户直接能看的方案。不要用术语，只说人话。" },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.5,
+      max_tokens: 1500,
+    }),
+  })
+
+  if (!res.ok) {
+    // 降级：直接拼接
+    return results.map(r => r.output).join("\n\n---\n\n")
+  }
+
+  const data = await res.json()
+  return data.choices?.[0]?.message?.content || results.map(r => r.output).join("\n\n---\n\n")
+}
+
+// ── 运行赛道专家 ──
+export async function runTrackExpert(input: TrackExpertInput): Promise<TrackExpertOutput> {
   const startTime = Date.now()
-  const taskId = `orchestrator_${Date.now()}`
-
-  // 1. 分析意图
+  const taskId = `track_${Date.now()}`
   const intent = analyzeIntent(input.userInput)
-  const pipeline = input.agents || intent.pipeline
+  const pipeline = intent.pipeline
 
-  // 2. 构建步骤计划
-  type StepStatus = "pending" | "running" | "done" | "skipped" | "failed"
-  const steps: { agentId: AgentId; agentName: string; status: StepStatus; input: string; output?: AgentOutput }[] = pipeline.map((agentId) => ({
-    agentId,
-    agentName: AGENT_META[agentId]?.name || agentId,
-    status: "pending" as StepStatus,
-    input: input.userInput,
-  }))
+  const details: { agentId: AgentId; agentName: string; output: string }[] = []
 
-  const results: AgentOutput[] = []
-
-  // 3. 按序执行
-  for (let i = 0; i < steps.length; i++) {
-    const step = steps[i]
-    steps[i].status = "running"
-
+  for (let i = 0; i < pipeline.length; i++) {
+    const agentId = pipeline[i]
     try {
       const agentInput: AgentInput = {
-        instruction: step.input,
+        instruction: input.userInput,
         context: {
           userProfile: {
             platform: input.platform,
             niche: input.niche,
           },
         },
-        referenceImages: input.referenceImages,
-        referenceText: input.referenceText,
       }
-
-      const output = await AgentRegistry.execute(step.agentId, agentInput)
-      results.push(output)
-
+      const output = await AgentRegistry.execute(agentId, agentInput)
       if (output.success) {
-        steps[i].status = "done"
-        steps[i].output = output
-        // 将前一个Agent的输出传递给下一个
+        details.push({ agentId, agentName: AGENT_META[agentId]?.name || agentId, output: output.mainOutput })
+        // 用上个结果增强下一个
         if (i + 1 < pipeline.length) {
-          steps[i + 1].input = output.mainOutput.slice(0, 500)
+          input.userInput = input.userInput + "\n参考：" + output.mainOutput.slice(0, 200)
         }
-      } else {
-        steps[i].status = "failed"
       }
     } catch {
-      steps[i].status = "failed"
+      details.push({ agentId, agentName: AGENT_META[agentId]?.name || agentId, output: "分析失败" })
     }
   }
 
-  // 4. 生成摘要
-  const doneCount = steps.filter((s) => s.status === "done").length
-  const summary = `${doneCount}/${steps.length} 个Agent执行成功。${intent.description}`
+  // 合成最终方案
+  const summary = await synthesizeSummary(input.userInput, details)
   const totalTime = Date.now() - startTime
 
   return {
-    success: doneCount > 0,
+    success: details.some(d => d.output !== "分析失败"),
     taskId,
-    plan: { description: intent.description, steps },
-    results,
     summary,
+    details,
     totalTime,
-  }
-}
-
-// ── 快速分析接口（给前端实时反馈） ──
-export function getPipelinePreview(input: string) {
-  const intent = analyzeIntent(input)
-  return {
-    type: intent.type,
-    description: intent.description,
-    agents: intent.pipeline.map((id) => ({
-      id,
-      name: AGENT_META[id]?.name || id,
-      icon: AGENT_META[id]?.icon || "🤖",
-    })),
   }
 }

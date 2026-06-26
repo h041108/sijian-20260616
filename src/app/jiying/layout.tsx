@@ -12,7 +12,7 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
             <span className="text-[10px] text-gray-400 hidden sm:inline">自媒体工厂</span>
           </Link>
           <div className="flex items-center gap-1 text-xs">
-            <Link href="/jiying/orchestrator" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🧠 调度</Link>
+            <Link href="/jiying/orchestrator" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🧭 赛道</Link>
             <Link href="/jiying/studio" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🖼️ 图片</Link>
             <Link href="/jiying/manga" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">📚 漫剧</Link>
             <Link href="/jiying/script-review" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">📝 质检</Link>
