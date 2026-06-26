@@ -28,9 +28,10 @@ const PLATFORM_NAMES: Record<string, string> = {
 export default function OnboardingPage() {
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState({ platforms: [] as string[], niches: [] as string[] })
-  const [status, setStatus] = useState<"form" | "diagnosing" | "ready" | "generating" | "done">("form")
+  const [status, setStatus] = useState<"form" | "diagnosing" | "ready" | "generating" | "done" | "error">("form")
   const [report, setReport] = useState<any>(null)
   const [dailyContent, setDailyContent] = useState<any>(null)
+  const [errorMsg, setErrorMsg] = useState("")
   const [userId] = useState(() => "user_" + Date.now())
 
   const toggleArray = (key: "platforms" | "niches", value: string) => {
@@ -44,6 +45,7 @@ export default function OnboardingPage() {
 
   const handleDiagnose = useCallback(async () => {
     setStatus("diagnosing")
+    setErrorMsg("")
     const platform = PLATFORM_NAMES[answers.platforms[0]] || "小红书"
     const niche = PLATFORM_NAMES[answers.niches[0]] || "美食"
     try {
@@ -55,13 +57,22 @@ export default function OnboardingPage() {
         }),
       })
       const data = await res.json()
+      if (!data.success) {
+        setErrorMsg(data.error || "诊断失败")
+        setStatus("error")
+        return
+      }
       setReport(data.structuredOutput || data.mainOutput || { raw: "诊断完成" })
-    } catch {}
-    setStatus("ready")
+      setStatus("ready")
+    } catch (e: any) {
+      setErrorMsg(e.message || "网络错误")
+      setStatus("error")
+    }
   }, [answers])
 
   const handleGenerateDailyContent = useCallback(async () => {
     setStatus("generating")
+    setErrorMsg("")
     const platform = PLATFORM_NAMES[answers.platforms[0]] || "小红书"
     const niche = PLATFORM_NAMES[answers.niches[0]] || "美食"
     try {
@@ -69,11 +80,33 @@ export default function OnboardingPage() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, platform, niche }),
       })
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || "HTTP " + res.status)
+      }
       const data = await res.json()
+      if (!data.items || data.items.length === 0) {
+        throw new Error("生成的内容为空")
+      }
       setDailyContent(data)
-    } catch {}
-    setStatus("done")
+      setStatus("done")
+    } catch (e: any) {
+      setErrorMsg(e.message || "生成失败，请重试")
+      setStatus("error")
+    }
   }, [answers, userId])
+
+  if (status === "error") {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-12 text-center space-y-4">
+        <div className="text-3xl">😅</div>
+        <h2 className="text-base font-bold text-gray-800">出错了</h2>
+        <p className="text-sm text-gray-500">{errorMsg || "未知错误，请重试"}</p>
+        <button onClick={() => setStatus("form")}
+          className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm hover:bg-gray-800">重新开始</button>
+      </div>
+    )
+  }
 
   if (status === "diagnosing") {
     return (
