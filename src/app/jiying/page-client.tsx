@@ -48,17 +48,17 @@ export default function JiyingHome() {
       <section className="max-w-5xl mx-auto px-4 -mt-10 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           {[
-            { step: "01", title: "填写偏好问卷", desc: "3分钟告诉我们你的兴趣、擅长的领域和目标平台", icon: "📝" },
-            { step: "02", title: "AI自动启动", desc: "15个AI专家协作，为你建人设、选赛道、生成首批内容", icon: "🤖" },
-            { step: "03", title: "每天30秒审核", desc: "打开即影 → 浏览内容 → 点确认 → AI自动发布", icon: "✅" },
-            { step: "04", title: "AI持续运营", desc: "自动回复评论、引导私域、分析数据、优化策略", icon: "🔄" },
+            { step: "01", title: "填写偏好问卷", desc: "3分钟告诉我们你的兴趣、擅长的领域和目标平台", icon: "📝", href: "/jiying/agents/agent-13" },
+            { step: "02", title: "AI自动启动", desc: "15个AI专家协作，为你建人设、选赛道、生成首批内容", icon: "🤖", href: "/jiying/orchestrator" },
+            { step: "03", title: "每天30秒审核", desc: "打开即影 → 浏览内容 → 点确认 → AI自动发布", icon: "✅", href: "/jiying/review" },
+            { step: "04", title: "AI持续运营", desc: "自动回复评论、引导私域、分析数据、优化策略", icon: "🔄", href: "/jiying/agents" },
           ].map(s => (
-            <div key={s.step} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-all">
+            <Link key={s.step} href={s.href} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all block">
               <div className="text-2xl mb-2">{s.icon}</div>
               <div className="text-[10px] text-indigo-500 font-bold mb-1">{s.step}</div>
               <div className="text-sm font-bold text-gray-800 mb-1">{s.title}</div>
               <div className="text-xs text-gray-400">{s.desc}</div>
-            </div>
+            </Link>
           ))}
         </div>
       </section>
