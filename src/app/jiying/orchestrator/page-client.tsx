@@ -33,8 +33,8 @@ export default function TrackExpertPage() {
       <div className="flex items-center gap-3">
         <span className="text-3xl">🧭</span>
         <div>
-          <h1 className="text-xl font-bold text-gray-800">赛道专家</h1>
-          <p className="text-sm text-gray-400">告诉我你的情况，我帮你诊断赛道、建立人设、规划内容</p>
+          <h1 className="text-xl font-bold text-gray-800">赛道诊断</h1>
+          <p className="text-sm text-gray-400">告诉我你的情况，AI帮你诊断最合适的赛道方向</p>
         </div>
       </div>
 
