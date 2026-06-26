@@ -2,7 +2,7 @@
 import Link from "next/link"
 
 const FAQ = [
-  { q: "20元真的可以开一家自媒体公司吗？", a: "是的。20元是7天体验价。你不需要注册公司、不需要租办公室、不需要雇人。即影的15个AI专家就是你的员工，主调度Agent就是你的CEO。7天内你就能拥有一个完整运作的自媒体账号。" },
+  { q: "20元真的可以开一家自媒体公司吗？", a: "是的。20元是7天体验价。你不需要注册公司、不需要租办公室、不需要雇人。即影帮你做3件事：① 诊断你的优劣势，推荐最适合你的赛道 ② 建立账号人设和内容方向 ③ 每天自动生成内容供你审核发布。你只需要有自己的抖音/小红书/视频号/B站账号（大部分用户已经有了），剩下的交给我们。" },
   { q: "我需要做什么？", a: "只需要两步：1️⃣ 填写一份3分钟的偏好问卷（你擅长什么、想在哪个平台做、想怎么赚钱）2️⃣ 每天花30秒审核AI生成的内容，点确认发布。其他一切——选题、写文案、做视频、回复评论、分析数据——AI全自动完成。" },
   { q: "平台怎么帮我建立一个自媒体账号？", a: "你付款后，AI自动执行：① 分析你的优势和赛道 → ② 建立人设和品牌定位 → ③ 生成第一篇内容 → ④ 每天自动选题、创作、优化 → ⑤ AI智能客服自动回复评论和私信 → ⑥ 自动分析数据、优化策略。你只需要每天30秒点头。" },
   { q: "我适合做什么方向？", a: "系统会根据你的问卷自动匹配最佳赛道。比如：喜欢穿搭→小红书穿搭博主、擅长做饭→抖音美食教程、有孩子→母婴好物推荐、爱打游戏→B站游戏解说、退休养生→视频号健康内容。匹配度低于85%会自动调整。" },
@@ -27,11 +27,11 @@ export default function JiyingHome() {
             <span className="text-white"> = 一家线上自媒体公司</span>
           </h1>
           <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed">
-            15个AI专家 + 1个调度大脑 + 每天30秒审核<br className="hidden sm:block" />
-            = 一个帮你24小时赚钱的自媒体账号
+            你已经有抖音/小红书/视频号/B站账号？<br className="hidden sm:block" />
+            20元 = AI诊断赛道 + 建立人设 + 每日自动生成内容
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <Link href="/jiying/agents"
+            <Link href="/jiying/onboarding"
               className="px-8 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-sm font-bold hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-orange-500/25 transition-all">
               🚀 20元开启我的自媒体公司
             </Link>
@@ -48,7 +48,7 @@ export default function JiyingHome() {
       <section className="max-w-5xl mx-auto px-4 -mt-10 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           {[
-            { step: "01", title: "填写偏好问卷", desc: "3分钟告诉我们你的兴趣、擅长的领域和目标平台", icon: "📝", href: "/jiying/agents/agent-13" },
+            { step: "01", title: "填写偏好问卷", desc: "3分钟告诉我们你的兴趣、擅长的领域和目标平台", icon: "📝", href: "/jiying/onboarding" },
             { step: "02", title: "AI自动启动", desc: "15个AI专家协作，为你建人设、选赛道、生成首批内容", icon: "🤖", href: "/jiying/orchestrator" },
             { step: "03", title: "每天30秒审核", desc: "打开即影 → 浏览内容 → 点确认 → AI自动发布", icon: "✅", href: "/jiying/review" },
             { step: "04", title: "AI持续运营", desc: "自动回复评论、引导私域、分析数据、优化策略", icon: "🔄", href: "/jiying/agents" },
@@ -198,7 +198,7 @@ export default function JiyingHome() {
           <div className="text-4xl mb-3">🎬</div>
           <h2 className="text-2xl font-extrabold mb-2">现在就开启你的自媒体公司</h2>
           <p className="text-sm text-indigo-200 mb-6">20元体验7天 · 不满意随时停 · 无需任何承诺</p>
-          <Link href="/jiying/agents"
+          <Link href="/jiying/onboarding"
             className="inline-block px-8 py-3.5 bg-white text-indigo-700 rounded-xl text-sm font-bold hover:bg-indigo-50 shadow-lg transition-all">
             🚀 花20元开公司
           </Link>
