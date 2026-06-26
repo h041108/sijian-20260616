@@ -34,6 +34,8 @@ export default function OnboardingPage() {
   const [errorMsg, setErrorMsg] = useState("")
   const [userId] = useState(() => "user_" + Date.now())
 
+  const [itemStatuses, setItemStatuses] = useState<Record<number, string>>({})
+
   const toggleArray = (key: "platforms" | "niches", value: string) => {
     setAnswers(prev => ({
       ...prev,
@@ -166,7 +168,7 @@ export default function OnboardingPage() {
           <div key={i} className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-gray-600">{item.type === "text" ? "📝 文案" : "🖼️ 配图"}</span>
-              <span className="text-[10px] px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full">待审核</span>
+              <span className={"text-[10px] px-2 py-0.5 rounded-full " + (itemStatuses[i] === "confirmed" ? "bg-green-100 text-green-700" : itemStatuses[i] === "skipped" ? "bg-gray-100 text-gray-500" : "bg-amber-100 text-amber-700")}>{itemStatuses[i] === "confirmed" ? "已确认" : itemStatuses[i] === "skipped" ? "已跳过" : itemStatuses[i] === "edited" ? "已修改" : "待审核"}</span>
             </div>
             <div className="text-sm font-medium text-gray-800">{item.title}</div>
             <p className="text-xs text-gray-600 line-clamp-3">{item.content}</p>
@@ -187,9 +189,12 @@ export default function OnboardingPage() {
               </div>
             )}
             <div className="flex gap-2 pt-1">
-              <button className="flex-1 py-1.5 bg-indigo-600 text-white rounded-lg text-xs hover:bg-indigo-700">✅ 确认发布</button>
-              <button className="px-3 py-1.5 bg-white text-gray-600 rounded-lg text-xs border border-gray-200">✏️ 修改</button>
-              <button className="px-3 py-1.5 bg-white text-gray-400 rounded-lg text-xs border border-gray-200">🗑️ 跳过</button>
+              <button onClick={() => setItemStatuses(s => ({...s, [i]: "confirmed"}))}
+                className="flex-1 py-1.5 bg-indigo-600 text-white rounded-lg text-xs hover:bg-indigo-700">✅ 确认发布</button>
+              <button onClick={() => setItemStatuses(s => ({...s, [i]: "edited"}))}
+                className="px-3 py-1.5 bg-white text-gray-600 rounded-lg text-xs border border-gray-200 hover:border-indigo-300">✏️ 修改</button>
+              <button onClick={() => setItemStatuses(s => ({...s, [i]: "skipped"}))}
+                className="px-3 py-1.5 bg-white text-gray-400 rounded-lg text-xs border border-gray-200 hover:border-red-300">🗑️ 跳过</button>
             </div>
           </div>
         ))}
