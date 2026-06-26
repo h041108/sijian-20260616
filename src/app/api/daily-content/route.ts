@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "缺少必填参数" }, { status: 400 })
     }
 
-    const result = await generateDailyContent(userId, platform, niche)
+    const result = await generateDailyContent(userId, platform, niche, request.nextUrl.origin)
     return NextResponse.json(result)
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "生成失败" }, { status: 500 })

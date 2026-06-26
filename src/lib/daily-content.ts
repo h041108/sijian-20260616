@@ -1,8 +1,4 @@
-// ─── 每日内容生成流水线 ─────────────────────────
-// 每天凌晨自动执行：选题 → 分镜 → 出图 → 封面 → 标签 → 推送审核
-
 import { AgentRegistry } from "./agents/registry"
-import type { AgentId } from "./agents/types"
 
 export interface DailyContentResult {
   date: string
@@ -23,8 +19,10 @@ export async function generateDailyContent(
   userId: string,
   platform: string,
   niche: string,
+  origin?: string,
 ): Promise<DailyContentResult> {
   const date = new Date().toISOString().slice(0, 10)
+  const apiBase = origin || "https://sijian.cc.cd"
 
   // Step 1: Agent 13 选题分析
   const topicResult = await AgentRegistry.execute("agent_13", {
@@ -33,64 +31,41 @@ export async function generateDailyContent(
   })
 
   let topic = topicResult.mainOutput || "今天分享什么"
-  // 尝试从structuredOutput提取标题
   if (topicResult.structuredOutput?.topics?.[0]?.title) {
     topic = topicResult.structuredOutput.topics[0].title
   }
 
-  // Step 2: Agent 04 生成6个分镜
-  const scriptResult = await AgentRegistry.execute("agent_04", {
-    instruction: `为以下选题生成6个分镜脚本：${topic}。平台：${platform}，风格：适合${niche}领域`,
+  // Step 2: Agent 04 生成分镜
+  await AgentRegistry.execute("agent_04", {
+    instruction: `为以下选题生成6个分镜脚本：${topic}。平台：${platform}，风格：${niche}`,
     parameters: { duration: "60" },
   })
-  const script = scriptResult.mainOutput || topic
 
-  // Step 3: 用即梦出关键帧图片
+  // Step 3: 用即梦出图
   const frames: string[] = []
-  const prompt = `关于"${topic}"的插图，${niche}风格，适合${platform}平台，电影质感`
-
-  try {
-    const baseUrl = typeof window !== 'undefined' ? '' : (process.env.NEXT_PUBLIC_SITE_URL || 'https://sijian.cc.cd')
-    const frameRes = await fetch(baseUrl + "/api/video/frame", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt: prompt.slice(0, 380),
-        width: 1080,
-        height: 1920,
-      }),
-    })
-    const frameData = await frameRes.json()
-    if (frameData.url && !frameData.placeholder) {
-      frames.push(frameData.url)
-    }
-  } catch {}
-
-  // 生成多个变体
-  const variations = [
-    prompt + "，主视觉突出",
-    prompt + "，细节特写",
-    prompt + "，场景全景",
+  const prompts = [
+    `关于"${topic}"的插图，${niche}风格，适合${platform}，电影质感，高清`,
+    `"${topic}"，细节特写，高质量摄影风格，精致`,
+    `"${topic}"，场景全景，氛围感，柔和光线`,
   ]
 
-  for (const v of variations.slice(0, 3)) {
+  for (const p of prompts) {
     if (frames.length >= 3) break
     try {
-      const baseUrl = typeof window !== 'undefined' ? '' : (process.env.NEXT_PUBLIC_SITE_URL || 'https://sijian.cc.cd')
-      const res = await fetch(baseUrl + "/api/video/frame", {
+      const res = await fetch(apiBase + "/api/video/frame", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: v.slice(0, 380),
-          width: 1080,
-          height: 1920,
-        }),
+        body: JSON.stringify({ prompt: p.slice(0, 380), width: 1080, height: 1920 }),
       })
       const data = await res.json()
       if (data.url && !data.placeholder) {
         frames.push(data.url)
+      } else if (data.error) {
+        console.error("Frame API error:", data.error)
       }
-    } catch {}
+    } catch (e: any) {
+      console.error("Frame fetch error:", e.message)
+    }
   }
 
   // Step 4: Agent 14 标签SEO
@@ -104,13 +79,6 @@ export async function generateDailyContent(
     hashtags = tagResult.structuredOutput.coreTags.map((t: any) => t.tag).slice(0, 5)
   }
 
-  // Step 5: Agent 12 封面
-  await AgentRegistry.execute("agent_12", {
-    instruction: topic,
-    context: { userProfile: { platform } },
-  })
-
-  // 组装结果
   return {
     date,
     userId,
@@ -120,7 +88,7 @@ export async function generateDailyContent(
       {
         type: "text",
         title: topic,
-        content: `${topic}\n\n#${niche} #${platform}`,
+        content: topic + "\n\n#" + niche + " #" + platform,
         imageUrls: frames.slice(0, 1),
         hashtags,
         status: "pending",
