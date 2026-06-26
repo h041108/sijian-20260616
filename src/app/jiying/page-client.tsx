@@ -9,12 +9,12 @@ const PLANS = [
 ]
 
 const HIGHLIGHTS = [
-  { icon: "🤖", title: "15个AI专家", desc: "品牌定位、人设建模、提示词大师…各司其职" },
-  { icon: "🧠", title: "1个调度大脑", desc: "主调度Agent自动拆解任务、分配、审核、汇总" },
-  { icon: "⏱️", title: "每天30秒", desc: "打开→审核→发布，AI做99%的工作" },
-  { icon: "🖼️", title: "图片+漫剧", desc: "王炸级图片工作室+漫剧生成引擎" },
-  { icon: "📊", title: "数据驱动", desc: "每日数据复盘，AI自动优化内容策略" },
-  { icon: "💬", title: "智能客服", desc: "自动回复评论/私信，引导私域转化" },
+  { icon: "🤖", title: "15个AI专家", desc: "品牌定位、人设建模、提示词大师…各司其职", href: "/jiying/agents" },
+  { icon: "🧠", title: "1个调度大脑", desc: "主调度Agent自动拆解任务、分配、审核、汇总", href: "/jiying/orchestrator" },
+  { icon: "⏱️", title: "每天30秒", desc: "打开→审核→发布，AI做99%的工作", href: "/jiying/review" },
+  { icon: "🖼️", title: "图片+漫剧", desc: "王炸级图片工作室+漫剧生成引擎", href: "/jiying/studio" },
+  { icon: "📊", title: "数据驱动", desc: "每日数据复盘，AI自动优化内容策略", href: "/jiying/compass" },
+  { icon: "💬", title: "智能客服", desc: "自动回复评论/私信，引导私域转化", href: "/jiying/agents" },
 ]
 
 export default function JiyingHome() {
@@ -34,11 +34,12 @@ export default function JiyingHome() {
         <h2 className="text-center text-base font-bold text-gray-700 mb-6">为什么是王炸级？</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {HIGHLIGHTS.map(h => (
-            <div key={h.title} className="bg-white rounded-2xl border border-gray-100 p-4 text-center hover:shadow-sm">
+            <Link key={h.title} href={h.href}
+              className="bg-white rounded-2xl border border-gray-100 p-4 text-center hover:shadow-sm hover:border-indigo-200 transition-all block">
               <div className="text-2xl mb-1">{h.icon}</div>
               <div className="text-sm font-semibold text-gray-800">{h.title}</div>
               <div className="text-[10px] text-gray-400 mt-0.5">{h.desc}</div>
-            </div>
+            </Link>
           ))}
         </div>
       </section>
