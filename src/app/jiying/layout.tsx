@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 export default function JiyingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#fafafa]">
@@ -26,4 +28,3 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
     </div>
   )
 }
-
