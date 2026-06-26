@@ -30,10 +30,9 @@ export async function generateDailyContent(
     context: { userProfile: { platform, niche } },
   })
 
-  let topic = topicResult.mainOutput || "今天分享什么"
-  if (topicResult.structuredOutput?.topics?.[0]?.title) {
-    topic = topicResult.structuredOutput.topics[0].title
-  }
+  // 从AI输出中提取第一行作为选题标题
+  const outputLines = (topicResult.mainOutput || "今天分享什么").split("\n").filter((l: string) => l.trim().length > 0)
+  const topic = outputLines.length > 0 ? outputLines[0].replace(/推荐\d*[：:]\s*/g, "").replace(/^#+\s*/, "").trim() : "今天分享什么"
 
   // Step 2: Agent 04 生成分镜
   await AgentRegistry.execute("agent_04", {
@@ -74,9 +73,11 @@ export async function generateDailyContent(
     context: { userProfile: { platform } },
   })
 
+  // 从AI输出的标签文本中提取hash标签
   let hashtags: string[] = []
-  if (tagResult.structuredOutput?.coreTags) {
-    hashtags = tagResult.structuredOutput.coreTags.map((t: any) => t.tag).slice(0, 5)
+  if (tagResult.mainOutput) {
+    const tagMatches = tagResult.mainOutput.match(/#[^\s#,#]+/g)
+    if (tagMatches) hashtags = tagMatches.slice(0, 5)
   }
 
   return {
