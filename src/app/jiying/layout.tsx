@@ -11,18 +11,15 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
             <span className="text-base font-bold text-gray-800">即影</span>
             <span className="text-[10px] text-gray-400 hidden sm:inline">自媒体工厂</span>
           </Link>
-          <div className="flex items-center gap-1 text-xs">
-            <Link href="/jiying/orchestrator" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🧭 赛道诊断</Link>
-            <Link href="/jiying/studio" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🖼️ 图片</Link>
-            <Link href="/jiying/manga" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">📚 漫剧</Link>
-            <Link href="/jiying/script-review" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">📝 质检</Link>
-            <Link href="/jiying/review" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">✅ 审核</Link>
-            <Link href="/jiying/compass" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🧭 赚钱</Link>
-            <Link href="/jiying/portfolio" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🖼️ 作品</Link>
-            <Link href="/jiying/competition" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🏆 大赛</Link>
-            <Link href="/jiying/agents" className="text-gray-500 hover:text-indigo-600 px-1.5 py-1 rounded hover:bg-indigo-50">🤖 Agent</Link>
-            <Link href="/" className="text-gray-400 hover:text-gray-600 px-1.5 py-1">首页</Link>
-          </div>
+          <nav className="flex items-center gap-0.5 text-xs">
+            <Link href="/jiying/onboarding" className="text-gray-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-indigo-50">👤 自媒体账号设立</Link>
+            <Link href="/jiying/orchestrator" className="text-gray-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-indigo-50">🩺 赛道医生</Link>
+            <Link href="/jiying/studio" className="text-gray-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-indigo-50">🏭 自媒体工厂</Link>
+            <Link href="/jiying/review" className="text-gray-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-indigo-50">✅ 人工审核</Link>
+            <Link href="/jiying/portfolio" className="text-gray-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-indigo-50">🖼️ 作品展示</Link>
+            <Link href="/jiying/compass" className="text-gray-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-indigo-50">💰 收益罗盘</Link>
+            <Link href="/" className="text-gray-400 hover:text-gray-600 px-2 py-1 ml-1">首页</Link>
+          </nav>
         </div>
       </header>
       <main>{children}</main>
