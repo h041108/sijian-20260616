@@ -10,9 +10,9 @@ const FAQ = [
 
 export default function JiyingHome() {
   return (
-    <div className="pb-24">
+    <div className="pb-24 bg-[#5B8C3B]">
       {/* ─── HERO ─── */}
-      <section className="relative overflow-hidden pt-20 pb-16">
+      <section className="relative overflow-hidden pt-20 pb-16 bg-[#5B8C3B]">
         <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[70%] rounded-full bg-teal-500/8 blur-[150px]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[60%] rounded-full bg-emerald-500/6 blur-[150px]" />
         <div className="relative max-w-6xl mx-auto px-6 text-center">
@@ -174,6 +174,15 @@ export default function JiyingHome() {
               className="btn-accent inline-block px-8 py-3 rounded-xl text-sm font-semibold shadow-lg">🚀 花20元开公司</Link>
           </div>
         </div>
+      </section>
+
+      {/* ─── 返回思见 ─── */}
+      <section className="max-w-3xl mx-auto px-6 text-center pb-12">
+        <Link href="/"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white/70 hover:text-white text-sm font-medium transition-all">
+          ← 返回思见
+        </Link>
+        <p className="text-xs text-white/40 mt-3">有事问思见</p>
       </section>
     </div>
   )
