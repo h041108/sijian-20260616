@@ -1,266 +1,207 @@
 "use client"
-import { useState, useCallback } from "react"
+import { useState } from "react"
 
-const PLATFORMS = [
-  { id: "douyin", name: "抖音", icon: "🎵", desc: "短视频，强算法推荐" },
-  { id: "xiaohongshu", name: "小红书", icon: "📕", desc: "图文+视频，女性用户多" },
-  { id: "shipinhao", name: "视频号", icon: "💬", desc: "微信生态，中年用户多" },
-  { id: "bilibili", name: "B站", icon: "📺", desc: "中长视频，年轻人社区" },
-]
-
-const NICHES = [
-  { id: "meishi", name: "美食", icon: "🍳" },
-  { id: "meizhuang", name: "美妆", icon: "💄" },
-  { id: "chuanda", name: "穿搭", icon: "👗" },
-  { id: "shuma", name: "数码", icon: "📱" },
-  { id: "jiankang", name: "健康", icon: "🏃" },
-  { id: "lvyou", name: "旅行", icon: "✈️" },
-  { id: "qinzi", name: "母婴", icon: "👶" },
-  { id: "jiating", name: "家居", icon: "🏠" },
-]
-
-const PLATFORM_NAMES: Record<string, string> = {
-  douyin: "抖音", xiaohongshu: "小红书", shipinhao: "视频号", bilibili: "B站",
-  meishi: "美食", meizhuang: "美妆", chuanda: "穿搭", shuma: "数码",
-  jiankang: "健康", lvyou: "旅行", qinzi: "母婴", jiating: "家居",
+interface Platform {
+  id: string
+  name: string
+  icon: string
+  url: string
+  guide: string
+  needsVPN?: boolean
+  note?: string
 }
 
+const PLATFORMS: Platform[] = [
+  { id: "xiaohongshu", name: "小红书", icon: "📕", url: "https://www.xiaohongshu.com", guide: "官网首页，点击右上角「登录」→选择「注册」方式" },
+  { id: "douyin", name: "抖音", icon: "🎵", url: "https://www.douyin.com", guide: "点击「登录」→手机号或邮箱注册" },
+  { id: "shipinhao", name: "视频号", icon: "💬", url: "https://channels.weixin.qq.com/login.html", guide: "微信扫码登录后创建，需在微信发现页操作" },
+  { id: "kuaishou", name: "快手", icon: "📹", url: "https://www.kuaishou.com", guide: "或 https://mp.kuaishou.com 点击「注册登录」" },
+  { id: "bilibili", name: "B站", icon: "📺", url: "https://www.bilibili.com", guide: "点击「登录」→「注册账号」，手机号或邮箱注册" },
+  { id: "weixin", name: "微信公众号", icon: "📱", url: "https://mp.weixin.qq.com", guide: "点击「立即注册」，选择订阅号/服务号" },
+  { id: "twitter", name: "X (Twitter)", icon: "🐦", url: "https://x.com/i/flow/signup", guide: "直接进入注册页面，支持邮箱/手机号注册", needsVPN: true },
+  { id: "youtube", name: "YouTube", icon: "▶️", url: "https://www.youtube.com", guide: "使用Google账号登录即开通", needsVPN: true },
+  { id: "tiktok", name: "TikTok", icon: "🎵", url: "https://www.tiktok.com", guide: "需海外手机号或邮箱注册（国内版为抖音）", needsVPN: true },
+  { id: "facebook", name: "Facebook", icon: "👍", url: "https://www.facebook.com/r.php", guide: "直接进入注册页面", needsVPN: true },
+  { id: "instagram", name: "Instagram", icon: "📷", url: "https://www.instagram.com", guide: "点击「注册」填写信息，支持邮箱/手机号", needsVPN: true },
+  { id: "threads", name: "Threads", icon: "🧵", url: "https://www.threads.net", guide: "需使用Instagram账号登录", needsVPN: true },
+  { id: "pinterest", name: "Pinterest", icon: "📌", url: "https://www.pinterest.com", guide: "点击「注册」创建账号，支持邮箱/Google登录", needsVPN: true },
+  { id: "linkedin", name: "LinkedIn", icon: "💼", url: "https://www.linkedin.com", guide: "点击「加入」填写注册信息", needsVPN: true },
+]
+
 export default function OnboardingPage() {
-  const [step, setStep] = useState(0)
-  const [answers, setAnswers] = useState({ platforms: [] as string[], niches: [] as string[] })
-  const [status, setStatus] = useState<"form" | "diagnosing" | "ready" | "generating" | "done" | "error">("form")
-  const [report, setReport] = useState<any>(null)
-  const [dailyContent, setDailyContent] = useState<any>(null)
-  const [errorMsg, setErrorMsg] = useState("")
-  const [userId] = useState(() => "user_" + Date.now())
+  const [checked, setChecked] = useState<Record<string, boolean>>({})
+  const [customName, setCustomName] = useState("")
+  const [customUrl, setCustomUrl] = useState("")
+  const [showPayment, setShowPayment] = useState<string | null>(null)
+  const [paying, setPaying] = useState(false)
 
-  const [itemStatuses, setItemStatuses] = useState<Record<number, string>>({})
+  const checkedCount = Object.values(checked).filter(Boolean).length
+  const totalFee = checkedCount * 20
 
-  const toggleArray = (key: "platforms" | "niches", value: string) => {
-    setAnswers(prev => ({
-      ...prev,
-      [key]: prev[key].includes(value)
-        ? prev[key].filter(v => v !== value)
-        : [...prev[key], value],
-    }))
-  }
-
-  const handleDiagnose = useCallback(async () => {
-    setStatus("diagnosing")
-    setErrorMsg("")
-    const platform = PLATFORM_NAMES[answers.platforms[0]] || "小红书"
-    const niche = PLATFORM_NAMES[answers.niches[0]] || "美食"
-    try {
-      const res = await fetch("/api/agent/agent_01", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          instruction: `我准备在${platform}做${niche}方向的自媒体，请给我一份创业诊断报告`,
-          context: { userProfile: { platform, niche } },
-        }),
-      })
-      const data = await res.json()
-      if (!data.success) {
-        setErrorMsg(data.error || "诊断失败")
-        setStatus("error")
-        return
-      }
-      setReport(data.structuredOutput || data.mainOutput || { raw: "诊断完成" })
-      setStatus("ready")
-    } catch (e: any) {
-      setErrorMsg(e.message || "网络错误")
-      setStatus("error")
+  const toggleCheck = (id: string) => {
+    setChecked(prev => ({ ...prev, [id]: !prev[id] }))
+    // 弹出支付
+    if (!checked[id]) {
+      setShowPayment(id)
     }
-  }, [answers])
-
-  const handleGenerateDailyContent = useCallback(async () => {
-    setStatus("generating")
-    setErrorMsg("")
-    const platform = PLATFORM_NAMES[answers.platforms[0]] || "小红书"
-    const niche = PLATFORM_NAMES[answers.niches[0]] || "美食"
-    try {
-      const res = await fetch("/api/daily-content", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, platform, niche }),
-      })
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        throw new Error(errData.error || "HTTP " + res.status)
-      }
-      const data = await res.json()
-      if (!data.items || data.items.length === 0) {
-        throw new Error("生成的内容为空")
-      }
-      setDailyContent(data)
-      setStatus("done")
-    } catch (e: any) {
-      setErrorMsg(e.message || "生成失败，请重试")
-      setStatus("error")
-    }
-  }, [answers, userId])
-
-  if (status === "error") {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-12 text-center space-y-4">
-        <div className="text-3xl">😅</div>
-        <h2 className="text-base font-bold text-gray-800">出错了</h2>
-        <p className="text-sm text-gray-500">{errorMsg || "未知错误，请重试"}</p>
-        <button onClick={() => setStatus("form")}
-          className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm hover:bg-gray-800">重新开始</button>
-      </div>
-    )
   }
 
-  if (status === "diagnosing") {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-20 text-center space-y-4">
-        <div className="w-10 h-10 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-sm text-gray-500">AI正在分析你的赛道...</p>
-      </div>
-    )
-  }
-
-  if (status === "ready" && report) {
-    const r = report
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        <div className="text-center space-y-2">
-          <span className="text-4xl">🎉</span>
-          <h1 className="text-xl font-bold text-gray-900">诊断完成！你的创业方案</h1>
-        </div>
-        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl p-5">
-          <div className="text-xs font-semibold text-indigo-600 mb-1">推荐方向</div>
-          <div className="text-sm font-bold text-gray-800 whitespace-pre-wrap">{r.insight || r.recommendedPlatform || r.raw || "已生成方案"}</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-200 p-4">
-          <div className="text-xs font-semibold text-gray-500 mb-1">IP方向</div>
-          <div className="text-xs text-gray-700 whitespace-pre-wrap">{(r.ipDirections?.map((d: any) => d.name).join("、")) || r.personaAdvice || "已生成"}</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-200 p-4">
-          <div className="text-xs font-semibold text-gray-500 mb-1">变现路径</div>
-          <div className="text-xs text-gray-700 whitespace-pre-wrap">{r.monetization?.shortTerm || r.monetizationPath || "已生成"}</div>
-        </div>
-        <button onClick={handleGenerateDailyContent}
-          className="w-full py-3 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-all">
-          🚀 立即生成今日内容
-        </button>
-      </div>
-    )
-  }
-
-  if (status === "generating") {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-20 text-center space-y-4">
-        <div className="w-10 h-10 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-sm text-gray-500">正在生成今日内容（AI选题→分镜→出图）...</p>
-      </div>
-    )
-  }
-
-  if (status === "done" && dailyContent) {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        <div className="text-center space-y-2">
-          <span className="text-4xl">✅</span>
-          <h1 className="text-xl font-bold text-gray-900">今日内容已就绪！</h1>
-          <p className="text-sm text-gray-400">{dailyContent.date} · {dailyContent.platform} · {dailyContent.niche}</p>
-        </div>
-        {dailyContent.items?.map((item: any, i: number) => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-gray-600">{item.type === "text" ? "📝 文案" : "🖼️ 配图"}</span>
-              <span className={"text-[10px] px-2 py-0.5 rounded-full " + (itemStatuses[i] === "confirmed" ? "bg-green-100 text-green-700" : itemStatuses[i] === "skipped" ? "bg-gray-100 text-gray-500" : "bg-amber-100 text-amber-700")}>{itemStatuses[i] === "confirmed" ? "已确认" : itemStatuses[i] === "skipped" ? "已跳过" : itemStatuses[i] === "edited" ? "已修改" : "待审核"}</span>
-            </div>
-            <div className="text-sm font-medium text-gray-800">{item.title}</div>
-            <p className="text-xs text-gray-600 line-clamp-3">{item.content}</p>
-            {item.imageUrls?.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto">
-                {item.imageUrls.map((url: string, j: number) => (
-                  <div key={j} className="w-20 h-28 rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-200">
-                    {url ? <img src={url} alt="" className="w-full h-full object-cover" /> : <span className="text-[8px] text-gray-300">图片</span>}
-                  </div>
-                ))}
-              </div>
-            )}
-            {item.hashtags?.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {item.hashtags.map((tag: string, j: number) => (
-                  <span key={j} className="text-[10px] text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-full">{tag}</span>
-                ))}
-              </div>
-            )}
-            <div className="flex gap-2 pt-1">
-              <button onClick={() => setItemStatuses(s => ({...s, [i]: "confirmed"}))}
-                className="flex-1 py-1.5 bg-indigo-600 text-white rounded-lg text-xs hover:bg-indigo-700">✅ 确认发布</button>
-              <button onClick={() => setItemStatuses(s => ({...s, [i]: "edited"}))}
-                className="px-3 py-1.5 bg-white text-gray-600 rounded-lg text-xs border border-gray-200 hover:border-indigo-300">✏️ 修改</button>
-              <button onClick={() => setItemStatuses(s => ({...s, [i]: "skipped"}))}
-                className="px-3 py-1.5 bg-white text-gray-400 rounded-lg text-xs border border-gray-200 hover:border-red-300">🗑️ 跳过</button>
-            </div>
-          </div>
-        ))}
-        <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-700 text-center">
-          🎯 明天早上8:00会推送新的内容到审核页面
-        </div>
-        <div className="flex gap-2 justify-center">
-          <button onClick={handleGenerateDailyContent}
-            className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-xl text-xs hover:bg-indigo-200">
-            🔄 重新生成
-          </button>
-          <a href="/jiying/review"
-            className="px-4 py-2 bg-gray-900 text-white rounded-xl text-xs hover:bg-gray-800">
-            📋 去审核页面
-          </a>
-        </div>
-      </div>
-    )
+  const handlePay = async () => {
+    setPaying(true)
+    // 模拟支付
+    await new Promise(r => setTimeout(r, 1500))
+    setPaying(false)
+    setShowPayment(null)
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-      <div className="text-center space-y-2">
-        <span className="text-4xl">🎬</span>
-        <h1 className="text-2xl font-extrabold text-gray-900">20元开启你的自媒体公司</h1>
-        <p className="text-sm text-gray-400">选平台 → 选赛道 → AI诊断 → 每日自动生成内容</p>
+    <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      {/* 步骤条 */}
+      <div className="flex items-center gap-2 text-xs text-gray-400">
+        <a href="/jiying/agents/agent-router" className="hover:text-indigo-600">← 返回</a>
+        <span className="text-gray-300">|</span>
+        <span className="font-medium text-indigo-600">即影自媒体工厂</span>
+        <span className="text-gray-300 mx-1">[步骤 2/3]</span>
+        <span className="flex gap-1">
+          <span className="w-3 h-3 rounded-full bg-green-500" />
+          <span className="w-3 h-3 rounded-full bg-indigo-600" />
+          <span className="w-3 h-3 rounded-full bg-gray-200" />
+        </span>
+        <span className="ml-auto text-indigo-600 font-medium">已选: {checkedCount}个账户</span>
       </div>
 
-      {step === 0 && (
-        <div className="space-y-3">
-          <h2 className="text-base font-bold">你在哪个平台做？</h2>
-          <div className="grid grid-cols-2 gap-2">
-            {PLATFORMS.map(p => (
-              <button key={p.id} onClick={() => toggleArray("platforms", p.id)}
-                className={`text-left p-3 rounded-xl border transition-all ${answers.platforms.includes(p.id) ? "bg-indigo-50 border-indigo-300" : "bg-white border-gray-200"}`}>
-                <span className="text-lg mr-2">{p.icon}</span>
-                <span className="text-sm font-medium text-gray-800">{p.name}</span>
-                <span className="text-[10px] text-gray-400 ml-1">{p.desc}</span>
-                {answers.platforms.includes(p.id) && <span className="float-right text-indigo-500">✓</span>}
-              </button>
-            ))}
-          </div>
-          <button onClick={() => setStep(1)} disabled={answers.platforms.length === 0}
-            className="w-full py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400">下一步</button>
+      <div className="flex items-center gap-3">
+        <span className="text-3xl">📢</span>
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">请为您在以下平台的账号开设做好准备</h1>
+          <p className="text-xs text-gray-400">点击链接一键跳转注册，已完成注册的账号请勾选确认。每确认一个账户将产生20元开户费用。</p>
         </div>
-      )}
+      </div>
 
-      {step === 1 && (
-        <div className="space-y-3">
-          <h2 className="text-base font-bold">你擅长什么领域？</h2>
-          <div className="grid grid-cols-2 gap-2">
-            {NICHES.map(n => (
-              <button key={n.id} onClick={() => toggleArray("niches", n.id)}
-                className={`text-left p-3 rounded-xl border transition-all ${answers.niches.includes(n.id) ? "bg-indigo-50 border-indigo-300" : "bg-white border-gray-200"}`}>
-                <span className="text-lg mr-2">{n.icon}</span>
-                <span className="text-sm font-medium text-gray-800">{n.name}</span>
-                {answers.niches.includes(n.id) && <span className="float-right text-indigo-500">✓</span>}
-              </button>
+      {/* 平台表格 */}
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <th className="w-8 px-3 py-2.5"></th>
+              <th className="text-left px-2 py-2.5 font-semibold text-gray-600">平台名称</th>
+              <th className="text-left px-2 py-2.5 font-semibold text-gray-600">官方注册入口</th>
+              <th className="w-24 px-3 py-2.5 font-semibold text-gray-600 text-center">状态</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {PLATFORMS.map(p => (
+              <tr key={p.id} className={checked[p.id] ? "bg-green-50/50" : ""}>
+                <td className="px-3 py-3 text-center">
+                  <input type="checkbox" checked={!!checked[p.id]} onChange={() => toggleCheck(p.id)}
+                    className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                </td>
+                <td className="px-2 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{p.icon}</span>
+                    <span className="text-sm font-medium text-gray-800">{p.name}</span>
+                    {p.needsVPN && <span className="text-[9px] px-1 py-0.5 rounded bg-amber-100 text-amber-600">翻墙</span>}
+                  </div>
+                </td>
+                <td className="px-2 py-3">
+                  <a href={p.url} target="_blank" rel="noopener noreferrer"
+                    className="text-indigo-600 hover:text-indigo-800 underline text-xs block">
+                    {p.url}
+                  </a>
+                  <span className="text-[10px] text-gray-400">{p.guide}</span>
+                </td>
+                <td className="px-3 py-3 text-center">
+                  {checked[p.id] ? (
+                    <span className="text-xs text-green-600 font-medium">✅ 已激活</span>
+                  ) : (
+                    <span className="text-xs text-gray-400">未注册</span>
+                  )}
+                </td>
+              </tr>
             ))}
+            {/* 自定义行 */}
+            <tr className="bg-gray-50/50">
+              <td className="px-3 py-3 text-center">
+                <input type="checkbox" disabled className="w-4 h-4 rounded border-gray-300 opacity-30" />
+              </td>
+              <td className="px-2 py-3">
+                <input value={customName} onChange={e => setCustomName(e.target.value)}
+                  placeholder="其他自定义平台"
+                  className="w-full px-2 py-1 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              </td>
+              <td className="px-2 py-3">
+                <input value={customUrl} onChange={e => setCustomUrl(e.target.value)}
+                  placeholder="手动输入平台注册链接"
+                  className="w-full px-2 py-1 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              </td>
+              <td className="px-3 py-3 text-center text-xs text-gray-300">自定义</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* 注意事项 */}
+      <details className="bg-white rounded-xl border border-gray-200">
+        <summary className="px-4 py-2.5 text-xs font-medium text-gray-500 cursor-pointer hover:text-gray-700">平台注册注意事项</summary>
+        <div className="px-4 pb-4 text-xs text-gray-500 space-y-2">
+          <p><strong className="text-gray-700">小红书：</strong>个人创作者可直接通过官网注册登录；商家入驻需通过App内「创作中心-开通店铺」</p>
+          <p><strong className="text-gray-700">抖音：</strong>网页版支持手机号/邮箱注册，企业认证请访问 renzheng.douyin.com</p>
+          <p><strong className="text-gray-700">视频号：</strong>一个微信账号只能注册一个视频号，注册需在手机微信内完成</p>
+          <p><strong className="text-gray-700">TikTok：</strong>国内用户直接使用抖音App即可；TikTok为海外版，需海外手机号或邮箱</p>
+          <p><strong className="text-gray-700">微信公众号：</strong>需准备邮箱（未注册过微信公众平台的），企业和个人均可注册</p>
+          <p><strong className="text-gray-700">YouTube：</strong>需先拥有Google账号，注册后可直接发布内容</p>
+          <p className="text-amber-600">⚠️ 国外平台（带"翻墙"标签）需要科学上网才能访问注册页面</p>
+        </div>
+      </details>
+
+      {/* 底部统计 */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-4 text-sm">
+            <span className="text-gray-600">📊 已选账户：<strong className="text-gray-900">{checkedCount}</strong> 个</span>
+            <span className="text-gray-600">预计费用：<strong className="text-indigo-600">¥{totalFee.toFixed(2)}</strong></span>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setStep(0)} className="px-4 py-2.5 bg-white text-gray-600 rounded-xl text-sm border border-gray-200">上一步</button>
-            <button onClick={handleDiagnose} disabled={answers.niches.length === 0}
-              className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-sm font-bold hover:from-amber-600 hover:to-orange-600 disabled:bg-gray-200 disabled:text-gray-400 shadow-lg shadow-orange-500/20">
-              🚀 AI诊断 → 生成每日内容
+            <button className="px-4 py-2 bg-white text-gray-600 rounded-xl text-xs border border-gray-200 hover:border-indigo-300">稍后设置</button>
+            <button disabled={checkedCount === 0}
+              className="px-5 py-2 bg-gray-900 text-white rounded-xl text-xs font-medium hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400">
+              确认并支付
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 支付弹窗 */}
+      {showPayment && (
+        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center" onClick={() => setShowPayment(null)}>
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="text-center space-y-4">
+              <div className="text-4xl">💳</div>
+              <h3 className="text-base font-bold text-gray-800">支付开户费用</h3>
+              <div className="bg-gray-50 rounded-xl p-4 space-y-1 text-sm">
+                <div className="flex justify-between text-gray-600">
+                  <span>账户名称</span>
+                  <span className="font-medium text-gray-800">{PLATFORMS.find(p => p.id === showPayment)?.name}主号</span>
+                </div>
+                <div className="flex justify-between text-gray-600">
+                  <span>所属平台</span>
+                  <span className="font-medium text-gray-800">{PLATFORMS.find(p => p.id === showPayment)?.name}</span>
+                </div>
+                <div className="flex justify-between text-gray-600 border-t border-gray-200 pt-2 mt-2">
+                  <span>开户费用</span>
+                  <span className="font-bold text-indigo-600 text-lg">¥20.00</span>
+                </div>
+              </div>
+              <div className="flex gap-2 justify-center">
+                <button className="flex-1 py-2.5 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600">💚 微信支付</button>
+                <button className="flex-1 py-2.5 bg-blue-500 text-white rounded-xl text-sm font-medium hover:bg-blue-600">💙 支付宝</button>
+              </div>
+              <button onClick={handlePay} disabled={paying}
+                className="w-full py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 disabled:bg-gray-300">
+                {paying ? "支付中..." : "确认支付"}
+              </button>
+              <button onClick={() => setShowPayment(null)} className="text-xs text-gray-400 hover:text-gray-600">稍后支付</button>
+            </div>
           </div>
         </div>
       )}
