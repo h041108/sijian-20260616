@@ -27,13 +27,12 @@ export default function JiyingHome() {
             <span className="text-white"> 开启我的自媒体公司</span>
           </h1>
           <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed">
-            你已经有抖音/小红书/视频号/B站账号？<br className="hidden sm:block" />
-            20元 = AI诊断赛道 + 建立人设 + 每日自动生成内容
+            一站式AI赋能，从0到1打造个人品牌
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link href="/jiying/onboarding"
-              className="px-8 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-sm font-bold hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-orange-500/25 transition-all">
-              🚀 20元开启我的自媒体公司
+              className="px-10 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-base font-bold hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-orange-500/25 transition-all">
+              🚀 立即开启
             </Link>
             <Link href="/jiying/agents/agent-14"
               className="px-8 py-3.5 bg-white/10 backdrop-blur-sm text-white rounded-xl text-sm font-medium border border-white/20 hover:bg-white/20 transition-all">
@@ -46,18 +45,19 @@ export default function JiyingHome() {
 
       {/* ─── 20元怎么做到一家公司 ─── */}
       <section className="max-w-5xl mx-auto px-4 -mt-10 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
-            { step: "01", title: "填写偏好问卷", desc: "3分钟告诉我们你的兴趣、擅长的领域和目标平台", icon: "📝", href: "/jiying/onboarding" },
-            { step: "02", title: "AI自动启动", desc: "15个AI专家协作，为你建人设、选赛道、生成首批内容", icon: "🤖", href: "/jiying/agents/agent-router" },
-            { step: "03", title: "每天30秒审核", desc: "打开即影 → 浏览内容 → 点确认 → AI自动发布", icon: "✅", href: "/jiying/review" },
-            { step: "04", title: "AI持续运营", desc: "自动回复评论、引导私域、分析数据、优化策略", icon: "🔄", href: "/jiying/agents" },
+            { title: "赛道选择", desc: "50+赛道覆盖", icon: "🎯", href: "/jiying/agents/agent-router", extra: "热门赛道推荐", action: "点击进入 →" },
+            { title: "账户设立", desc: "15+平台开户", icon: "📱", href: "/jiying/onboarding", extra: "一键跳转注册", action: "点击进入 →" },
+            { title: "AI智能启动", desc: "Agent智能路由引擎", icon: "⚡", href: "/jiying/agents/agent-router", extra: "智能组合推荐", action: "点击进入 →" },
+            { title: "每天30秒审核", desc: "快捷审核", icon: "✅", href: "/jiying/review", extra: "AI自动发布", action: "点击进入 →" },
+            { title: "AI持续运营", desc: "持续运营", icon: "🤖", href: "/jiying/agents", extra: "24小时自动优化", action: "点击进入 →" },
           ].map(s => (
-            <Link key={s.step} href={s.href} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all block">
-              <div className="text-2xl mb-2">{s.icon}</div>
-              <div className="text-[10px] text-indigo-500 font-bold mb-1">{s.step}</div>
+            <Link key={s.title} href={s.href} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all block text-center">
+              <div className="text-3xl mb-2">{s.icon}</div>
               <div className="text-sm font-bold text-gray-800 mb-1">{s.title}</div>
               <div className="text-xs text-gray-400">{s.desc}</div>
+              <div className="text-[10px] text-indigo-500 mt-2 font-medium">{s.action}</div>
             </Link>
           ))}
         </div>
