@@ -40,9 +40,8 @@ export default function JiyingHome() {
 
       {/* ─── 5大核心 ─── */}
       <section className="max-w-6xl mx-auto px-6 -mt-8 relative z-10">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { t: "🚀", title: "立即开启", desc: "统一入口", h: "/jiying/onboarding" },
             { t: "📱", title: "账户设立", desc: "15+平台开户", h: "/jiying/onboarding" },
             { t: "⚡", title: "AI智能启动", desc: "Agent组合推荐", h: "/jiying/launch" },
             { t: "✅", title: "每天30秒审核", desc: "快捷审核发布", h: "/jiying/review" },
