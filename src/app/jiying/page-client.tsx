@@ -89,8 +89,8 @@ export default function JiyingHome() {
       {/* ─── 竞品对比 ─── */}
       <section className="max-w-6xl mx-auto px-6 py-12">
         <h2 className="text-xl font-bold text-center bg-gradient-to-r from-[#1A1A2E] via-[#F59E0B] to-[#F97316] bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient mb-8">即影 vs 其他方案</h2>
-        <div className="glass-card overflow-hidden">
-          <table className="w-full text-xs">
+        <div className="glass-card overflow-x-auto">
+          <table className="w-full text-xs min-w-[520px] md:min-w-0">
             <thead>
               <tr className="bg-[#F8F8FA] border-b border-[#E8E8EE]">
                 <th className="text-left px-4 py-3 font-semibold text-[#5A5A72]">对比维度</th>
