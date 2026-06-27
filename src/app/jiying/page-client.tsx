@@ -13,18 +13,18 @@ export default function JiyingHome() {
     <div className="pb-24">
       {/* ─── HERO ─── */}
       <section className="relative overflow-hidden pt-20 pb-16">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#2962FF]/3 via-transparent to-[#5B7FFF]/3 animate-gradient" style={{backgroundSize:'200% 200%'}} />
-        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[70%] rounded-full bg-[#2962FF]/5 blur-[150px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[60%] rounded-full bg-[#5B7FFF]/4 blur-[150px]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#F59E0B]/3 via-transparent to-[#F97316]/3 animate-gradient" style={{backgroundSize:'200% 200%'}} />
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[70%] rounded-full bg-[#F59E0B]/5 blur-[150px]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[60%] rounded-full bg-['$char""]/4 blur-[150px]" />
         <div className="relative max-w-6xl mx-auto px-6 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-[#2962FF]/10 text-xs text-[#2962FF] mb-6 shadow-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#2962FF] animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-[#F59E0B]/10 text-xs text-[#F59E0B] mb-6 shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-pulse" />
             即影 · AI自媒体工厂
           </div>
           <h1 className="text-4xl md:text-7xl font-extrabold leading-[1.05] tracking-tight mb-6">
-            <span className="bg-gradient-to-r from-[#1A1A2E] via-[#2962FF] to-[#1A1A2E] bg-clip-text text-transparent animate-gradient">20元开启你的</span>
+            <span className="bg-gradient-to-r from-[#1A1A2E] via-[#F59E0B] to-[#F97316] bg-clip-text text-transparent animate-gradient">20元开启你的</span>
             <br />
-            <span className="bg-gradient-to-r from-[#2962FF] via-[#5B7FFF] to-[#2962FF] bg-clip-text text-transparent animate-gradient" style={{ backgroundSize: '200% 100%', animation: 'gradient 4s ease infinite' }}>自媒体公司</span>
+            <span className="bg-gradient-to-r from-[#F59E0B] via-[#FBBF24] to-[#F97316] bg-clip-text text-transparent animate-gradient" style={{ backgroundSize: '200% 100%', animation: 'gradient 4s ease infinite' }}>自媒体公司</span>
           </h1>
           <p className="text-base md:text-lg text-[#5A5A72] max-w-2xl mx-auto mb-10 leading-relaxed">
             15个AI专家 · 智能路由引擎 · 每日自动生成内容<br className="hidden sm:block" />
@@ -51,7 +51,7 @@ export default function JiyingHome() {
             <Link key={s.title} href={s.h}
               className="glass-card p-5 text-center hover:shadow-hover transition-all group">
               <div className="text-2xl mb-2">{s.t}</div>
-              <div className="text-sm font-semibold bg-gradient-to-r from-[#1A1A2E] via-[#2962FF] to-[#1A1A2E] bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient group-hover:from-[#2962FF] group-hover:via-[#5B7FFF] group-hover:to-[#2962FF]">{s.title}</div>
+              <div className="text-sm font-semibold bg-gradient-to-r from-[#1A1A2E] via-[#F59E0B] to-[#F97316] bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient group-hover:from-[#F59E0B] group-hover:via-[#F97316] group-hover:to-[#F59E0B]">{s.title}</div>
               <div className="text-[10px] text-[#9A9AB0] mt-0.5">{s.desc}</div>
             </Link>
           ))}
@@ -62,7 +62,7 @@ export default function JiyingHome() {
       <section className="max-w-6xl mx-auto px-6 py-24">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="glass-card p-8">
-          <h3 className="text-sm font-semibold bg-gradient-to-r from-[#9A9AB0] to-[#2962FF] bg-clip-text text-transparent mb-5 tracking-wider">你只需要付出</h3>
+          <h3 className="text-sm font-semibold bg-gradient-to-r from-[#9A9AB0] to-[#F59E0B] bg-clip-text text-transparent mb-5 tracking-wider">你只需要付出</h3>
             <ul className="space-y-4">
               {["20元（7天体验）","每天30秒审核","3分钟填问卷","下载→粘贴→发布"].map(item => (
                 <li key={item} className="flex items-center gap-3 text-sm text-[#5A5A72]">
@@ -72,12 +72,12 @@ export default function JiyingHome() {
               ))}
             </ul>
           </div>
-          <div className="glass-card p-8 border-[#2962FF]/10 bg-[#2962FF]/[0.02]">
-            <h3 className="text-sm font-semibold bg-gradient-to-r from-[#2962FF] to-[#5B7FFF] bg-clip-text text-transparent mb-5 tracking-wider">你将得到</h3>
+          <div className="glass-card p-8 border-[#F59E0B]/10 bg-[#F59E0B]/[0.02]">
+            <h3 className="text-sm font-semibold bg-gradient-to-r from-[#F59E0B] to-[#EA580C] bg-clip-text text-transparent mb-5 tracking-wider">你将得到</h3>
             <ul className="space-y-4">
               {["15个AI专家24小时工作","每日3条文案+1条视频","AI智能客服回复评论","数据复盘+策略优化","变现路径自动匹配"].map(item => (
                 <li key={item} className="flex items-center gap-3 text-sm text-[#1A1A2E]">
-                  <span className="w-5 h-5 rounded-full bg-gradient-to-br from-[#2962FF] to-[#5B7FFF] flex items-center justify-center text-[10px] text-white shrink-0">✓</span>
+                  <span className="w-5 h-5 rounded-full bg-gradient-to-br from-[#F59E0B] to-[#EA580C] flex items-center justify-center text-[10px] text-white shrink-0">✓</span>
                   {item}
                 </li>
               ))}
@@ -88,7 +88,7 @@ export default function JiyingHome() {
 
       {/* ─── 竞品对比 ─── */}
       <section className="max-w-6xl mx-auto px-6 py-12">
-        <h2 className="text-xl font-bold text-center bg-gradient-to-r from-[#1A1A2E] via-[#2962FF] to-[#5B7FFF] bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient mb-8">即影 vs 其他方案</h2>
+        <h2 className="text-xl font-bold text-center bg-gradient-to-r from-[#1A1A2E] via-[#F59E0B] to-[#F97316] bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient mb-8">即影 vs 其他方案</h2>
         <div className="glass-card overflow-hidden">
           <table className="w-full text-xs">
             <thead>
@@ -96,7 +96,7 @@ export default function JiyingHome() {
                 <th className="text-left px-4 py-3 font-semibold text-[#5A5A72]">对比维度</th>
                 <th className="text-center px-4 py-3 font-semibold text-[#9A9AB0]">代运营公司</th>
                 <th className="text-center px-4 py-3 font-semibold text-[#9A9AB0]">MoneyPrinter</th>
-                <th className="text-center px-4 py-3 font-semibold text-[#2962FF] bg-[#2962FF]/5">即影</th>
+                <th className="text-center px-4 py-3 font-semibold text-[#F59E0B] bg-[#F59E0B]/5">即影</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E8E8EE]">
@@ -118,7 +118,7 @@ export default function JiyingHome() {
                   <td className="px-4 py-2.5 text-[#1A1A2E] font-medium">{row[0]}</td>
                   <td className="px-4 py-2.5 text-center text-[#9A9AB0]">{row[1]}</td>
                   <td className="px-4 py-2.5 text-center text-[#9A9AB0]">{row[2]}</td>
-                  <td className="px-4 py-2.5 text-center text-[#2962FF] font-semibold bg-[#2962FF]/5">{row[3]}</td>
+                  <td className="px-4 py-2.5 text-center text-[#F59E0B] font-semibold bg-[#F59E0B]/5">{row[3]}</td>
                 </tr>
               ))}
             </tbody>
@@ -128,12 +128,12 @@ export default function JiyingHome() {
 
       {/* ─── 定价 ─── */}
       <section className="max-w-6xl mx-auto px-6 py-10">
-        <h2 className="text-xl font-bold text-center bg-gradient-to-r from-[#1A1A2E] via-[#2962FF] to-[#5B7FFF] bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient mb-10">定价</h2>
+        <h2 className="text-xl font-bold text-center bg-gradient-to-r from-[#1A1A2E] via-[#F59E0B] to-[#F97316] bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient mb-10">定价</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { n: "体验卡", p: "¥20", u: "一次性", d: "7天全功能", b: "引流价", c: "from-[#2962FF] to-[#5B7FFF]" },
-            { n: "月卡", p: "¥99", u: "/月", d: "每日3文+1漫剧", b: "主力", c: "from-[#1A3DB0] to-[#2962FF]" },
-            { n: "年卡", p: "¥799", u: "/年", d: "≈¥66/月", b: "最划算", c: "from-[#5B7FFF] to-[#2962FF]" },
+            { n: "体验卡", p: "¥20", u: "一次性", d: "7天全功能", b: "引流价", c: "from-[#F59E0B] to-[#EA580C]" },
+            { n: "月卡", p: "¥99", u: "/月", d: "每日3文+1漫剧", b: "主力", c: "from-[#EA580C] to-[#F59E0B]" },
+            { n: "年卡", p: "¥799", u: "/年", d: "≈¥66/月", b: "最划算", c: "from-[#F97316] to-[#F59E0B]" },
             { n: "Pro", p: "¥299", u: "/月", d: "多账号≤5个", b: "工作室", c: "from-[#1E1E2E] to-[#3A3A52]" },
           ].map(c => (
             <div key={c.n} className="glass-card p-6 text-center hover:shadow-hover transition-all relative">
@@ -148,11 +148,11 @@ export default function JiyingHome() {
 
       {/* ─── FAQ ─── */}
       <section className="max-w-3xl mx-auto px-6 py-10">
-        <h2 className="text-xl font-bold text-center bg-gradient-to-r from-[#1A1A2E] via-[#2962FF] to-[#5B7FFF] bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient mb-8">常见问题</h2>
+        <h2 className="text-xl font-bold text-center bg-gradient-to-r from-[#1A1A2E] via-[#F59E0B] to-[#F97316] bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient mb-8">常见问题</h2>
         <div className="space-y-2">
           {FAQ.map((item, i) => (
             <details key={i} className="glass-card overflow-hidden group">
-              <summary className="px-5 py-3.5 text-sm bg-gradient-to-r from-[#1A1A2E] to-[#1A1A2E] bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient cursor-pointer hover:from-[#2962FF] hover:to-[#5B7FFF] transition-all flex items-center justify-between">
+              <summary className="px-5 py-3.5 text-sm bg-gradient-to-r from-[#1A1A2E] to-[#1A1A2E] bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient cursor-pointer hover:from-[#F59E0B] hover:to-[#F97316] transition-all flex items-center justify-between">
                 <span>{item.q}</span>
                 <span className="text-[#9A9AB0] group-open:rotate-180 transition-transform text-xs">▼</span>
               </summary>
@@ -166,13 +166,13 @@ export default function JiyingHome() {
       <section className="max-w-3xl mx-auto px-6 text-center">
         <div className="glass-card p-10">
           <div className="text-4xl mb-4">🎬</div>
-          <h2 className="text-xl font-bold bg-gradient-to-r from-[#1A1A2E] to-[#2962FF] bg-clip-text text-transparent mb-2">现在就开启你的自媒体公司</h2>
+          <h2 className="text-xl font-bold bg-gradient-to-r from-[#1A1A2E] to-[#F59E0B] bg-clip-text text-transparent mb-2">现在就开启你的自媒体公司</h2>
           <p className="text-sm text-[#5A5A72] mb-6">20元体验7天 · 不满意随时停 · 无需任何承诺</p>
           <Link href="/jiying/onboarding"
             className="btn-primary inline-block px-8 py-3 rounded-xl text-sm font-semibold">🚀 花20元开公司</Link>
         </div>
         <div className="mt-6">
-          <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-[#9A9AB0] hover:text-[#2962FF] transition-colors">← 返回思见</Link>
+          <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-[#9A9AB0] hover:text-[#F59E0B] transition-colors">← 返回思见</Link>
           <p className="text-xs text-[#9A9AB0] mt-2">有事问思见</p>
         </div>
       </section>

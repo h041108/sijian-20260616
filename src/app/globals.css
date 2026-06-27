@@ -14,9 +14,10 @@
   --card-bg: rgba(255,255,255,0.72);
   --card-border: rgba(0,0,0,0.05);
   --glass-blur: 20px;
-  --electric-blue: #2962FF;
-  --electric-blue-light: #5B7FFF;
-  --electric-blue-dark: #1A3DB0;
+  --amber-brand: #F59E0B;
+  --amber-light: #FBBF24;
+  --orange-brand: #F97316;
+  --orange-deep: #EA580C;
   --mist-white: #F8F8FA;
   --cool-gray: #E8E8EE;
   --charcoal: #1E1E2E;
@@ -27,7 +28,7 @@
   --radius-btn: 12px;
   --radius-input: 10px;
   --shadow-card: 0 2px 16px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.02);
-  --shadow-hover: 0 8px 32px rgba(41,98,255,0.08), 0 2px 8px rgba(41,98,255,0.04);
+  --shadow-hover: 0 8px 32px rgba(245,158,11,0.1), 0 2px 8px rgba(245,158,11,0.05);
 }
 
 body {
@@ -38,7 +39,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── 动画 ── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
@@ -55,19 +55,12 @@ body {
   animation: gradient 4s ease infinite;
 }
 
-@keyframes bgShift {
-  0% { background-position: 0% 0%; }
-  50% { background-position: 100% 100%; }
-  100% { background-position: 0% 0%; }
-}
-
 @keyframes flowPulse {
   0%, 100% { opacity: 0.3; }
   50% { opacity: 0.7; }
 }
 .animate-flow { animation: flowPulse 3s ease-in-out infinite; }
 
-/* ── 玻璃卡片 ── */
 .glass-card {
   background: var(--card-bg);
   backdrop-filter: blur(var(--glass-blur));
@@ -79,20 +72,19 @@ body {
 }
 .glass-card:hover {
   box-shadow: var(--shadow-hover);
-  border-color: rgba(41,98,255,0.12);
+  border-color: rgba(245,158,11,0.12);
 }
 
-/* ── 按钮 ── */
 .btn-primary {
-  background: linear-gradient(135deg, var(--electric-blue), var(--electric-blue-light));
+  background: linear-gradient(135deg, #F59E0B, #EA580C);
   color: #fff;
   border-radius: var(--radius-btn);
-  box-shadow: 0 4px 16px rgba(41,98,255,0.2);
+  box-shadow: 0 4px 16px rgba(245,158,11,0.25);
   transition: all 0.35s ease;
   font-weight: 600;
 }
 .btn-primary:hover {
-  box-shadow: 0 8px 32px rgba(41,98,255,0.3);
+  box-shadow: 0 8px 32px rgba(245,158,11,0.35);
   transform: translateY(-1px);
 }
 
@@ -104,12 +96,11 @@ body {
   transition: all 0.3s ease;
 }
 .btn-ghost:hover {
-  border-color: var(--electric-blue);
-  color: var(--electric-blue);
-  background: rgba(41,98,255,0.04);
+  border-color: #F59E0B;
+  color: #F59E0B;
+  background: rgba(245,158,11,0.04);
 }
 
-/* ── 输入框 ── */
 input, textarea, select {
   background: #fff;
   border: 1px solid rgba(0,0,0,0.06);
@@ -121,12 +112,11 @@ input, textarea, select {
   transition: all 0.3s ease;
 }
 input:focus, textarea:focus, select:focus {
-  border-color: var(--electric-blue);
-  box-shadow: 0 0 0 3px rgba(41,98,255,0.08);
+  border-color: #F59E0B;
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.08);
 }
 input::placeholder, textarea::placeholder { color: var(--text-tertiary); }
 
-/* ── 导航 ── */
 .nav-link {
   color: var(--text-secondary);
   transition: all 0.3s ease;
@@ -136,11 +126,10 @@ input::placeholder, textarea::placeholder { color: var(--text-tertiary); }
   font-weight: 500;
 }
 .nav-link:hover {
-  color: var(--electric-blue);
-  background: rgba(41,98,255,0.04);
+  color: #F59E0B;
+  background: rgba(245,158,11,0.04);
 }
 
-/* ── 标签 ── */
 .tag {
   display: inline-flex;
   align-items: center;
@@ -148,32 +137,15 @@ input::placeholder, textarea::placeholder { color: var(--text-tertiary); }
   border-radius: 20px;
   font-size: 11px;
   font-weight: 500;
-  background: rgba(41,98,255,0.06);
-  color: var(--electric-blue);
-  border: 1px solid rgba(41,98,255,0.1);
+  background: rgba(245,158,11,0.06);
+  color: #F59E0B;
+  border: 1px solid rgba(245,158,11,0.1);
 }
 
-/* ── 分隔线 ── */
-.divider {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.04), transparent);
+::selection {
+  background: rgba(245,158,11,0.15);
 }
 
-/* ── 滚动条 ── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.06); border-radius: 4px; }
-
-/* ── 流程图连线 ── */
-.flow-line {
-  position: relative;
-}
-.flow-line::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: -12px;
-  width: 12px;
-  height: 1px;
-  background: linear-gradient(90deg, var(--electric-blue), transparent);
-}
