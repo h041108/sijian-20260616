@@ -14,12 +14,12 @@ const FAQ = [
 
 export default function JiyingHome() {
   return (
-    <div className="pb-20">
+    <div className="pb-20" style={{ zoom: 1.2 }}>
 
       {/* ─── HERO ─── */}
       <section className="relative overflow-hidden bg-gradient-to-br from-indigo-900 via-purple-900 to-gray-900 text-white">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
-        <div className="relative max-w-5xl mx-auto px-4 py-20 md:py-28 text-center">
+        <div className="relative max-w-6xl mx-auto px-4 py-20 md:py-28 text-center">
           <div className="text-6xl mb-4">🎬</div>
           <p className="text-indigo-300 text-sm font-medium mb-3 tracking-widest uppercase">即影 · 所思即所见</p>
           <h1 className="text-4xl md:text-5xl font-extrabold leading-tight mb-4">
@@ -44,7 +44,7 @@ export default function JiyingHome() {
       </section>
 
       {/* ─── 20元怎么做到一家公司 ─── */}
-      <section className="max-w-5xl mx-auto px-4 -mt-10 relative z-10">
+      <section className="max-w-6xl mx-auto px-4 -mt-10 relative z-10">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
             { title: "赛道选择", desc: "50+赛道覆盖", icon: "🎯", href: "/jiying/agents/agent-router", extra: "热门赛道推荐", action: "点击进入 →" },
@@ -64,7 +64,7 @@ export default function JiyingHome() {
       </section>
 
       {/* ─── 用户付出 vs 得到 ─── */}
-      <section className="max-w-5xl mx-auto px-4 py-16">
+      <section className="max-w-6xl mx-auto px-4 py-16">
         <h2 className="text-2xl font-extrabold text-gray-900 text-center mb-10">你付出的 vs 你得到的</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white rounded-2xl border border-red-100 p-6">
@@ -87,7 +87,7 @@ export default function JiyingHome() {
       </section>
 
       {/* ─── 定价 ─── */}
-      <section className="max-w-5xl mx-auto px-4 py-12">
+      <section className="max-w-6xl mx-auto px-4 py-12">
         <h2 className="text-2xl font-extrabold text-gray-900 text-center mb-3">定价</h2>
         <p className="text-sm text-gray-400 text-center mb-8">单用户月成本仅¥4.2 · 毛利率94%+</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -109,7 +109,7 @@ export default function JiyingHome() {
       </section>
 
       {/* ─── 竞品对比 ─── */}
-      <section className="max-w-5xl mx-auto px-4 py-12">
+      <section className="max-w-6xl mx-auto px-4 py-12">
         <h2 className="text-2xl font-extrabold text-gray-900 text-center mb-8">即影 vs 其他方案</h2>
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <table className="w-full text-xs">
