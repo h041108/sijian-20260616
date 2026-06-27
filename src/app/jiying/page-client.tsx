@@ -85,6 +85,46 @@ export default function JiyingHome() {
         </div>
       </section>
 
+      {/* ─── 竞品对比 ─── */}
+      <section className="max-w-6xl mx-auto px-6 py-12">
+        <h2 className="text-xl font-bold text-center text-white/80 mb-8">即影 vs 其他方案</h2>
+        <div className="glass rounded-2xl overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-white/[0.03] border-b border-white/[0.06]">
+                <th className="text-left px-4 py-3 font-semibold text-white/40">对比维度</th>
+                <th className="text-center px-4 py-3 font-semibold text-white/20">代运营公司</th>
+                <th className="text-center px-4 py-3 font-semibold text-white/20">MoneyPrinter</th>
+                <th className="text-center px-4 py-3 font-semibold text-teal-400 bg-teal-500/5">即影</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/[0.04]">
+              {[
+                ["起步价格", "¥3000-15000/月", "免费（需技术）", "¥20"],
+                ["启动流程", "开会签合同", "装Python环境", "扫码付20元"],
+                ["小白可用", "✅", "❌", "✅"],
+                ["内容创作", "✅", "✅视频", "✅图文+视频+漫剧"],
+                ["封面设计", "✅", "❌", "✅ 3版对比"],
+                ["BGM+音效", "❌", "❌", "✅"],
+                ["数据复盘", "✅", "❌", "✅ 每日推送"],
+                ["AI智能客服", "❌", "❌", "✅ 自动回复"],
+                ["私域引流", "⚠️ 另收费", "❌", "✅ 自动引导"],
+                ["对标分析", "✅", "❌", "✅ 自动拆解"],
+                ["人设建模", "✅", "❌", "✅ 15个Agent"],
+                ["每天耗时", "1-2小时沟通", "1小时调试", "30秒审核"],
+              ].map((row, i) => (
+                <tr key={i} className={i % 2 === 0 ? "bg-white/[0.01]" : "bg-white/[0.02]"}>
+                  <td className="px-4 py-2.5 text-white/50 font-medium">{row[0]}</td>
+                  <td className="px-4 py-2.5 text-center text-white/20">{row[1]}</td>
+                  <td className="px-4 py-2.5 text-center text-white/20">{row[2]}</td>
+                  <td className="px-4 py-2.5 text-center text-teal-300 font-semibold bg-teal-500/5">{row[3]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       {/* ─── 定价 ─── */}
       <section className="max-w-6xl mx-auto px-6 py-10">
         <h2 className="text-xl font-bold text-center text-white/80 mb-10">定价</h2>
