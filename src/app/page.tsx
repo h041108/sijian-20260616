@@ -16,7 +16,6 @@ import ParentReportView from "@/components/ParentReportView"
 import MindReviewCard from "@/components/MindReviewCard"
 import { saveCognitionLog, FullCognitionSnapshot } from "@/lib/cognition"
 import CognitionPanel from "@/components/CognitionPanel"
-import VideoFactoryDashboard from "@/components/VideoFactoryDashboard"
 import type {
   ChatMessage, MindNode, MindEdge, MindSpaceState,
   Position, DomainType, FrameType,
@@ -397,7 +396,6 @@ export default function Home() {
   const [showReport, setShowReport] = useState(false)
   const [showMindReview, setShowMindReview] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [showVideoFactory, setShowVideoFactory] = useState(false)
 
   const hamburgerLinks = (
     <>
@@ -462,7 +460,6 @@ export default function Home() {
             nodesCount={nodes.length}
             mindFrame={frameType}
             onToggleDrawer={() => setDrawerOpen(true)}
-            onOpenVideoFactory={() => setShowVideoFactory(true)}
             extraToolbar={
               <div className="flex items-center gap-1.5">
                 <AuthBar user={user} onLogin={handleLogin} onLogout={handleLogout} onRoleChange={handleRoleChange} />
@@ -576,23 +573,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* ═══ 视频工厂弹窗 ═══ */}
-      {showVideoFactory && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex flex-col justify-end md:justify-center"
-          onClick={() => setShowVideoFactory(false)}>
-          <div className="bg-white rounded-t-2xl md:rounded-2xl md:max-w-3xl md:mx-auto w-full max-h-[90vh] overflow-y-auto shadow-2xl"
-            onClick={e => e.stopPropagation()}>
-            <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm px-4 py-3 border-b flex items-center justify-between rounded-t-2xl">
-              <span className="text-sm font-semibold text-gray-700">🎬 即影</span>
-              <button onClick={() => setShowVideoFactory(false)}
-                className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
-            </div>
-            <div className="p-4">
-              <VideoFactoryDashboard />
-            </div>
-          </div>
-        </div>
-      )}
+
 
     </div>
   )
