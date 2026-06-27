@@ -42,10 +42,11 @@ export default function JiyingHome() {
       <section className="max-w-6xl mx-auto px-6 -mt-8 relative z-10">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
-            { t: "🚀", title: "立即开启", desc: "绑定/注册账号", h: "/jiying/onboarding" },
-            { t: "⚡", title: "智能启动", desc: "AI分析配置", h: "/jiying/launch" },
-            { t: "🏭", title: "创作工厂", desc: "AI剧本/图片", h: "/jiying/studio" },
-            { t: "✅", title: "内容审核", desc: "人工发布", h: "/jiying/review" },
+            { t: "🚀", title: "立即开启", desc: "统一入口", h: "/jiying/onboarding" },
+            { t: "📱", title: "账户设立", desc: "15+平台开户", h: "/jiying/onboarding" },
+            { t: "⚡", title: "AI智能启动", desc: "Agent组合推荐", h: "/jiying/launch" },
+            { t: "✅", title: "每天30秒审核", desc: "快捷审核发布", h: "/jiying/review" },
+            { t: "🤖", title: "AI持续运营", desc: "运营工作台", h: "/jiying/agents" },
           ].map(s => (
             <Link key={s.title} href={s.h}
               className="glass rounded-2xl p-5 text-center hover:shadow-lg hover:shadow-teal-500/5 transition-all group">
