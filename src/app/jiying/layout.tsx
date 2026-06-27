@@ -21,7 +21,7 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
               <nav className="hidden md:flex items-center gap-0.5">
                 <Link href="/jiying/agents/agent-router" className="px-3 py-1.5 text-sm text-white/40 hover:text-white transition-colors rounded-lg hover:bg-white/[0.04]">🤖 Agent智能调度中心</Link>
                 <Link href="/jiying/manga" className="px-3 py-1.5 text-sm text-white/40 hover:text-white transition-colors rounded-lg hover:bg-white/[0.04]">📚 漫剧一键生成</Link>
-                <Link href="/jiying/orchestrator" className="px-3 py-1.5 text-sm text-white/40 hover:text-white transition-colors rounded-lg hover:bg-white/[0.04]">🎙️ 数字人口播</Link>
+                <Link href="/jiying/digital-human" className="px-3 py-1.5 text-sm text-white/40 hover:text-white transition-colors rounded-lg hover:bg-white/[0.04]">🎙️ 数字人口播</Link>
                 <Link href="/jiying/studio?tab=image" className="px-3 py-1.5 text-sm text-white/40 hover:text-white transition-colors rounded-lg hover:bg-white/[0.04]">🖼️ 超级图片社</Link>
                 <Link href="/jiying/portfolio" className="px-3 py-1.5 text-sm text-white/40 hover:text-white transition-colors rounded-lg hover:bg-white/[0.04]">🖼️ 作品展示</Link>
                 <Link href="/jiying/competition" className="px-3 py-1.5 text-sm text-white/40 hover:text-white transition-colors rounded-lg hover:bg-white/[0.04]">🏆 创作大赛</Link>
@@ -38,7 +38,7 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
                 <div className="absolute right-0 top-full mt-2 w-48 bg-[#0f1929] border border-white/[0.06] rounded-2xl p-2 z-50 backdrop-blur-xl shadow-2xl">
                   <Link href="/jiying/agents/agent-router" className="block px-3 py-2 rounded-xl text-sm text-white/50 hover:text-white hover:bg-white/[0.04]">🤖 Agent智能调度中心</Link>
                   <Link href="/jiying/manga" className="block px-3 py-2 rounded-xl text-sm text-white/50 hover:text-white hover:bg-white/[0.04]">📚 漫剧一键生成</Link>
-                  <Link href="/jiying/orchestrator" className="block px-3 py-2 rounded-xl text-sm text-white/50 hover:text-white hover:bg-white/[0.04]">🎙️ 数字人口播</Link>
+                  <Link href="/jiying/digital-human" className="block px-3 py-2 rounded-xl text-sm text-white/50 hover:text-white hover:bg-white/[0.04]">🎙️ 数字人口播</Link>
                   <Link href="/jiying/studio?tab=image" className="block px-3 py-2 rounded-xl text-sm text-white/50 hover:text-white hover:bg-white/[0.04]">🖼️ 超级图片社</Link>
                   <Link href="/jiying/portfolio" className="block px-3 py-2 rounded-xl text-sm text-white/50 hover:text-white hover:bg-white/[0.04]">🖼️ 作品展示</Link>
                   <Link href="/jiying/competition" className="block px-3 py-2 rounded-xl text-sm text-white/50 hover:text-white hover:bg-white/[0.04]">🏆 创作大赛</Link>
