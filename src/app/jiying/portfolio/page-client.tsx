@@ -1,118 +1,112 @@
 "use client"
-import { useState, useEffect, useCallback } from "react"
-import { loadPortfolio, savePortfolio, deletePortfolioItem, toggleFeatured, generateMockPortfolio } from "@/lib/portfolio"
-import type { PortfolioItem } from "@/lib/portfolio"
+import { useState } from "react"
+
+interface Account { id: string; platform: string; icon: string; nickname: string; status: "已绑定" | "未绑定"; stats?: { views: number; likes: number; posts: number } }
+interface ContentItem { title: string; date: string; status: "已发布" | "草稿"; type: string }
+
+const MOCK_ACCOUNTS: Account[] = [
+  { id: "a1", platform: "小红书", icon: "📕", nickname: "美食主号", status: "已绑定", stats: { views: 12500, likes: 830, posts: 23 } },
+  { id: "a2", platform: "抖音", icon: "🎵", nickname: "美食号", status: "已绑定", stats: { views: 32000, likes: 2100, posts: 15 } },
+  { id: "a3", platform: "B站", icon: "📺", nickname: "美食日常", status: "已绑定", stats: { views: 8700, likes: 420, posts: 8 } },
+  { id: "a4", platform: "微信公众号", icon: "📱", nickname: "美食日记", status: "未绑定" },
+]
+
+const MOCK_CONTENT: Record<string, ContentItem[]> = {
+  a1: [{ title: "冬日暖胃汤食谱合集", date: "2026-06-25", status: "已发布", type: "图文" },{ title: "5分钟快手早餐教程", date: "2026-06-24", status: "已发布", type: "视频" },{ title: "周末烘焙计划", date: "2026-06-27", status: "草稿", type: "图文" }],
+  a2: [{ title: "挑战100元吃一周", date: "2026-06-26", status: "已发布", type: "视频" },{ title: "探店老字号面馆", date: "2026-06-23", status: "已发布", type: "视频" }],
+  a3: [{ title: "从零开始学烘焙EP1", date: "2026-06-20", status: "已发布", type: "长视频" }],
+}
+
+const PI: Record<string,string> = { "小红书":"📕","抖音":"🎵","B站":"📺","微信公众号":"📱" }
 
 export default function PortfolioPage() {
-  const [items, setItems] = useState<PortfolioItem[]>([])
-  const [filter, setFilter] = useState<string>("all")
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-
-  useEffect(() => {
-    let loaded = loadPortfolio()
-    if (loaded.length === 0) {
-      loaded = generateMockPortfolio()
-      savePortfolio(loaded)
-    }
-    setItems(loaded)
-  }, [])
-
-  const filtered = filter === "all" ? items : items.filter(i => i.type === filter)
-  const featured = items.filter(i => i.featured)
-
-  const handleDelete = useCallback((id: string) => {
-    deletePortfolioItem(id)
-    setItems(loadPortfolio())
-  }, [])
-
-  const handleToggleFeatured = useCallback((id: string) => {
-    toggleFeatured(id)
-    setItems(loadPortfolio())
-  }, [])
-
-  const typeIcon = (t: string) => ({ image: "🖼️", video: "🎬", manga: "📚", text: "📝" })[t] || "📄"
+  const [activeId, setActiveId] = useState("a1")
+  const [menuOpen, setMenuOpen] = useState(false)
+  const active = MOCK_ACCOUNTS.find(a => a.id === activeId)
+  const bound = MOCK_ACCOUNTS.filter(a => a.status === "已绑定")
+  const content = MOCK_CONTENT[activeId] || []
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
       <div className="flex items-center gap-3">
         <span className="text-3xl">🖼️</span>
-        <div><h1 className="text-xl font-bold text-gray-800">作品展示</h1><p className="text-sm text-gray-400">你在即影创作的所有作品 · 一键分享</p></div>
+        <div><h1 className="text-xl font-bold text-gray-800">我的作品</h1><p className="text-sm text-gray-400">各平台账号的内容发布记录</p></div>
       </div>
 
-      {/* Featured */}
-      {featured.length > 0 && (
-        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-2xl p-4">
-          <div className="flex items-center gap-1.5 mb-3">
-            <span className="text-xs font-semibold text-amber-700">⭐ 精选作品</span>
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {featured.map(item => (
-              <div key={item.id} className="min-w-[140px] bg-white rounded-xl border border-amber-200 p-3 flex-shrink-0">
-                <div className="w-full aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center text-gray-300 text-xs mb-2">
-                  {typeIcon(item.type)} {item.type}
-                </div>
-                <div className="text-xs font-medium text-gray-800 truncate">{item.title}</div>
-                <div className="text-[9px] text-gray-400">{item.stats.views}次播放</div>
+      {/* 账号切换 */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-4">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-gray-500">当前账号：</span>
+          <div className="relative">
+            <button onClick={() => setMenuOpen(!menuOpen)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 rounded-lg text-sm font-medium text-indigo-700">
+              {active && <><span>{active.icon}</span><span>{active.platform}-{active.nickname}</span></>}
+              <span className="text-indigo-300">▼</span>
+            </button>
+            {menuOpen && (
+              <div className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl border border-gray-200 shadow-lg p-1 z-50">
+                {bound.map(a => (
+                  <button key={a.id} onClick={() => { setActiveId(a.id); setMenuOpen(false) }}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${activeId === a.id ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-50"}`}>
+                    <span>{a.icon}</span><span className="flex-1">{a.platform}-{a.nickname}</span>
+                    <span className="text-[9px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">已绑定</span>
+                  </button>
+                ))}
+                <hr className="my-1 border-gray-100" />
+                {MOCK_ACCOUNTS.filter(a => a.status === "未绑定").map(a => (
+                  <div key={a.id} className="flex items-center gap-2 px-3 py-2 text-xs text-gray-400">
+                    <span>{a.icon}</span><span className="flex-1">{a.platform}-{a.nickname}</span>
+                    <span className="text-[9px] text-gray-400">未绑定</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+          </div>
+          <span className="ml-auto text-xs text-gray-400">共 {bound.length} 个已绑定账号</span>
+        </div>
+      </div>
+
+      {/* 统计 */}
+      {active?.stats && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
+            <div className="text-lg font-extrabold text-gray-800">{(active.stats.views/10000).toFixed(1)}万</div>
+            <div className="text-[10px] text-gray-400">总播放</div>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
+            <div className="text-lg font-extrabold text-indigo-600">{active.stats.likes}</div>
+            <div className="text-[10px] text-gray-400">总互动</div>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
+            <div className="text-lg font-extrabold text-green-600">{active.stats.posts}</div>
+            <div className="text-[10px] text-gray-400">已发布</div>
           </div>
         </div>
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-2">
-        <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-          <div className="text-lg font-extrabold text-gray-800">{items.length}</div>
-          <div className="text-[10px] text-gray-400">全部作品</div>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-          <div className="text-lg font-extrabold text-indigo-600">{items.filter(i => i.type === "image").length}</div>
-          <div className="text-[10px] text-gray-400">图片</div>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-          <div className="text-lg font-extrabold text-green-600">{items.filter(i => i.type === "video").length}</div>
-          <div className="text-[10px] text-gray-400">视频</div>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-          <div className="text-lg font-extrabold text-amber-600">{items.reduce((s, i) => s + i.stats.views, 0)}</div>
-          <div className="text-[10px] text-gray-400">总播放</div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-1.5">
-        {[{ id: "all", label: "全部" }, { id: "image", label: "🖼️ 图片" }, { id: "video", label: "🎬 视频" }, { id: "text", label: "📝 文案" }].map(f => (
-          <button key={f.id} onClick={() => setFilter(f.id)}
-            className={`px-3 py-1.5 text-xs rounded-lg border ${filter === f.id ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-500 border-gray-200"}`}>{f.label}</button>
+      {/* 内容列表 */}
+      <div className="space-y-2">
+        {content.length === 0 ? (
+          <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center text-sm text-gray-400">暂无内容</div>
+        ) : content.map((c,i) => (
+          <div key={i} className="bg-white rounded-2xl border border-gray-200 p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-lg">{c.type === "视频" ? "🎬" : c.type === "长视频" ? "📺" : "📝"}</span>
+              <div>
+                <div className="text-sm font-medium text-gray-800">{c.title}</div>
+                <div className="text-[10px] text-gray-400">{c.date}</div>
+              </div>
+            </div>
+            <span className={`text-[10px] px-2 py-1 rounded-full ${c.status === "已发布" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>{c.status}</span>
+          </div>
         ))}
       </div>
 
-      {/* Grid */}
-      {filtered.length === 0 ? (
-        <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center text-sm text-gray-400">还没有作品，开始创作吧</div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {filtered.map(item => (
-            <div key={item.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow group">
-              <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-gray-300 text-sm relative">
-                {typeIcon(item.type)} {item.type}
-                <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => handleToggleFeatured(item.id)}
-                    className={`text-[10px] w-5 h-5 rounded-full flex items-center justify-center ${item.featured ? "bg-amber-400 text-white" : "bg-white/80 text-gray-400"}`}>⭐</button>
-                  <button onClick={() => handleDelete(item.id)}
-                    className="text-[10px] w-5 h-5 rounded-full bg-white/80 text-red-400 flex items-center justify-center">✕</button>
-                </div>
-              </div>
-              <div className="p-2.5">
-                <div className="text-xs font-medium text-gray-800 truncate">{item.title}</div>
-                <div className="flex items-center gap-2 text-[9px] text-gray-400 mt-1">
-                  <span>{item.platform || "即影"}</span>
-                  <span>{item.stats.views}次</span>
-                  <span>{item.stats.likes}赞</span>
-                </div>
-              </div>
-            </div>
-          ))}
+      {/* 绑定提醒 */}
+      {MOCK_ACCOUNTS.filter(a => a.status === "未绑定").length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700 flex items-center justify-between">
+          <span>还有 {MOCK_ACCOUNTS.filter(a => a.status === "未绑定").length} 个账号未绑定</span>
+          <a href="/jiying/onboarding" className="text-indigo-600 font-medium">去绑定 →</a>
         </div>
       )}
     </div>

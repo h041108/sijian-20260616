@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
+import { validateAccount, getBindingFields, supportsBinding } from "@/lib/account-verify"
 
 interface Platform {
   id: string; name: string; icon: string; url: string; guide: string; needsVPN?: boolean
@@ -92,12 +93,9 @@ export default function OnboardingPage() {
 
     updateState(id, { verifyStatus: "verifying" })
     // 模拟验证
-    await new Promise(r => setTimeout(r, 1500))
-
-    // 模拟验证通过（检查链接是否包含平台域名）
-    const platform = PLATFORMS.find(p => p.id === id)
-    const domainMatch = platform && s.profileUrl.includes(platform.name) || s.profileUrl.includes("http")
-    if (domainMatch && s.nickname.length >= 2) {
+    const result = validateAccount(id, s.profileUrl, s.nickname)
+    await new Promise(r => setTimeout(r, 800))
+    if (result.passed) {
       updateState(id, { verifyStatus: "passed", verified: true })
     } else {
       updateState(id, { verifyStatus: "failed" })
