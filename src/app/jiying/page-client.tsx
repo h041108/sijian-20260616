@@ -15,7 +15,7 @@ export default function JiyingHome() {
       <section className="relative overflow-hidden pt-20 pb-16">
         <div className="absolute inset-0 bg-gradient-to-br from-[#F59E0B]/3 via-transparent to-[#F97316]/3 animate-gradient" style={{backgroundSize:'200% 200%'}} />
         <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[70%] rounded-full bg-[#F59E0B]/5 blur-[150px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[60%] rounded-full bg-['$char""]/4 blur-[150px]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[60%] rounded-full bg-[#F97316]/4 blur-[150px]" />
         <div className="relative max-w-6xl mx-auto px-6 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-[#F59E0B]/10 text-xs text-[#F59E0B] mb-6 shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-pulse" />
