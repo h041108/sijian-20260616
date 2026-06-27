@@ -1,5 +1,6 @@
 "use client"
 import { useState, useMemo } from "react"
+import Link from "next/link"
 import { NICHE_CATEGORIES, HOT_NICHES, getAllNiches, searchNiches } from "@/lib/niches-100"
 import { routeAgents } from "@/lib/agent-router"
 import { AGENT_META } from "@/lib/agents/types"
@@ -153,9 +154,10 @@ export default function AgentRouterPage() {
             💡 建议：优先选择与自身兴趣、资源匹配的冷门赛道，避免在红海领域与头部创作者直接竞争。
           </div>
 
-          <button className="w-full py-3 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-all">
+          <Link href="/jiying/onboarding"
+            className="block w-full py-3 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-gray-800 text-center transition-all">
             ✅ 确认选择，进入下一步 →
-          </button>
+          </Link>
         </div>
       )}
     </div>

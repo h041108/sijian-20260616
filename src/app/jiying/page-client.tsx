@@ -30,7 +30,7 @@ export default function JiyingHome() {
             一站式AI赋能，从0到1打造个人品牌
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <Link href="/jiying/onboarding"
+            <Link href="/jiying/agents/agent-router"
               className="px-10 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-base font-bold hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-orange-500/25 transition-all">
               🚀 立即开启
             </Link>

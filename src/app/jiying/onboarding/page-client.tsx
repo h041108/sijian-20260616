@@ -50,6 +50,8 @@ export default function OnboardingPage() {
   const [showBatchPay, setShowBatchPay] = useState(false)
   const [paying, setPaying] = useState(false)
   const [activeTab, setActiveTab] = useState<string | null>(null)
+  const [showAllActivated, setShowAllActivated] = useState(false)
+  const [redirectCountdown, setRedirectCountdown] = useState(3)
   const origTitle = useRef("即影AI·账户设立")
 
   // 原始浏览器标题保存
@@ -85,6 +87,28 @@ export default function OnboardingPage() {
   const verifiedCount = allPlatforms.filter(p => p.state.verified && p.state.paid).length
   const unpaidVerified = allPlatforms.filter(p => p.state.verified && !p.state.paid).length
   const totalFee = (verifiedCount + unpaidVerified) * 20
+
+  // 所有已绑定账户都已支付 → 弹出全部激活
+  const allVerified = allPlatforms.filter(p => p.state.verified)
+  const allPaid = allVerified.length > 0 && allVerified.every(p => p.state.paid)
+
+  useEffect(() => {
+    if (allPaid && verifiedCount > 0) {
+      setShowAllActivated(true)
+      setRedirectCountdown(3)
+    }
+  }, [allPaid, verifiedCount])
+
+  // 倒计时自动跳转
+  useEffect(() => {
+    if (!showAllActivated) return
+    if (redirectCountdown <= 0) {
+      window.location.href = "/jiying/launch"
+      return
+    }
+    const timer = setTimeout(() => setRedirectCountdown(c => c - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [showAllActivated, redirectCountdown])
 
   // ─── 路径A：已有账号 验证 ───
   const handleVerify = async (id: string) => {
@@ -429,6 +453,26 @@ export default function OnboardingPage() {
               <button onClick={() => setShowBatchPay(false)} className="text-xs text-gray-400 hover:text-gray-600">取消</button>
               {paying && <p className="text-xs text-indigo-500 animate-pulse">批量支付处理中...</p>}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 全部已激活弹窗 ─── */}
+      {showAllActivated && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl text-center space-y-4">
+            <div className="text-5xl">🎉</div>
+            <h3 className="text-lg font-bold text-gray-800">全部账户已激活！</h3>
+            <p className="text-xs text-gray-500">AI智能启动已自动开启，正在为您配置专属Agent组合</p>
+            <div className="relative w-16 h-16 mx-auto">
+              <div className="w-16 h-16 border-4 border-indigo-100 rounded-full" />
+              <div className="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin" />
+            </div>
+            <p className="text-xs text-indigo-600">即将进入AI智能启动 {redirectCountdown}s</p>
+            <button onClick={() => window.location.href = "/jiying/launch"}
+              className="w-full py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800">
+              立即进入
+            </button>
           </div>
         </div>
       )}
