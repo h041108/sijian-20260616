@@ -45,6 +45,22 @@ body {
 }
 .animate-fade-in { animation: fadeInUp 0.6s ease-out; }
 
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.animate-gradient {
+  background-size: 200% 200% !important;
+  animation: gradient 4s ease infinite;
+}
+
+@keyframes bgShift {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
 @keyframes flowPulse {
   0%, 100% { opacity: 0.3; }
   50% { opacity: 0.7; }
