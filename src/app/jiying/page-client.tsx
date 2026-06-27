@@ -30,7 +30,7 @@ export default function JiyingHome() {
             一站式AI赋能，从0到1打造个人品牌
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/jiying/agents/agent-router" className="btn-accent px-8 py-3.5 rounded-xl text-sm font-semibold shadow-lg">🚀 立即开启</Link>
+            <Link href="/jiying/onboarding" className="btn-accent px-8 py-3.5 rounded-xl text-sm font-semibold shadow-lg">🚀 立即开启</Link>
             <Link href="/jiying/agents/agent-14"
               className="px-8 py-3.5 rounded-xl text-sm font-medium border border-white/[0.08] text-white/40 hover:text-white hover:border-white/20 hover:bg-white/[0.04] transition-all">免费体验标签SEO</Link>
           </div>
@@ -42,9 +42,8 @@ export default function JiyingHome() {
       <section className="max-w-6xl mx-auto px-6 -mt-8 relative z-10">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
-            { t: "🎯", title: "赛道选择", desc: "50+赛道", h: "/jiying/agents/agent-router" },
-            { t: "📱", title: "账户设立", desc: "15+平台", h: "/jiying/onboarding" },
-            { t: "⚡", title: "AI智能启动", desc: "路由引擎", h: "/jiying/launch" },
+            { t: "🚀", title: "立即开启", desc: "绑定/注册账号", h: "/jiying/onboarding" },
+            { t: "⚡", title: "智能启动", desc: "AI分析配置", h: "/jiying/launch" },
             { t: "🏭", title: "创作工厂", desc: "AI剧本/图片", h: "/jiying/studio" },
             { t: "✅", title: "内容审核", desc: "人工发布", h: "/jiying/review" },
           ].map(s => (
@@ -131,7 +130,7 @@ export default function JiyingHome() {
             <div className="text-4xl mb-4">🎬</div>
             <h2 className="text-xl font-bold text-white/90 mb-2">现在就开启你的自媒体公司</h2>
             <p className="text-sm text-white/30 mb-6">20元体验7天 · 不满意随时停 · 无需任何承诺</p>
-            <Link href="/jiying/agents/agent-router"
+            <Link href="/jiying/onboarding"
               className="btn-accent inline-block px-8 py-3 rounded-xl text-sm font-semibold shadow-lg">🚀 花20元开公司</Link>
           </div>
         </div>

@@ -20,8 +20,7 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
             </Link>
             <nav className="hidden md:flex items-center gap-0.5">
               {[
-                ["/jiying/agents/agent-router", "赛道选择"],
-                ["/jiying/onboarding", "账户设立"],
+                ["/jiying/onboarding", "立即开启"],
                 ["/jiying/launch", "智能启动"],
                 ["/jiying/studio", "创作工厂"],
                 ["/jiying/review", "内容审核"],
@@ -35,8 +34,7 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
               <summary className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.04] text-white/40 cursor-pointer">☰</summary>
               <div className="absolute right-0 top-full mt-2 w-48 bg-[#0a1120] border border-white/[0.06] rounded-2xl p-2 z-50 backdrop-blur-xl shadow-2xl">
                 {[
-                  ["/jiying/agents/agent-router", "赛道选择"],
-                  ["/jiying/onboarding", "账户设立"],
+                  ["/jiying/onboarding", "立即开启"],
                   ["/jiying/launch", "智能启动"],
                   ["/jiying/studio", "创作工厂"],
                   ["/jiying/review", "内容审核"],
