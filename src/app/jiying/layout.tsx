@@ -3,7 +3,7 @@ import Link from "next/link"
 
 export default function JiyingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#070b17] text-[#f0f2f5] overflow-hidden">
+    <div className="min-h-screen bg-[#0f1929] text-[#e8edf5] overflow-hidden">
       {/* 环境光晕 */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-[-15%] left-[10%] w-[50%] h-[50%] rounded-full bg-teal-500/5 blur-[140px] animate-pulse-soft" />
@@ -12,7 +12,7 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
       </div>
 
       <header className="relative z-10">
-        <div className="border-b border-white/[0.04] backdrop-blur-xl bg-[#070b17]/70">
+        <div className="border-b border-white/[0.04] backdrop-blur-xl bg-[#0f1929]/70">
           <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
             <Link href="/jiying" className="flex items-center gap-3 group">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-400 flex items-center justify-center text-lg shadow-lg shadow-teal-500/15 group-hover:shadow-teal-500/30 transition-all">🎬</div>
@@ -32,7 +32,7 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
             </nav>
             <details className="md:hidden relative">
               <summary className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.04] text-white/40 cursor-pointer">☰</summary>
-              <div className="absolute right-0 top-full mt-2 w-48 bg-[#0a1120] border border-white/[0.06] rounded-2xl p-2 z-50 backdrop-blur-xl shadow-2xl">
+              <div className="absolute right-0 top-full mt-2 w-48 bg-[#0f1929] border border-white/[0.06] rounded-2xl p-2 z-50 backdrop-blur-xl shadow-2xl">
                 {[
                   ["/jiying/onboarding", "立即开启"],
                   ["/jiying/launch", "智能启动"],

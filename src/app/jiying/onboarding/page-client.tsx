@@ -96,7 +96,7 @@ export default function OnboardingPage() {
       {/* 全部已激活弹窗 */}
       {showAllDone && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
-          <div className="bg-[#0a1120] border border-white/[0.06] rounded-3xl p-8 max-w-sm w-full mx-4 text-center space-y-4 shadow-2xl">
+          <div className="bg-[#0f1929] border border-white/[0.06] rounded-3xl p-8 max-w-sm w-full mx-4 text-center space-y-4 shadow-2xl">
             <div className="text-5xl">🎉</div>
             <h3 className="text-lg font-bold text-white">全部账户已激活！</h3>
             <p className="text-xs text-white/40">正在扫描您的账号内容，AI智能启动即将开启</p>
@@ -208,7 +208,7 @@ export default function OnboardingPage() {
       {/* 单账户支付弹窗 */}
       {activePay && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center" onClick={() => setActivePay(null)}>
-          <div className="bg-[#0a1120] border border-white/[0.06] rounded-2xl p-6 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#0f1929] border border-white/[0.06] rounded-2xl p-6 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
             <div className="text-center space-y-4">
               <div className="text-4xl">💳</div>
               <h3 className="text-base font-bold text-white">支付开户费用</h3>
@@ -227,7 +227,7 @@ export default function OnboardingPage() {
       {/* 批量支付弹窗 */}
       {showBatchPay && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center" onClick={() => setShowBatchPay(false)}>
-          <div className="bg-[#0a1120] border border-white/[0.06] rounded-2xl p-6 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#0f1929] border border-white/[0.06] rounded-2xl p-6 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
             <div className="text-center space-y-4">
               <div className="text-4xl">💳</div>
               <h3 className="text-base font-bold text-white">批量支付</h3>
@@ -248,7 +248,7 @@ export default function OnboardingPage() {
       {/* 跳转弹窗 */}
       {showJumpPopup && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center" onClick={() => setShowJumpPopup(null)}>
-          <div className="bg-[#0a1120] border border-white/[0.06] rounded-2xl p-6 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#0f1929] border border-white/[0.06] rounded-2xl p-6 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
             <div className="space-y-4">
               <div className="text-center"><div className="text-4xl mb-2">🚀</div><h3 className="text-base font-bold text-white">即将离开即影</h3></div>
               <div className="bg-white/[0.03] rounded-xl p-4 text-xs text-white/40 space-y-1.5">
