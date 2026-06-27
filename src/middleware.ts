@@ -5,7 +5,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // jiying.cc.cd → 只显示即影自媒体工厂
-  if (hostname.includes("jiying.cc.cd") || hostname.includes("jiying")) {
+  if (hostname === "jiying.cc.cd" || hostname.endsWith(".jiying.cc.cd")) {
     // 根路径 → 展示即影首页
     if (pathname === "/") {
       return NextResponse.rewrite(new URL("/jiying", request.url))
