@@ -197,6 +197,27 @@ alter table public.feature_requests enable row level security;
 create policy "Anyone can insert feature requests" on public.feature_requests for insert with check (auth.uid() = user_id);
 create policy "Users can view own requests" on public.feature_requests for select using (auth.uid() = user_id);
 
+-- 13. 角色模板（即影角色管理系统）
+create table if not exists public.character_templates (
+  id text primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  name text not null default '',
+  description text default '',
+  reference_images jsonb default '{}',
+  appearance jsonb default '{}',
+  costume jsonb default '{}',
+  personality text default '',
+  style_hint text default '',
+  source text default 'ai_generated' check (source in ('ai_generated','user_upload')),
+  thumbnail_url text default '',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+alter table public.character_templates enable row level security;
+create policy "Users can CRUD own character templates" on public.character_templates
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create index idx_character_templates_user_id on public.character_templates(user_id);
+
 -- ============================================================
 -- 信号机制：思维空间创建时自动更新用户成长
 -- ============================================================
