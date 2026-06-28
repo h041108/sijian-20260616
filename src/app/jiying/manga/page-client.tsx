@@ -2,6 +2,7 @@
 import { useState, useCallback, useEffect, useRef } from "react"
 import { createProject, loadProjects, executeStage, PIPELINE_STAGES, type VideoProject, type PipelineStageId } from "@/lib/video-factory"
 import { createVoiceDirectorSession, type VoiceDirectorSession, type NarratedScene } from "@/lib/voice-video"
+import { useJiyingUser } from "../layout"
 
 // ─── 新建作品面板 ──────────────────────────
 function CreateProjectPanel() {
@@ -13,6 +14,7 @@ function CreateProjectPanel() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [running, setRunning] = useState(false)
   const [project, setProject] = useState<VideoProject | null>(null)
+  const { user } = useJiyingUser()
 
   const GENRE_OPTIONS = [
     { id: "short_drama", label: "短剧", icon: "🎭" },
@@ -26,7 +28,7 @@ function CreateProjectPanel() {
 
   const handleCreate = useCallback(() => {
     if (!oneLiner.trim()) return
-    const p = createProject(oneLiner.trim(), genre, style, duration, aspectRatio)
+    const p = createProject(oneLiner.trim(), genre, style, duration, aspectRatio, undefined, user?.id)
     setProject(p)
     setActiveId(p.id)
     setOneLiner("")
@@ -112,6 +114,7 @@ function CreateProjectPanel() {
 
 // ─── 口述成片面板 ──────────────────────────
 function VoicePanel() {
+  const { user } = useJiyingUser()
   const [session, setSession] = useState<VoiceDirectorSession | null>(null)
   const [narrative, setNarrative] = useState("")
   const [listening, setListening] = useState(false)
@@ -206,7 +209,7 @@ function VoicePanel() {
             ))}
           </div>
           <button onClick={() => {
-            const p = createProject(narrative.slice(0, 50), "storytelling", session.thinkingOverlay.visualStyle || "写实风格", session.scenes.length * 5, "16:9")
+            const p = createProject(narrative.slice(0, 50), "storytelling", session.thinkingOverlay.visualStyle || "写实风格", session.scenes.length * 5, "16:9", undefined, user?.id)
             alert(`已创建作品「${p.oneLiner}」，请在「我的作品」中继续`)
           }}
             className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400">🎬 发送到即影生成</button>

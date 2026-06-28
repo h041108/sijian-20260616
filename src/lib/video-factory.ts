@@ -306,6 +306,7 @@ export function createProject(
   oneLiner: string, genre: VideoProject["genre"], style: string,
   duration: number = 60, aspectRatio: string = "16:9",
   viralTemplate?: VideoProject["viralTemplate"],
+  userId?: string,
 ): VideoProject {
   const project: VideoProject = {
     id: `vp_${Date.now()}`,
@@ -317,9 +318,21 @@ export function createProject(
       input: "", output: "", modelUsed: s.primaryModel,
     })),
   }
+  // 存储 owner 到 localStorage（Supabase 同步）
+  if (userId && typeof window !== "undefined") {
+    localStorage.setItem(`sijian_project_owner_${project.id}`, userId)
+  }
   const projects = loadProjects()
   projects.unshift(project)
   saveProjects(projects)
+  // 异步同步到 Supabase
+  if (userId && typeof window !== "undefined") {
+    try {
+      import("./data-persistence").then(m => {
+        m.saveVideoProject(userId, project)
+      }).catch(() => {})
+    } catch {}
+  }
   return project
 }
 

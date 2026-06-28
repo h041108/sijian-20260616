@@ -1,10 +1,20 @@
 "use client"
 import Link from "next/link"
+import { useState, createContext, useContext } from "react"
+import JiyingAuth from "@/components/JiyingAuth"
+import type { SijianUser } from "@/lib/auth"
+
+export const JiyingUserContext = createContext<{ user: SijianUser | null; setUser: (u: SijianUser | null) => void }>({
+  user: null, setUser: () => {},
+})
+export const useJiyingUser = () => useContext(JiyingUserContext)
 
 export default function JiyingLayout({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<SijianUser | null>(null)
+
   return (
+    <JiyingUserContext.Provider value={{ user, setUser }}>
     <div className="min-h-screen bg-[#0C0C14]">
-      {/* 环境光晕 */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-[-15%] left-[10%] w-[50%] h-[50%] rounded-full bg-[#F59E0B]/3 blur-[140px] animate-pulse-soft" />
         <div className="absolute bottom-[-15%] right-[10%] w-[45%] h-[45%] rounded-full bg-[#F97316]/3 blur-[140px] animate-pulse-soft" style={{ animationDelay: "1.5s" }} />
@@ -26,6 +36,7 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
             </nav>
           </div>
           <div className="flex items-center gap-2">
+            <JiyingAuth onUserChange={setUser} />
             <Link href="/jiying/portfolio" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#0C0C14] text-[#9898B0] hover:text-[#FBBF24] hover:bg-[#F59E0B]/8 text-sm transition-all">
               <span>👤</span>
               <span className="hidden sm:inline">我的作品</span>
@@ -47,5 +58,6 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
       </header>
       <main className="relative z-10">{children}</main>
     </div>
+    </JiyingUserContext.Provider>
   )
 }
