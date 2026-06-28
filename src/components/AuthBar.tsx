@@ -1,7 +1,5 @@
-"use client"
-
 import { useState } from "react"
-import { generateMockWechatLogin, registerUser, getCurrentUser, logout, UserRole, SijianUser } from "@/lib/sijian-user"
+import { generateMockWechatLogin, registerUser, getCurrentUser, logout, validateInviteCode, useInviteCode, UserRole, SijianUser } from "@/lib/auth"
 
 interface AuthBarProps {
   user: SijianUser | null
@@ -18,19 +16,18 @@ export default function AuthBar({ user, onLogin, onLogout, onRoleChange }: AuthB
   const [codeError, setCodeError] = useState("")
   const [codeSuccess, setCodeSuccess] = useState("")
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const mockUser = generateMockWechatLogin(loginRole)
-    const registered = registerUser(mockUser)
+    const registered = await registerUser(mockUser)
     onLogin(registered)
     setShowPanel(false)
   }
 
   const handleInviteSubmit = async () => {
     if (inviteCode.length !== 6) { setCodeError("邀请码为6位数字"); return }
-    const { validateInviteCode, useInviteCode } = await import("@/lib/sijian-user")
     const invite = validateInviteCode(inviteCode)
     if (!invite) { setCodeError("邀请码无效或已过期"); return }
-    const cu = getCurrentUser()
+    const cu = await getCurrentUser()
     if (!cu) { setCodeError("请先登录"); return }
     const result = useInviteCode(inviteCode, cu.id)
     if (result) {

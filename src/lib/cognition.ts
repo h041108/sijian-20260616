@@ -326,8 +326,15 @@ export function saveCognitionLog(entry: CognitionLogEntry): void {
   try {
     const logs = JSON.parse(localStorage.getItem(MIRROR_LOG_KEY) || "[]") as CognitionLogEntry[]
     logs.push(entry)
-    // 保留最近 500 条
     localStorage.setItem(MIRROR_LOG_KEY, JSON.stringify(logs.slice(-500)))
+    // 异步尝试服务端保存
+    try {
+      fetch("/api/cognition", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entry),
+      }).catch(() => {})
+    } catch {}
   } catch {}
 }
 

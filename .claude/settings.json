@@ -1,7 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(curl *)",
+      "Bash(*)",
       "Bash(nslookup *)",
       "Bash(ping *)",
       "Bash(tasklist *)",
@@ -38,7 +38,9 @@
       "TodoWrite(*)",
       "TaskOutput(*)",
       "Agent(*)",
-      "NotebookEdit(*)"
+      "NotebookEdit(*)",
+      "Skill(*)",
+      "AskUserQuestion(*)"
     ]
   }
 }

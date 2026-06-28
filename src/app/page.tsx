@@ -5,12 +5,14 @@ import ChatPanel from "@/components/ChatPanel"
 import MindTransit from "@/components/MindTransit"
 import NodeDetail from "@/components/NodeDetail"
 import { analyzeImageInBrowser } from "@/lib/image-analyzer"
-import { incrementChatCount, canChat, getCurrentPlan } from "@/lib/subscription"
+import { getCurrentPlan } from "@/lib/subscription"
 import { saveChat, loadLatestChat, loadAllChats, deleteChat, generateTitle, SavedChat } from "@/lib/memory"
 import ExperimentBar from "@/components/ExperimentBar"
+import ErrorBoundary from "@/components/ErrorBoundary"
 import SharedList from "@/components/SharedList"
 import AuthBar from "@/components/AuthBar"
-import { getCurrentUser, loginAs, logout, updateUserRole, UserRole, SijianUser, generateMockWechatLogin, registerUser } from "@/lib/sijian-user"
+import { getCurrentUser as getAuthUser, loginAs, logout, updateUserRole, generateMockWechatLogin, registerUser } from "@/lib/auth"
+import type { UserRole, SijianUser } from "@/lib/auth"
 import { getLineInfo } from "@/lib/thinking-lines"
 import ParentReportView from "@/components/ParentReportView"
 import MindReviewCard from "@/components/MindReviewCard"
@@ -90,29 +92,30 @@ export default function Home() {
   const [user, setUser] = useState<SijianUser | null>(null)
 
   useEffect(() => {
-    const cu = getCurrentUser()
-    if (cu) {
-      setUser(cu)
-    } else {
-      // 首次访问自动创建用户，零门槛
-      const autoUser = generateMockWechatLogin("student")
-      const registered = registerUser(autoUser)
-      setUser(registered)
-    }
+    (async () => {
+      const cu = await getAuthUser()
+      if (cu) {
+        setUser(cu)
+      } else {
+        const autoUser = generateMockWechatLogin("student")
+        const registered = await registerUser(autoUser)
+        setUser(registered)
+      }
+    })()
   }, [])
 
-  const handleLogin = useCallback((u: SijianUser) => {
+  const handleLogin = useCallback(async (u: SijianUser) => {
     setUser(u)
   }, [])
 
-  const handleLogout = useCallback(() => {
-    logout()
+  const handleLogout = useCallback(async () => {
+    await logout()
     setUser(null)
   }, [])
 
-  const handleRoleChange = useCallback((role: UserRole) => {
-    updateUserRole(role)
-    const cu = getCurrentUser()
+  const handleRoleChange = useCallback(async (role: UserRole) => {
+    await updateUserRole(role)
+    const cu = await getAuthUser()
     if (cu) setUser({ ...cu, role })
   }, [])
 
@@ -521,8 +524,10 @@ export default function Home() {
               </div>
             )}
             <div className="flex-1 min-h-0 bg-[#f8fafb]">
-              <MindTransit nodes={nodes} edges={edges} domainType={domainType} frameType={frameType} thinkingLines={thinkingLines}
-                onNodeClick={handleNodeClick} onNodePositionChange={handleNodePositionChange} onExport={handleExport} />
+              <ErrorBoundary name="MindTransit">
+                <MindTransit nodes={nodes} edges={edges} domainType={domainType} frameType={frameType} thinkingLines={thinkingLines}
+                  onNodeClick={handleNodeClick} onNodePositionChange={handleNodePositionChange} onExport={handleExport} />
+              </ErrorBoundary>
               <NodeDetail node={selectedNode} onClose={() => setSelectedNode(null)} />
             </div>
           </div>
@@ -530,7 +535,9 @@ export default function Home() {
       )}
 
       {/* ═══ 意识面板 ═══ */}
-      <CognitionPanel />
+      <ErrorBoundary name="CognitionPanel">
+        <CognitionPanel />
+      </ErrorBoundary>
 
       {/* ═══ 思维回顾弹窗 ═══ */}
       {showMindReview && (
