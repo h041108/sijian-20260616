@@ -93,7 +93,7 @@ export async function getCurrentUser(): Promise<SijianUser | null> {
         .from("profiles")
         .select("nickname,role,avatar_url,phone")
         .eq("id", session.user.id)
-        .single()
+        .single() as any
       if (profile) {
         return {
           id: session.user.id,
