@@ -4,8 +4,8 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-const HAS_SUPABASE = !!(process.env.NEXT_PUBLIC_SUPABASE_URL || "").length > 0 &&
-  !!(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").length > 0
+const HAS_SUPABASE = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").length > 0 &&
+  (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").length > 0
 
 const PUBLIC_API_PATHS = ["/api/auth", "/api/upload", "/api/video/proxy-image"]
 
