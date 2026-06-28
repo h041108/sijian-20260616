@@ -9,117 +9,144 @@
 }
 
 :root {
-  --background: #faf8f5;
-  --foreground: #1a1a2e;
+  --background: #0C0C14;
+  --foreground: #E8E8F0;
+  --card-bg: rgba(255,255,255,0.04);
+  --card-border: rgba(255,255,255,0.06);
+  --glass-blur: 24px;
+  --amber-brand: #F59E0B;
+  --amber-light: #FBBF24;
+  --orange-brand: #F97316;
+  --orange-deep: #EA580C;
+  --mist-white: #F8F8FA;
+  --cool-gray: #2A2A38;
+  --charcoal: #1E1E2E;
+  --text-primary: #E8E8F0;
+  --text-secondary: #9898B0;
+  --text-tertiary: #5A5A72;
+  --radius-card: 16px;
+  --radius-btn: 12px;
+  --radius-input: 10px;
+  --shadow-card: 0 2px 16px rgba(0,0,0,0.3), 0 8px 32px rgba(0,0,0,0.15);
+  --shadow-hover: 0 8px 32px rgba(245,158,11,0.12), 0 2px 8px rgba(245,158,11,0.06);
 }
 
-/* ─── 全局 ───────────────────────────────── */
 body {
-  background: linear-gradient(160deg, #faf8f5 0%, #f3f0eb 30%, #f8f5f2 70%, #faf8f5 100%);
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-@media (max-width: 767px) {
-  input, textarea, select { font-size: 16px !important; }
-}
-
-/* ─── 动画 ───────────────────────────────── */
-@keyframes pageFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-.page-enter { animation: pageFadeIn 0.5s ease-out; }
-
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.animate-fade-in { animation: fadeInUp 0.4s ease-out; }
+.animate-fade-in { animation: fadeInUp 0.6s ease-out; }
 
-@keyframes nodeExpand {
-  from { transform: scale(0); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
-.animate-node-in { animation: nodeExpand 0.45s ease-out; }
-
-/* ─── 滚动条 ─────────────────────────────── */
-.custom-scrollbar::-webkit-scrollbar { width: 5px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #d4d0c8;
-  border-radius: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #b8b3a8; }
-
-/* ─── 亮色卡片 ───────────────────────────── */
-.card-light {
-  background: #ffffff;
-  border: 1px solid #e8e5df;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 4px 16px rgba(0,0,0,0.04);
+.animate-gradient {
+  background-size: 200% 200% !important;
+  animation: gradient 4s ease infinite;
 }
 
-/* ─── 品牌渐变文字 ───────────────────────── */
-.text-brand {
-  background: linear-gradient(135deg, #5b5f97 0%, #8b7e74 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+@keyframes flowPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+.animate-flow { animation: flowPulse 3s ease-in-out infinite; }
+
+.glass-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: all 0.35s ease;
+}
+.glass-card:hover {
+  box-shadow: var(--shadow-hover);
+  border-color: rgba(245,158,11,0.15);
 }
 
-/* ─── 主按钮 ─────────────────────────────── */
 .btn-primary {
-  background: linear-gradient(135deg, #5b5f97 0%, #7c6f8d 100%);
+  background: linear-gradient(135deg, #F59E0B, #EA580C);
   color: #fff;
-  transition: all 0.25s ease;
-  box-shadow: 0 2px 8px rgba(91,95,151,0.15);
+  border-radius: var(--radius-btn);
+  box-shadow: 0 4px 20px rgba(245,158,11,0.25);
+  transition: all 0.35s ease;
+  font-weight: 600;
 }
 .btn-primary:hover {
-  box-shadow: 0 4px 20px rgba(91,95,151,0.3);
+  box-shadow: 0 8px 40px rgba(245,158,11,0.35);
   transform: translateY(-1px);
 }
-.btn-primary:disabled {
-  opacity: 0.4;
-  box-shadow: none;
-  transform: none;
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-secondary);
+  border-radius: var(--radius-btn);
+  transition: all 0.3s ease;
+}
+.btn-ghost:hover {
+  border-color: #FBBF24;
+  color: #FBBF24;
+  background: rgba(245,158,11,0.06);
 }
 
-/* ─── 用户消息气泡 ───────────────────────── */
-.bubble-user {
-  background: linear-gradient(145deg, #5b5f97 0%, #6b6499 60%, #8b7e74 100%);
-  color: #ffffff;
-  border-radius: 18px 18px 6px 18px;
-  box-shadow: 0 2px 12px rgba(91,95,151,0.18);
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-
-/* ─── AI 消息气泡 ────────────────────────── */
-.bubble-ai {
-  background: #f3f2f0;
-  color: #2d2d3a;
-  border-radius: 18px 18px 18px 6px;
-  border: 1px solid #e8e5df;
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-
-/* ─── 输入框 ─────────────────────────────── */
-.input-light {
-  background: #f7f6f3;
-  border: 1px solid #e8e5df;
-  color: #1a1a2e;
-  transition: all 0.25s ease;
-}
-.input-light::placeholder { color: #b0aca3; }
-.input-light:focus {
+input, textarea, select {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  color: var(--text-primary);
+  border-radius: var(--radius-input);
+  padding: 10px 14px;
+  font-size: 14px;
   outline: none;
-  border-color: #5b5f97;
-  box-shadow: 0 0 0 3px rgba(91,95,151,0.1);
-  background: #ffffff;
+  transition: all 0.3s ease;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: #F59E0B;
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.1);
+}
+input::placeholder, textarea::placeholder { color: var(--text-tertiary); }
+
+.nav-link {
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.nav-link:hover {
+  color: #FBBF24;
+  background: rgba(245,158,11,0.08);
 }
 
-/* ─── 通用过渡 ───────────────────────────── */
-.transition-all { transition: all 0.3s ease; }
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  background: rgba(245,158,11,0.08);
+  color: #FBBF24;
+  border: 1px solid rgba(245,158,11,0.15);
+}
+
+::selection {
+  background: rgba(245,158,11,0.2);
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.1); }
