@@ -64,8 +64,8 @@ export interface UserRelation {
 const IS_SERVER = typeof window === "undefined"
 const HAS_SUPABASE = () => {
   if (IS_SERVER) return false
-  return !!(process.env.NEXT_PUBLIC_SUPABASE_URL || "").length > 0 &&
-    !!(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").length > 0
+  return (process.env.NEXT_PUBLIC_SUPABASE_URL || "").length > 0 &&
+    (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").length > 0
 }
 
 function lsGet<T>(key: string, fallback: T): T {
