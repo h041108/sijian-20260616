@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 
 interface Platform {
   id: string; name: string; icon: string; url: string; guide: string; needsVPN?: boolean
@@ -74,9 +74,37 @@ export default function OnboardingPage() {
   }
   const handleRegistered = (id: string) => { us(id, { verified: true }); document.title = origTitle.current }
 
+  // 写入已绑定账号到 localStorage（直接从 PLATFORMS + states 组装）
+  const writeBoundAccounts = useCallback(() => {
+    const existing = JSON.parse(localStorage.getItem("sijian_bound_accounts") || "[]")
+    const bound = PLATFORMS.map(p => {
+      const s = states[p.id]
+      if (!s?.verified || !s?.paid) return null
+      return { platformId: p.id, platformName: p.name, icon: p.icon, nickname: s.nickname, profileUrl: s.profileUrl, verified: true, paid: true }
+    }).filter(Boolean)
+    if (bound.length > existing.length) localStorage.setItem("sijian_bound_accounts", JSON.stringify(bound))
+  }, [states])
+
+  // 每次 state 变化时同步写入 bound accounts（供 launch 页读取）
+  useEffect(() => { writeBoundAccounts() }, [writeBoundAccounts])
+
   // 支付
-  const handlePay = async (id: string) => { setPaying(true); await new Promise(r => setTimeout(r, 1000)); us(id, { paid: true }); setPaying(false); setActivePay(null) }
-  const handleBatchPay = async () => { setPaying(true); await new Promise(r => setTimeout(r, 1500)); const ns = { ...states }; Object.keys(ns).forEach(k => { if (ns[k].verified && !ns[k].paid) ns[k] = { ...ns[k], paid: true } }); setStates(ns); setPaying(false); setShowBatchPay(false) }
+  const handlePay = async (id: string) => {
+    setPaying(true)
+    await new Promise(r => setTimeout(r, 1000))
+    us(id, { paid: true })
+    setPaying(false)
+    setActivePay(null)
+  }
+  const handleBatchPay = async () => {
+    setPaying(true)
+    await new Promise(r => setTimeout(r, 1500))
+    const ns = { ...states }
+    Object.keys(ns).forEach(k => { if (ns[k].verified && !ns[k].paid) ns[k] = { ...ns[k], paid: true } })
+    setStates(ns)
+    setPaying(false)
+    setShowBatchPay(false)
+  }
 
   const allP = PLATFORMS.map(p => ({ ...p, s: gs(p.id) }))
   const vCount = allP.filter(x => x.s.verified && x.s.paid).length

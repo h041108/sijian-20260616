@@ -60,7 +60,9 @@ export default function JiyingAuth({ onUserChange }: JiyingAuthProps) {
       const data = await res.json()
 
       if (data.error) {
-        setError(data.error)
+        setError(data.error.includes("Email not confirmed")
+          ? "邮箱确认中，请稍后重新登录。如持续失败，请告知管理员添加 SUPABASE_SERVICE_ROLE_KEY"
+          : data.error)
         setLoading(false)
         return
       }
@@ -156,10 +158,10 @@ export default function JiyingAuth({ onUserChange }: JiyingAuthProps) {
         )}
       </div>
 
-      {/* 登录/注册弹窗 — 居中显示 */}
+      {/* 登录/注册弹窗 — 居中显示 — 全实心不透 */}
       {showLogin && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setShowLogin(false)}>
-          <div className="bg-[#1A1A2E] rounded-2xl p-8 shadow-2xl w-full max-w-sm border border-[#F59E0B]/10" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/85 z-[100] flex items-center justify-center p-4" onClick={() => setShowLogin(false)}>
+          <div className="relative bg-[#1A1A2E] rounded-2xl p-8 shadow-2xl w-full max-w-sm border border-[#F59E0B]/15 backdrop-blur-none" onClick={e => e.stopPropagation()}>
             {/* 关闭按钮 */}
             <button onClick={() => setShowLogin(false)}
               className="float-right text-white/30 hover:text-white/60 text-lg leading-none">✕</button>

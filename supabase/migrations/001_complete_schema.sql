@@ -218,6 +218,32 @@ create policy "Users can CRUD own character templates" on public.character_templ
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create index idx_character_templates_user_id on public.character_templates(user_id);
 
+-- 14. 素材资产（即影素材管理中心）
+create table if not exists public.media_assets (
+  id text primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  type text not null default 'image' check (type in ('image','character','product','scene','generated')),
+  source text not null default 'user_upload' check (source in ('user_upload','ai_generated','imported')),
+  url text not null default '',
+  thumbnail_url text default '',
+  name text default '',
+  description text default '',
+  tags jsonb default '[]',
+  file_size int,
+  width int, height int,
+  character_id text,
+  product_id text,
+  favorite boolean default false,
+  used_count int default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+alter table public.media_assets enable row level security;
+create policy "Users can CRUD own media assets" on public.media_assets
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create index idx_media_assets_user_id on public.media_assets(user_id);
+create index idx_media_assets_type on public.media_assets(type);
+
 -- ============================================================
 -- 信号机制：思维空间创建时自动更新用户成长
 -- ============================================================

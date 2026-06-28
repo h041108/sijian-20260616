@@ -402,7 +402,10 @@ export default function Home() {
 
   const hamburgerLinks = (
     <>
-      <a href="/jiying" className="text-sm font-semibold text-gray-800 hover:text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-indigo-50 block">🎬 即影 · 自媒体工厂</a>
+      <a href="/jiying" className="flex items-center gap-2 text-sm font-bold text-gray-800 hover:text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-indigo-50 block">
+        <div className="w-6 h-6 rounded-md bg-gradient-to-br from-[#F59E0B] to-[#F97316] flex items-center justify-center text-[11px] shrink-0">🎬</div>
+        即影
+      </a>
       <hr className="border-gray-100 my-1" />
       <a href="/pricing" className="text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-50 block">定价</a>
       <a href="/b-end" className="text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-50 block">B端工作台</a>
@@ -434,8 +437,9 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-1.5">
           <a href="/jiying"
-            className="text-[10px] font-medium text-indigo-600 hover:text-indigo-800 px-2 py-1 rounded-md hover:bg-indigo-50 transition-colors hidden sm:inline-block">
-            🎬 即影
+            className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-indigo-50 transition-colors hidden sm:inline-flex">
+            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-[#F59E0B] to-[#F97316] flex items-center justify-center text-[11px] shadow-sm">🎬</div>
+            <span className="text-sm font-bold text-gray-700 tracking-tight">即影</span>
           </a>
           <button onClick={() => setShowMobileMenu(!showMobileMenu)}
           className="w-7 h-7 flex items-center justify-center rounded-lg transition-all hover:scale-110"

@@ -1,5 +1,8 @@
 "use client"
 import Link from "next/link"
+import { useState, useCallback, useEffect } from "react"
+import { useJiyingUser } from "./layout"
+import type { SijianUser } from "@/lib/auth"
 
 const FAQ = [
   { q: "20元真的可以开一家自媒体公司吗？", a: "是的。20元是7天体验价。AI诊断赛道、建立人设、每日自动生成内容。你只需要有自己的账号，剩下的交给我们。" },
@@ -9,6 +12,69 @@ const FAQ = [
 ]
 
 export default function JiyingHome() {
+  const { user } = useJiyingUser()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.history.scrollRestoration = "manual"
+      window.scrollTo(0, 0)
+    }
+  }, [])
+
+  const handleAuth = useCallback(async () => {
+    setError("")
+    setLoading(true)
+    try {
+      const action = isSignUp ? "signup" : "signin"
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, email, password, nickname: email.split("@")[0] }),
+      })
+      const data = await res.json()
+      if (data.error) {
+        const msg = data.error.includes("Email not confirmed")
+          ? "系统正在处理邮箱确认，请稍后重新登录。"
+          : data.error
+        setError(msg)
+        setLoading(false)
+        return
+      }
+      if (isSignUp && data.user?.identities?.length === 0) {
+        setError("注册成功！请查看邮箱确认登录。")
+      } else if (data.user || data.session?.user) {
+        const s = data.user || data.session.user
+        const u: SijianUser = {
+          id: s.id, openid: s.id,
+          nickname: email.split("@")[0], avatar: "#F59E0B",
+          role: "student", email, createdAt: new Date().toISOString(),
+        }
+        localStorage.setItem("sijian_session", JSON.stringify(u))
+        window.scrollTo(0, 0)
+        window.location.href = "/jiying"
+      } else {
+        setError(data?.message || "登录失败")
+      }
+    } catch { setError("网络错误") }
+    setLoading(false)
+  }, [email, password, isSignUp])
+
+  const handleMockLogin = useCallback(() => {
+    const id = `mock_${Date.now()}`
+    const u: SijianUser = {
+      id, openid: id, nickname: "体验用户", avatar: "#F59E0B",
+      role: "student", createdAt: new Date().toISOString(),
+    }
+    localStorage.setItem("sijian_session", JSON.stringify(u))
+    window.scrollTo(0, 0)
+    window.location.href = "/jiying"
+  }, [])
+
   return (
     <div className="pb-24">
       {/* ─── HERO ─── */}
@@ -38,6 +104,66 @@ export default function JiyingHome() {
           <p className="text-xs text-[#5A5A72] mt-6">无需注册公司 · 无需雇佣团队 · 全自动运营 · 随时可停</p>
         </div>
       </section>
+
+      {/* ─── 登录/注册区（未登录时显示在顶部）─── */}
+      {!user && (
+      <section className="max-w-md mx-auto px-6 py-8 md:py-16" id="auth">
+        <div className="text-center mb-6">
+          <div className="text-3xl mb-2">🎬</div>
+          <h2 className="text-xl md:text-2xl font-bold text-[#E8E8F0]">登录即影</h2>
+          <p className="text-sm text-[#9898B0] mt-1">登录后保存作品到云端</p>
+        </div>
+
+        <div className="bg-[#1A1A2E] rounded-2xl p-6 md:p-8 shadow-2xl w-full border border-[#F59E0B]/10">
+          <div className="space-y-3">
+            <div>
+              <label className="text-[10px] text-[#5A5A72] mb-1 block">邮箱</label>
+              <input value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="your@email.com" type="email" autoFocus
+                className="w-full px-4 py-3 rounded-xl bg-[#0C0C14] border border-[#F59E0B]/10 text-[#E8E8F0] text-sm placeholder-[#5A5A72] focus:outline-none focus:border-[#F59E0B]/40 transition-colors" />
+            </div>
+            <div>
+              <label className="text-[10px] text-[#5A5A72] mb-1 block">密码</label>
+              <input value={password} onChange={e => setPassword(e.target.value)}
+                placeholder="至少 6 位" type="password"
+                onKeyDown={e => e.key === "Enter" && handleAuth()}
+                className="w-full px-4 py-3 rounded-xl bg-[#0C0C14] border border-[#F59E0B]/10 text-[#E8E8F0] text-sm placeholder-[#5A5A72] focus:outline-none focus:border-[#F59E0B]/40 transition-colors" />
+            </div>
+          </div>
+
+          {error && (
+            <div className="mt-3 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400 text-center">{error}</div>
+          )}
+
+          <button onClick={handleAuth} disabled={loading || !email || !password}
+            className="w-full mt-4 py-3 rounded-xl bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-[#0C0C14] text-sm font-bold transition-all disabled:opacity-40 hover:shadow-lg hover:shadow-[#F59E0B]/20">
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-3 h-3 rounded-full border-2 border-[#0C0C14] border-t-transparent animate-spin" />
+                处理中...
+              </span>
+            ) : isSignUp ? "注册" : "登录"}
+          </button>
+
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#F59E0B]/10" /></div>
+            <div className="relative flex justify-center">
+              <span className="px-3 bg-[#1A1A2E] text-[10px] text-[#5A5A72]">或</span>
+            </div>
+          </div>
+
+          <button onClick={handleMockLogin}
+            className="w-full py-2.5 rounded-xl border border-[#F59E0B]/15 text-[#9898B0] hover:text-[#FBBF24] hover:bg-[#F59E0B]/5 text-xs transition-all">
+            👤 免登录体验
+          </button>
+
+          <button onClick={() => { setIsSignUp(!isSignUp); setError("") }}
+            className="w-full mt-3 text-xs text-[#F59E0B]/60 hover:text-[#F59E0B] transition-colors text-center block">
+            {isSignUp ? "已有账号？点此登录" : "没有账号？点此注册"}
+          </button>
+        </div>
+      </section>
+      )}
 
       {/* ─── 4大核心 ─── */}
       <section className="max-w-6xl mx-auto px-6 -mt-8 relative z-10">
@@ -162,8 +288,9 @@ export default function JiyingHome() {
         </div>
       </section>
 
+
       {/* ─── CTA ─── */}
-      <section className="max-w-3xl mx-auto px-6 text-center">
+      <section className="max-w-3xl mx-auto px-6 text-center pt-8">
         <div className="glass-card p-10">
           <div className="text-4xl mb-4">🎬</div>
           <h2 className="text-xl font-bold bg-gradient-to-r from-[#1A1A2E] to-[#F59E0B] bg-clip-text text-transparent mb-2">现在就开启你的自媒体公司</h2>
