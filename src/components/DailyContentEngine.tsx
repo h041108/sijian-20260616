@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { useJiyingUser } from "@/app/jiying/layout"
 import {
   getTodayContent, saveDailyContent, updateItemAction, getReviewStatus, generateMockDailyItems,
@@ -19,54 +19,54 @@ export default function DailyContentEngine() {
   const [editText, setEditText] = useState("")
   const [platform, setPlatform] = useState("小红书")
   const [error, setError] = useState("")
+  const [referenceTexts, setReferenceTexts] = useState<string[]>(() => {
+    // 从分析结果加载用户的内容样本作为参考
+    try {
+      const saved = JSON.parse(localStorage.getItem("jiying_account_analysis") || "{}")
+      if (saved.contentSamples && Array.isArray(saved.contentSamples)) return saved.contentSamples.slice(0, 5)
+    } catch {}
+    return []
+  })
+  const [showRefInput, setShowRefInput] = useState(false)
+  const [refInput, setRefInput] = useState("")
+  const fileRef = useRef<HTMLInputElement>(null)
 
-  // 唯一的数据加载点：轮询 localStorage，直至读到有效值
-  // 不依赖 props 传递，不依赖 URL 参数，不依赖任何外部组件
+  // 页面加载时读取 niche —— 只读一次，不轮询，不过滤任何值
   useEffect(() => {
-    let stopped = false
-    let attempts = 0
+    let nicheValue = ""
 
-    const poll = () => {
-      if (stopped) return
-      attempts++
+    // 来源1: launch 页按钮写入的专用 key
+    try {
+      const r = localStorage.getItem("jiying_niche_redirect")
+      if (r && r.length > 0) nicheValue = r
+    } catch {}
+
+    // 来源2: API 分析结果
+    if (!nicheValue) {
       try {
-        // 来源1: launch 页按钮写入的专用 key
-        const redirect = localStorage.getItem("jiying_niche_redirect")
-        if (redirect && redirect !== "" && redirect !== "美食" && redirect !== "待确认") {
-          setNiche(redirect)
-          setLoading(false)
-          return
-        }
-        // 来源2: API 写入的分析结果
         const saved = JSON.parse(localStorage.getItem("jiying_account_analysis") || "{}")
-        if (saved.niche && saved.niche !== "" && saved.niche !== "待确认" && saved.niche !== "美食") {
-          setNiche(saved.niche)
-          setLoading(false)
-          return
-        }
+        if (saved.niche && saved.niche.length > 0) nicheValue = saved.niche
       } catch {}
-
-      // 读平台
-      try {
-        const accounts = JSON.parse(localStorage.getItem("sijian_bound_accounts") || "[]")
-        if (accounts.length > 0) {
-          const nameMap: Record<string, string> = { xiaohongshu: "小红书", douyin: "抖音", bilibili: "B站", kuaishou: "快手", shipinhao: "视频号" }
-          const p = nameMap[accounts[0].platformId] || accounts[0].platformName
-          if (p) setPlatform(p)
-        }
-      } catch {}
-
-      // 最多轮询 3 秒（30次x100ms），超时后设默认值
-      if (attempts >= 30) {
-        setNiche("美食")
-        setLoading(false)
-        return
-      }
-      setTimeout(poll, 100)
     }
 
-    poll()
-    return () => { stopped = true }
+    // 读平台
+    try {
+      const accounts = JSON.parse(localStorage.getItem("sijian_bound_accounts") || "[]")
+      if (accounts.length > 0) {
+        const nameMap: Record<string, string> = { xiaohongshu: "小红书", douyin: "抖音", bilibili: "B站", kuaishou: "快手", shipinhao: "视频号" }
+        const p = nameMap[accounts[0].platformId] || accounts[0].platformName
+        if (p) setPlatform(p)
+      }
+    } catch {}
+
+    // 设值：无条件接受 localStorage 的原始值
+    // 只有两种情况下用"美食"：完全没读到任何值，或者值是默认初始值
+    if (nicheValue && nicheValue !== "待确认") {
+      setNiche(nicheValue)
+    } else {
+      setNiche("美食") // 真的没有任何数据时兜底
+    }
+    setLoading(false)
   }, [])
 
   useEffect(() => {
@@ -75,7 +75,7 @@ export default function DailyContentEngine() {
     saveDailyContent(log)
   }, [log])
 
-  const NICHE_LIST = ["美食", "美妆", "穿搭", "数码", "教育", "生活", "健康", "母婴", "旅行", "家居", "宠物", "汽车", "游戏", "影视", "科技", "健身"]
+  const NICHE_LIST = ["美食", "美妆", "穿搭", "数码", "教育", "生活", "健康", "母婴", "旅行", "家居", "宠物", "汽车", "游戏", "影视", "科技", "健身", "金融投资", "程序开发", "自媒体运营", "知识付费"]
   const PLATFORM_LIST = ["小红书", "抖音", "B站", "视频号", "快手", "公众号"]
 
   const handleGenerate = useCallback(async () => {
@@ -84,10 +84,15 @@ export default function DailyContentEngine() {
     setError("")
     const mockItems = generateMockDailyItems()
     try {
+      // 读取用户的内容样本作为 AI 生成参考
+      let referencePrompt = `我是${platform}平台的${niche}领域博主，请推荐今日最佳选题（TOP 1），并写一段完整的文案（300字左右），适合${platform}平台风格`
+      if (referenceTexts.length > 0) {
+        referencePrompt += `\n\n以下是我账号已有的内容风格，请参考这些内容的风格、专业深度和表达方式来创作新内容，不要写泛泛的通用内容：\n${referenceTexts.map((t, i) => `参考${i+1}: ${t}`).join("\n")}`
+      }
       const res = await fetch("/api/agent/agent_13", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          instruction: `我是${platform}平台的${niche}领域博主，请推荐今日最佳选题（TOP 1），并写一段完整的文案（300字左右），适合${platform}平台风格`,
+          instruction: referencePrompt,
           context: { userProfile: { platform, niche } },
         }),
       })
@@ -149,7 +154,6 @@ export default function DailyContentEngine() {
   const publishedItems = log.items.filter(i => i.action === "published")
   const totalDone = status.confirmed + status.edited
 
-  // 加载中：不渲染任何内容，不给"美食"出场机会
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center">
@@ -198,6 +202,56 @@ export default function DailyContentEngine() {
             </select>
           </div>
         </div>
+
+        {/* 参考素材区 — 让 AI 模仿你的风格 */}
+        <details className="bg-[#0C0C14] rounded-xl border border-white/[0.06]">
+          <summary className="px-3 py-2 text-[10px] text-white/40 cursor-pointer hover:text-white/60">
+            📎 参考素材 {referenceTexts.length > 0 ? `(${referenceTexts.length})` : "(选填)"}
+          </summary>
+          <div className="px-3 pb-3 space-y-2">
+            {referenceTexts.length > 0 && (
+              <div className="space-y-1">
+                {referenceTexts.map((t, i) => (
+                  <div key={i} className="flex items-center gap-1 text-[9px] text-white/30 bg-white/[0.02] rounded-lg px-2 py-1">
+                    <span className="truncate flex-1">{t.slice(0, 60)}</span>
+                    <button onClick={() => setReferenceTexts(prev => prev.filter((_, j) => j !== i))}
+                      className="text-white/20 hover:text-red-400 shrink-0">✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {showRefInput ? (
+              <div className="flex gap-1">
+                <textarea value={refInput} onChange={e => setRefInput(e.target.value)}
+                  placeholder="粘贴你的文案、标题或内容描述..."
+                  rows={2} className="flex-1 text-[10px] bg-[#1A1A2E] rounded-lg p-2 text-white/60 border border-[#F59E0B]/30 focus:outline-none" />
+                <div className="flex flex-col gap-1">
+                  <button onClick={() => { if (refInput.trim()) { setReferenceTexts(prev => [...prev, refInput.trim()]); setRefInput(""); setShowRefInput(false) } }}
+                    className="px-2 py-1 text-[9px] rounded-lg bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/20">添加</button>
+                  <button onClick={() => setShowRefInput(false)} className="px-2 py-1 text-[9px] rounded-lg text-white/30">取消</button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-1">
+                <button onClick={() => setShowRefInput(true)}
+                  className="px-2 py-1 text-[9px] rounded-lg bg-white/[0.04] text-white/40 border border-white/[0.06] hover:bg-white/[0.08]">✏️ 粘贴参考内容</button>
+                <input ref={fileRef} type="file" accept=".txt" onChange={e => {
+                  const f = e.target.files?.[0]
+                  if (!f) return
+                  const reader = new FileReader()
+                  reader.onload = () => {
+                    const text = reader.result as string
+                    if (text.length > 50) setReferenceTexts(prev => [...prev, text.slice(0, 500)])
+                  }
+                  reader.readAsText(f)
+                }} hidden />
+                <button onClick={() => fileRef.current?.click()}
+                  className="px-2 py-1 text-[9px] rounded-lg bg-white/[0.04] text-white/40 border border-white/[0.06] hover:bg-white/[0.08]">📄 上传文件</button>
+              </div>
+            )}
+          </div>
+        </details>
+
         <button onClick={handleGenerate} disabled={generating} className="w-full py-3 rounded-xl bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-[#0C0C14] text-sm font-bold disabled:opacity-40">
           {generating ? <span className="flex items-center justify-center gap-2"><span className="w-3 h-3 rounded-full border-2 border-[#0C0C14] border-t-transparent animate-spin" />AI 生成中...</span> : `🚀 AI 生成今日 ${platform} 内容`}
         </button>
@@ -216,13 +270,8 @@ export default function DailyContentEngine() {
           <div className="flex items-center justify-between">
             <div className="text-xs text-white/50 font-medium">{status.pending > 0 ? `待审核 (${status.pending})` : `已全部处理 (${totalDone})`}</div>
             <div className="flex gap-2">
-              {pendingItems.length > 1 && (
-                <button onClick={handlePublishAll} className="px-4 py-1.5 text-[10px] rounded-lg bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-green-500/25 font-medium">📤 全部发布 ({pendingItems.length} 条)</button>
-              )}
-              {log.items.length > 0 && (
-                <button onClick={() => { const all = log.items.map(i => `${i.title}\n\n${i.editedContent || i.content}\n\n${i.hashtags?.join(" ") || ""}`).join("\n\n═══════════════════════════\n\n"); const blob = new Blob([all], { type: "text/plain;charset=utf-8" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `即影内容_${new Date().toISOString().slice(0, 10)}.txt`; a.click(); URL.revokeObjectURL(url) }}
-                  className="px-4 py-1.5 text-[10px] rounded-lg bg-blue-500/10 text-blue-300 border border-blue-500/15 hover:bg-blue-500/20 font-medium">📥 下载全部</button>
-              )}
+              {pendingItems.length > 1 && <button onClick={handlePublishAll} className="px-4 py-1.5 text-[10px] rounded-lg bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-green-500/25 font-medium">📤 全部发布 ({pendingItems.length} 条)</button>}
+              {log.items.length > 0 && <button onClick={() => { const all = log.items.map(i => `${i.title}\n\n${i.editedContent || i.content}\n\n${i.hashtags?.join(" ") || ""}`).join("\n\n═══════════════════════════\n\n"); const blob = new Blob([all], { type: "text/plain;charset=utf-8" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `即影内容_${new Date().toISOString().slice(0, 10)}.txt`; a.click(); URL.revokeObjectURL(url) }} className="px-4 py-1.5 text-[10px] rounded-lg bg-blue-500/10 text-blue-300 border border-blue-500/15 hover:bg-blue-500/20 font-medium">📥 下载全部</button>}
             </div>
           </div>
           {log.items.map(item => (
@@ -235,10 +284,7 @@ export default function DailyContentEngine() {
                   {editingId === item.id ? (
                     <textarea value={editText} onChange={e => setEditText(e.target.value)} rows={4} className="w-full text-xs bg-[#0C0C14] rounded-lg p-2 text-white/70 border border-[#F59E0B]/40 focus:outline-none" />
                   ) : (
-                    <>
-                      <div className="text-sm font-medium text-white/80">{item.title}</div>
-                      <p className="text-[10px] text-white/40 mt-1 line-clamp-2">{item.content}</p>
-                    </>
+                    <><div className="text-sm font-medium text-white/80">{item.title}</div><p className="text-[10px] text-white/40 mt-1 line-clamp-2">{item.content}</p></>
                   )}
                   {item.hashtags && item.hashtags.length > 0 && <div className="flex flex-wrap gap-1 mt-1.5">{item.hashtags.map(h => <span key={h} className="text-[9px] text-[#F59E0B]/50">#{h.replace("#", "")}</span>)}</div>}
                   <div className="flex items-center gap-3 mt-2 text-[9px] text-white/30">
@@ -249,19 +295,12 @@ export default function DailyContentEngine() {
                   </div>
                   <div className="flex gap-1.5 mt-2 flex-wrap">
                     {item.action === "pending" || item.action === "confirmed" ? (
-                      <>
-                        <button onClick={() => handleAction(item.id, "published")} className="px-2.5 py-1 text-[9px] rounded-lg bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-green-500/25">✅ 发布</button>
-                        <button onClick={() => startEdit(item)} className="px-2.5 py-1 text-[9px] rounded-lg bg-white/[0.04] text-white/40 hover:text-white/60 border border-white/[0.06]">✏️ 编辑</button>
-                        <button onClick={() => handleAction(item.id, "skipped")} className="px-2.5 py-1 text-[9px] rounded-lg bg-white/[0.04] text-white/30 hover:text-white/50 border border-white/[0.06]">⏭️ 跳过</button>
-                      </>
+                      <><button onClick={() => handleAction(item.id, "published")} className="px-2.5 py-1 text-[9px] rounded-lg bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-green-500/25">✅ 发布</button><button onClick={() => startEdit(item)} className="px-2.5 py-1 text-[9px] rounded-lg bg-white/[0.04] text-white/40 hover:text-white/60 border border-white/[0.06]">✏️ 编辑</button><button onClick={() => handleAction(item.id, "skipped")} className="px-2.5 py-1 text-[9px] rounded-lg bg-white/[0.04] text-white/30 hover:text-white/50 border border-white/[0.06]">⏭️ 跳过</button></>
                     ) : editingId === item.id ? (
-                      <>
-                        <button onClick={saveEdit} className="px-2.5 py-1 text-[9px] rounded-lg bg-[#F59E0B] text-[#0C0C14] font-bold">💾 保存</button>
-                        <button onClick={() => setEditingId(null)} className="px-2.5 py-1 text-[9px] rounded-lg bg-white/[0.04] text-white/40">取消</button>
-                      </>
+                      <><button onClick={saveEdit} className="px-2.5 py-1 text-[9px] rounded-lg bg-[#F59E0B] text-[#0C0C14] font-bold">💾 保存</button><button onClick={() => setEditingId(null)} className="px-2.5 py-1 text-[9px] rounded-lg bg-white/[0.04] text-white/40">取消</button></>
                     ) : <button onClick={() => handleAction(item.id, "pending")} className="px-2.5 py-1 text-[9px] rounded-lg bg-white/[0.04] text-white/40 hover:text-white/60">↩️ 撤回</button>}
-                    <button onClick={() => handleDownload(item)} className="px-2.5 py-1 text-[9px] rounded-lg bg-blue-500/10 text-blue-300 border border-blue-500/15 hover:bg-blue-500/20" title="下载文案">📥 文案</button>
-                    {item.mediaUrl && <button onClick={() => handleDownloadImage(item.mediaUrl!, item.title)} className="px-2.5 py-1 text-[9px] rounded-lg bg-purple-500/10 text-purple-300 border border-purple-500/15 hover:bg-purple-500/20" title="下载配图">🖼️ 配图</button>}
+                    <button onClick={() => handleDownload(item)} className="px-2.5 py-1 text-[9px] rounded-lg bg-blue-500/10 text-blue-300 border border-blue-500/15 hover:bg-blue-500/20">📥 文案</button>
+                    {item.mediaUrl && <button onClick={() => handleDownloadImage(item.mediaUrl!, item.title)} className="px-2.5 py-1 text-[9px] rounded-lg bg-purple-500/10 text-purple-300 border border-purple-500/15 hover:bg-purple-500/20">🖼️ 配图</button>}
                   </div>
                 </div>
               </div>

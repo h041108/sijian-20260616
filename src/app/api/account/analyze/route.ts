@@ -61,6 +61,8 @@ export async function POST(req: NextRequest) {
       message: searchResults.length > 0
         ? `已分析到 ${searchResults.length} 条相关公开内容`
         : "未搜索到具体内容，已根据你提供的信息进行基础分析",
+      // 返回原始搜索内容，供 Agent 13 生成时参考用户风格
+      contentSamples: searchResults.map(r => r.title + (r.content ? ": " + r.content.slice(0, 300) : "")),
     }
 
     if (DEEPSEEK_KEY) {
@@ -77,7 +79,7 @@ export async function POST(req: NextRequest) {
               {
                 role: "system",
                 content: `你是一个社交媒体账号分析师。根据用户提供的信息，分析该账号的：
-1. 内容赛道（如：美食、美妆、穿搭、数码、教育等）
+1. 内容赛道（从以下选择最接近的：美食、美妆、穿搭、数码、教育、生活、健康、母婴、旅行、家居、宠物、汽车、游戏、影视、科技、健身、音乐、摄影、手工、园艺、金融投资、程序开发、自媒体运营、知识付费、商业财经、设计创意、语言学习、情感心理）
 2. 置信度（0-1）
 3. 内容风格（列出3个关键词，如：教程型、测评型、Vlog型）
 4. 目标受众（一句话描述）
