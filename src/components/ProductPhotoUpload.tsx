@@ -22,18 +22,18 @@ export default function ProductPhotoUpload({ onAssetsReady, initialAssets }: Pro
   const fileRef = useRef<HTMLInputElement>(null)
   const labelRef = useRef<HTMLInputElement>(null)
 
-  const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setUploading(true)
-    try {
-      const fd = new FormData()
-      fd.append("file", file)
-      const res = await fetch("/api/upload", { method: "POST", body: fd })
-      const data = await res.json()
-      if (data.url) setPhotos(p => [...p, data.url])
-    } catch {}
-    setUploading(false)
+    // 前端直接读取，不依赖服务端写入（Vercel 兼容）
+    const reader = new FileReader()
+    reader.onload = () => {
+      setPhotos(p => [...p, reader.result as string])
+      setUploading(false)
+    }
+    reader.onerror = () => setUploading(false)
+    reader.readAsDataURL(file)
   }, [])
 
   const removePhoto = useCallback((idx: number) => {

@@ -70,21 +70,24 @@ export default function CharacterCreator({ onSelect, selectedId }: CharacterCrea
     setGenerating(false)
   }, [name, gender, age, hairStyle, height, bodyType, top, bottom, shoes, personality, styleHint])
 
-  const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setUploading(true)
-    try {
-      const formData = new FormData()
-      formData.append("file", file)
-      const res = await fetch("/api/upload", { method: "POST", body: formData })
-      const data = await res.json()
-      if (data.url) {
-        setCandidates([data.url])
-        setSelectedImage(data.url)
-      }
-    } catch {}
-    setUploading(false)
+    // 直接浏览器读取，不依赖服务端写文件（Vercel serverless 只读）
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      setCandidates([dataUrl])
+      setSelectedImage(dataUrl)
+      setUploading(false)
+      // 可选：异步上传到服务器持久化（不阻塞 UI）
+      const fd = new FormData()
+      fd.append("file", file)
+      fetch("/api/upload", { method: "POST", body: fd }).catch(() => {})
+    }
+    reader.onerror = () => setUploading(false)
+    reader.readAsDataURL(file)
   }, [])
 
   const handleSave = useCallback(() => {
