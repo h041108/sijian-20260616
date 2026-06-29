@@ -8,6 +8,7 @@ import StoryboardEditor from "@/components/StoryboardEditor"
 import ProductPhotoUpload, { type ProductAssets } from "@/components/ProductPhotoUpload"
 import ViralTrendPanel, { type ViralTemplate } from "@/components/ViralTrendPanel"
 import ReferenceUrlInput from "@/components/ReferenceUrlInput"
+import StoryboardVideoRenderer from "@/components/StoryboardVideoRenderer"
 import { loadCharacters, getCharacter, buildReferenceImageUrls, genId, type CharacterTemplate, type StoryboardShot } from "@/lib/character-engine"
 import SlideRenderer from "@/components/SlideRenderer"
 
@@ -82,6 +83,8 @@ function CreateProjectPanel({ genreKey, onBack }: { genreKey: GenreKey; onBack: 
   const [viralTemplate, setViralTemplate] = useState<ViralTemplate | null>(null)
   const [autoRunning, setAutoRunning] = useState(false)
   const [showSlideRender, setShowSlideRender] = useState(false)
+  const [showVideoRender, setShowVideoRender] = useState(false)
+  const [videoBlob, setVideoBlob] = useState<Blob | null>(null)
   const [slideBlob, setSlideBlob] = useState<Blob | null>(null)
 
   const STYLE_OPTIONS = ["写实风格", "日系动漫", "国风水墨", "赛博朋克", "皮克斯3D", "油画风格", "扁平设计", "高端质感"]
@@ -337,6 +340,36 @@ function CreateProjectPanel({ genreKey, onBack }: { genreKey: GenreKey; onBack: 
       {/* 故事板 / 知识讲解动画 */}
       {storyboardShots.length > 0 && (
         <div className="glass rounded-2xl p-5">
+          {(genreKey === "short_drama" || genreKey === "comic" || genreKey === "ad") && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowVideoRender(!showVideoRender)}
+                  className={`px-3 py-1.5 text-[10px] rounded-lg border transition-all ${showVideoRender ? "bg-red-500/15 border-red-500/25 text-red-300" : "bg-white/[0.04] text-white/40 border-white/[0.06]"}`}>
+                  {showVideoRender ? "🎬 视频预览中" : "🎬 导出视频"}
+                </button>
+                <span className="text-[9px] text-white/20">{storyboardShots.length}镜头·约{storyboardShots.length * (genreKey === "ad" ? 4 : 5)}秒</span>
+              </div>
+            </div>
+          )}
+          {showVideoRender && (genreKey === "short_drama" || genreKey === "comic" || genreKey === "ad") && (
+            <div className="mb-4 space-y-3">
+              <StoryboardVideoRenderer
+                shots={storyboardShots}
+                genre={genreKey}
+                title={project?.oneLiner || ""}
+                onRecordingComplete={(blob) => setVideoBlob(blob)} />
+              {videoBlob && (
+                <div className="flex gap-2">
+                  <a href={URL.createObjectURL(videoBlob)} download={`视频_${Date.now()}.webm`}
+                    className="flex-1 py-2.5 rounded-xl bg-green-500/15 text-green-400 border border-green-500/20 text-xs font-medium text-center hover:bg-green-500/25">
+                    📥 下载视频 (.webm)
+                  </a>
+                  <button onClick={() => setVideoBlob(null)}
+                    className="px-4 py-2.5 rounded-xl bg-white/[0.04] text-white/40 text-xs">重新录制</button>
+                </div>
+              )}
+            </div>
+          )}
           {genreKey === "tutorial" && (
             <div className="mb-4">
               <div className="flex items-center gap-2">
