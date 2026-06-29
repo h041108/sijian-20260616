@@ -7,6 +7,8 @@ import {
   type DailyContentItem, type ReviewAction,
 } from "@/lib/review-store"
 import { addGeneratedToMediaLibrary } from "@/lib/media-library"
+import ViralSelector from "./ViralSelector"
+import { buildPrompt, type ViralTemplate } from "@/lib/prompt-engine"
 
 export default function DailyContentEngine() {
   const { user } = useJiyingUser()
@@ -30,6 +32,8 @@ export default function DailyContentEngine() {
   const [showRefInput, setShowRefInput] = useState(false)
   const [refInput, setRefInput] = useState("")
   const fileRef = useRef<HTMLInputElement>(null)
+  const [showViralSelector, setShowViralSelector] = useState(false)
+  const [viralTemplate, setViralTemplate] = useState<ViralTemplate | null>(null)
 
   // 页面加载时读取 niche —— 只读一次，不轮询，不过滤任何值
   useEffect(() => {
@@ -84,15 +88,17 @@ export default function DailyContentEngine() {
     setError("")
     const mockItems = generateMockDailyItems()
     try {
-      // 读取用户的内容样本作为 AI 生成参考
-      let referencePrompt = `我是${platform}平台的${niche}领域博主，请推荐今日最佳选题（TOP 1），并写一段完整的文案（300字左右），适合${platform}平台风格`
-      if (referenceTexts.length > 0) {
-        referencePrompt += `\n\n以下是我账号已有的内容风格，请参考这些内容的风格、专业深度和表达方式来创作新内容，不要写泛泛的通用内容：\n${referenceTexts.map((t, i) => `参考${i+1}: ${t}`).join("\n")}`
-      }
+      // 使用提示词引擎构建 prompt（如果有爆款模板就注入）
+      const promptResult = buildPrompt({
+        niche,
+        platform,
+        userContentSamples: referenceTexts,
+        viralTemplate: viralTemplate || undefined,
+      })
       const res = await fetch("/api/agent/agent_13", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          instruction: referencePrompt,
+          instruction: promptResult.systemPrompt + "\n\n" + promptResult.userPrompt,
           context: { userProfile: { platform, niche } },
         }),
       })
@@ -251,6 +257,29 @@ export default function DailyContentEngine() {
             )}
           </div>
         </details>
+
+        {/* 爆款参考按钮 */}
+        <button onClick={() => setShowViralSelector(true)}
+          className="w-full py-2 rounded-xl border border-[#F59E0B]/15 text-[#F59E0B] text-xs font-medium hover:bg-[#F59E0B]/5 transition-all">
+          {viralTemplate ? "✅ 已选爆款参考" : "🏆 参考同类爆款结构（可选）"}
+        </button>
+
+        {/* 爆款选择器弹窗 */}
+        {showViralSelector && (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setShowViralSelector(false)}>
+            <div className="bg-[#1A1A2E] rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <ViralSelector
+                niche={niche}
+                platform={platform}
+                userContentSamples={referenceTexts}
+                onTemplateReady={(template: any, _rewritePrompt: string) => {
+                  setViralTemplate(template)
+                  setShowViralSelector(false)
+                }}
+                onClose={() => setShowViralSelector(false)} />
+            </div>
+          </div>
+        )}
 
         <button onClick={handleGenerate} disabled={generating} className="w-full py-3 rounded-xl bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-[#0C0C14] text-sm font-bold disabled:opacity-40">
           {generating ? <span className="flex items-center justify-center gap-2"><span className="w-3 h-3 rounded-full border-2 border-[#0C0C14] border-t-transparent animate-spin" />AI 生成中...</span> : `🚀 AI 生成今日 ${platform} 内容`}
