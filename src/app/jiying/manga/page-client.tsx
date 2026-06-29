@@ -9,6 +9,7 @@ import ProductPhotoUpload, { type ProductAssets } from "@/components/ProductPhot
 import ViralTrendPanel, { type ViralTemplate } from "@/components/ViralTrendPanel"
 import ReferenceUrlInput from "@/components/ReferenceUrlInput"
 import { loadCharacters, getCharacter, buildReferenceImageUrls, genId, type CharacterTemplate, type StoryboardShot } from "@/lib/character-engine"
+import SlideRenderer from "@/components/SlideRenderer"
 
 // ─── 类型 ─────────────────────────────────────
 type GenreKey = "short_drama" | "comic" | "tutorial" | "ad"
@@ -80,6 +81,8 @@ function CreateProjectPanel({ genreKey, onBack }: { genreKey: GenreKey; onBack: 
   const [productAssets, setProductAssets] = useState<ProductAssets | null>(null)
   const [viralTemplate, setViralTemplate] = useState<ViralTemplate | null>(null)
   const [autoRunning, setAutoRunning] = useState(false)
+  const [showSlideRender, setShowSlideRender] = useState(false)
+  const [slideBlob, setSlideBlob] = useState<Blob | null>(null)
 
   const STYLE_OPTIONS = ["写实风格", "日系动漫", "国风水墨", "赛博朋克", "皮克斯3D", "油画风格", "扁平设计", "高端质感"]
 
@@ -331,15 +334,49 @@ function CreateProjectPanel({ genreKey, onBack }: { genreKey: GenreKey; onBack: 
         </div>
       )}
 
-      {/* 故事板 */}
+      {/* 故事板 / 知识讲解动画 */}
       {storyboardShots.length > 0 && (
         <div className="glass rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-xs text-white/50 font-medium">故事板</div>
-            <button onClick={handleGenerateAll} disabled={!!generatingShot}
-              className="px-3 py-1 text-[10px] rounded-lg bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-[#0C0C14] font-bold disabled:opacity-40">🎨 一键生成关键帧</button>
-          </div>
-          <StoryboardEditor shots={storyboardShots} character={selectedChar} onUpdateShot={handleUpdateShot} onGenerateKeyframe={handleGenerateKeyframe} generatingShot={generatingShot} />
+          {genreKey === "tutorial" && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowSlideRender(!showSlideRender)}
+                  className={`px-3 py-1.5 text-[10px] rounded-lg border transition-all ${showSlideRender ? "bg-blue-500/15 border-blue-500/25 text-blue-300" : "bg-white/[0.04] text-white/40 border-white/[0.06]"}`}>
+                  {showSlideRender ? "📖 动画预览中" : "📖 知识讲解动画"}
+                </button>
+                <span className="text-[9px] text-white/20">动画渲染，快100倍</span>
+              </div>
+            </div>
+          )}
+          {showSlideRender && genreKey === "tutorial" ? (
+            <div className="space-y-3">
+              <SlideRenderer
+                title={project?.oneLiner || "知识讲解"}
+                content={project?.stages?.find(s => s.stageId === "story_genesis" || s.stageId === "script_breakdown")?.output || ""}
+                onRecordingComplete={(blob) => {
+                  setSlideBlob(blob)
+                }} />
+              {slideBlob && (
+                <div className="flex gap-2">
+                  <a href={URL.createObjectURL(slideBlob)} download={`知识讲解_${Date.now()}.webm`}
+                    className="flex-1 py-2.5 rounded-xl bg-green-500/15 text-green-400 border border-green-500/20 text-xs font-medium text-center hover:bg-green-500/25">
+                    📥 下载视频 (.webm)
+                  </a>
+                  <button onClick={() => setSlideBlob(null)}
+                    className="px-4 py-2.5 rounded-xl bg-white/[0.04] text-white/40 text-xs">重新录制</button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-xs text-white/50 font-medium">故事板</div>
+                <button onClick={handleGenerateAll} disabled={!!generatingShot}
+                  className="px-3 py-1 text-[10px] rounded-lg bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-[#0C0C14] font-bold disabled:opacity-40">🎨 一键生成关键帧</button>
+              </div>
+              <StoryboardEditor shots={storyboardShots} character={selectedChar} onUpdateShot={handleUpdateShot} onGenerateKeyframe={handleGenerateKeyframe} generatingShot={generatingShot} />
+            </>
+          )}
         </div>
       )}
     </div>
