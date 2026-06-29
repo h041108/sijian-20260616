@@ -79,6 +79,7 @@ function CreateProjectPanel({ genreKey, onBack }: { genreKey: GenreKey; onBack: 
   const [generatingShot, setGeneratingShot] = useState<string | null>(null)
   const [productAssets, setProductAssets] = useState<ProductAssets | null>(null)
   const [viralTemplate, setViralTemplate] = useState<ViralTemplate | null>(null)
+  const [autoRunning, setAutoRunning] = useState(false)
 
   const STYLE_OPTIONS = ["写实风格", "日系动漫", "国风水墨", "赛博朋克", "皮克斯3D", "油画风格", "扁平设计", "高端质感"]
 
@@ -133,6 +134,36 @@ function CreateProjectPanel({ genreKey, onBack }: { genreKey: GenreKey; onBack: 
     }
     setRunning(false)
   }, [activeId, running])
+
+  // 一键全自动运行所有阶段
+  const handleAutoRun = useCallback(async () => {
+    if (!activeId || autoRunning) return
+    setAutoRunning(true)
+    const stageOrder: PipelineStageId[] = ["story_genesis", "script_breakdown", "prompt_engineering", "visual_generation", "audio_production", "final_assembly"]
+    for (const stageId of stageOrder) {
+      setRunning(true)
+      try {
+        await executeStage(activeId, stageId)
+      } catch {}
+      const projects = loadProjects()
+      const updated = projects.find(p => p.id === activeId) || null
+      setProject(updated)
+      if (updated && (stageId === "story_genesis" || stageId === "script_breakdown")) {
+        const sbStage = updated.stages.find(s => s.stageId === "script_breakdown")
+        const storyStage = updated.stages.find(s => s.stageId === "story_genesis")
+        const output = sbStage?.output || storyStage?.output || ""
+        const parsed = parseShotsFromScriptOutput(output)
+        if (parsed.length > 0) {
+          setStoryboardShots(prev => parsed.map(s => {
+            const existing = prev.find(p => p.shotNumber === s.shotNumber)
+            return { ...s, keyframeUrl: existing?.keyframeUrl, videoUrl: existing?.videoUrl }
+          }))
+        }
+      }
+      setRunning(false)
+    }
+    setAutoRunning(false)
+  }, [activeId, autoRunning])
 
   const handleUpdateShot = useCallback((shotId: string, updates: Partial<StoryboardShot>) => {
     setStoryboardShots(prev => prev.map(s => s.id === shotId ? { ...s, ...updates } : s))
@@ -262,7 +293,18 @@ function CreateProjectPanel({ genreKey, onBack }: { genreKey: GenreKey; onBack: 
       {/* 流水线 */}
       {project && (
         <div className="glass rounded-2xl p-5 space-y-3">
-          <div className="text-xs text-white/40 font-medium">📋 流水线 · {project.oneLiner.slice(0, 30)}</div>
+          <div className="flex items-center justify-between mb-1">
+            <div className="text-xs text-white/40 font-medium">📋 流水线 · {project.oneLiner.slice(0, 30)}</div>
+            <button onClick={handleAutoRun} disabled={autoRunning || running}
+              className="px-4 py-1.5 text-[10px] rounded-lg bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-[#0C0C14] font-bold disabled:opacity-40 transition-all">
+              {autoRunning ? "🔄 自动运行中..." : "🚀 全自动生成"}
+            </button>
+          </div>
+          {autoRunning && (
+            <div className="h-1 bg-[#0C0C14] rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-[#F59E0B] to-[#F97316] rounded-full transition-all animate-pulse" style={{ width: "100%" }} />
+            </div>
+          )}
           {PIPELINE_STAGES.map(stage => {
             const ps = project.stages.find(s => s.stageId === stage.id)
             const done = ps?.status === "done"
