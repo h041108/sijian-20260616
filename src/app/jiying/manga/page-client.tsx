@@ -8,6 +8,7 @@ import StoryboardEditor from "@/components/StoryboardEditor"
 import ProductPhotoUpload, { type ProductAssets } from "@/components/ProductPhotoUpload"
 import ViralTrendPanel, { type ViralTemplate } from "@/components/ViralTrendPanel"
 import ReferenceUrlInput from "@/components/ReferenceUrlInput"
+import FilmParameters, { type FilmParams } from "@/components/FilmParameters"
 import StoryboardVideoRenderer from "@/components/StoryboardVideoRenderer"
 import { loadCharacters, getCharacter, buildReferenceImageUrls, genId, type CharacterTemplate, type StoryboardShot } from "@/lib/character-engine"
 import SlideRenderer from "@/components/SlideRenderer"
@@ -83,6 +84,7 @@ function CreateProjectPanel({ genreKey, onBack }: { genreKey: GenreKey; onBack: 
   const [viralTemplate, setViralTemplate] = useState<ViralTemplate | null>(null)
   const [autoRunning, setAutoRunning] = useState(false)
   const [directorMode, setDirectorMode] = useState<"full" | "quick">("full")
+  const [filmParams, setFilmParams] = useState<FilmParams | null>(null)
   const [showSlideRender, setShowSlideRender] = useState(false)
   const [showVideoRender, setShowVideoRender] = useState(false)
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null)
@@ -248,6 +250,11 @@ function CreateProjectPanel({ genreKey, onBack }: { genreKey: GenreKey; onBack: 
             setViralTemplate(template)
             if (!oneLiner.trim()) setOneLiner(suggestedOneLiner)
           }} />
+
+        {/* 电影制作级参数 — 微短剧/漫剧/产品广告使用 */}
+        {(genreKey === "short_drama" || genreKey === "comic" || genreKey === "ad") && (
+          <FilmParameters genre={genreKey} onChange={setFilmParams} />
+        )}
 
         <button onClick={handleCreate} disabled={!oneLiner.trim()}
           className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-[#0C0C14] text-sm font-bold">🚀 创建</button>
