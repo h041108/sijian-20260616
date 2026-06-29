@@ -1,8 +1,6 @@
 // ─── POST /api/account/analyze ────────────────────────
-// 根据用户提供的主页 URL + 昵称，真实分析账号
-// 1. Tavily 搜索该账号公开内容
-// 2. DeepSeek 分析赛道、风格、受众
-// 3. 返回结构化分析报告
+// 根据用户提供的主页 URL + 昵称，搜索账号公开内容并分析风格
+// 注意：不强制判断赛道，只提供建议。赛道由用户手动选择
 
 import { NextRequest, NextResponse } from "next/server"
 
@@ -27,7 +25,7 @@ export async function POST(req: NextRequest) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             api_key: TAVILY_KEY,
-            query: `${nickname} ${platform} 内容`,
+            query: `${nickname} ${platform}`,
             search_depth: "advanced",
             max_results: 8,
             include_answer: true,
@@ -44,7 +42,7 @@ export async function POST(req: NextRequest) {
       } catch {}
     }
 
-    // Step 2: 分析账号 — 即使搜索没结果，也基于用户提供的信息做分析
+    // Step 2: 构建分析输入
     const analysisInput = searchResults.length > 0
       ? `平台：${platform}\n昵称：${nickname}\n主页：${profileUrl}\n\n搜索到的公开内容：\n${searchResults.map(r => `- ${r.title}: ${r.content.slice(0, 200)}`).join("\n")}`
       : `平台：${platform}\n昵称：${nickname}\n主页：${profileUrl}`
@@ -59,13 +57,13 @@ export async function POST(req: NextRequest) {
       searchResultsCount: searchResults.length,
       verified: true,
       message: searchResults.length > 0
-        ? `已分析到 ${searchResults.length} 条相关公开内容`
-        : "未搜索到具体内容，已根据你提供的信息进行基础分析",
-      // 返回原始搜索内容，供 Agent 13 生成时参考用户风格
+        ? `已搜索到 ${searchResults.length} 条相关内容`
+        : "未搜索到具体内容",
       contentSamples: searchResults.map(r => r.title + (r.content ? ": " + r.content.slice(0, 300) : "")),
     }
 
-    if (DEEPSEEK_KEY) {
+    // Step 3: DeepSeek 分析内容风格和受众（不强制判断赛道）
+    if (DEEPSEEK_KEY && searchResults.length > 0) {
       try {
         const dsRes = await fetch("https://api.deepseek.com/v1/chat/completions", {
           method: "POST",
@@ -78,18 +76,7 @@ export async function POST(req: NextRequest) {
             messages: [
               {
                 role: "system",
-                content: `你是一个社交媒体账号分析师。根据用户提供的信息，分析该账号的：
-1. 内容赛道（从以下选择最匹配的）
-   注意：如果内容涉及代码、编程、算法、策略、回测、系统搭建、开发、技术实现等技术词汇，优先选"程序开发"而非"自媒体运营"或"科技"。
-   如果内容涉及金融、投资、交易、理财、股票等经济词汇，优先选"金融投资"而非"自媒体运营"。
-   可选赛道列表：美食、美妆、穿搭、数码、教育、生活、健康、母婴、旅行、家居、宠物、汽车、游戏、影视、科技、健身、音乐、摄影、手工、园艺、金融投资、程序开发、自媒体运营、知识付费、商业财经、设计创意、语言学习、情感心理
-2. 置信度（0-1）
-3. 内容风格（列出3个关键词，如：教程型、测评型、Vlog型）
-4. 目标受众（一句话描述）
-5. 内容标签（5个关键词）
-
-只输出JSON格式，不要任何其他文字：
-{"niche":"赛道","nicheConfidence":0-1,"contentStyle":["风格1","风格2","风格3"],"audience":"目标受众描述","contentTags":["标签1","标签2","标签3","标签4","标签5"]}`,
+                content: "你是一个社交媒体内容分析师。根据用户账号的公开内容，分析：\n1. 内容风格（3个关键词）\n2. 目标受众（一句话）\n3. 内容标签（5个）\n4. 建议赛道（仅做参考，标注置信度）\n\n只输出JSON：\n{\"suggestedNiche\":\"赛道名\",\"nicheConfidence\":0-1,\"contentStyle\":[\"a\",\"b\",\"c\"],\"audience\":\"描述\",\"contentTags\":[\"t1\",\"t2\",\"t3\",\"t4\",\"t5\"]}",
               },
               { role: "user", content: analysisInput },
             ],
@@ -100,11 +87,21 @@ export async function POST(req: NextRequest) {
         if (dsRes.ok) {
           const dsData = await dsRes.json()
           const content = dsData.choices?.[0]?.message?.content || ""
-          // 提取 JSON
           const jsonMatch = content.match(/\{[\s\S]*\}/)
           if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0])
-            analysis = { ...analysis, ...parsed, accountExists: searchResults.length > 0, searchResultsCount: searchResults.length, verified: true }
+            analysis = {
+              ...analysis,
+              suggestedNiche: parsed.suggestedNiche || "待确认",
+              nicheConfidence: parsed.nicheConfidence || 0,
+              contentStyle: parsed.contentStyle || ["待分析"],
+              audience: parsed.audience || "待分析",
+              contentTags: parsed.contentTags || [],
+              niche: parsed.suggestedNiche || "待确认", // 保留兼容
+              accountExists: searchResults.length > 0,
+              searchResultsCount: searchResults.length,
+              verified: true,
+            }
           }
         }
       } catch {}

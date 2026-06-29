@@ -50,20 +50,18 @@ export default function LaunchPage() {
       if (res.ok) {
         const data = await res.json()
         if (data.verified) {
-          // 直接写入 localStorage，不依赖 React state 闭包
           const result = {
             niche: data.niche || "待确认", nicheConfidence: data.nicheConfidence || 0,
             contentStyle: data.contentStyle || ["待分析"], audience: data.audience || "待分析",
-            contentTags: data.contentTags || [], accountExists: data.accountExists || false,
+            contentTags: data.contentTags || [], contentSamples: data.contentSamples || [],
+            accountExists: data.accountExists || false,
             searchResultsCount: data.searchResultsCount || 0, message: data.message || "",
           }
+          // 只存分析结果（含内容样本、风格等），不设 niche 值
+          // niche 必须由用户手动确认后才能生效
           localStorage.setItem(ANALYSIS_KEY, JSON.stringify(result))
-          // 同时写入 redirect key，确保 daily-content 页能读到
-          if (result.niche && result.niche !== "待确认") {
-            localStorage.setItem("jiying_niche_redirect", result.niche)
-          }
           setAnalysis(result)
-          setConfirmedNiche(result.niche)
+          setConfirmedNiche("") // 用户必须手动选择赛道
         } else { setError(data.error || "分析失败") }
       } else { setError("服务不可用") }
     } catch { setError("分析超时") }
