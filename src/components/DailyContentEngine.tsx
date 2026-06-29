@@ -22,10 +22,15 @@ export default function DailyContentEngine() {
   const [platform, setPlatform] = useState("小红书")
   const [error, setError] = useState("")
   const [referenceTexts, setReferenceTexts] = useState<string[]>(() => {
-    // 从分析结果加载用户的内容样本作为参考
+    // 从分析结果加载用户的内容样本作为参考（仅当赛道名匹配时）
     try {
       const saved = JSON.parse(localStorage.getItem("jiying_account_analysis") || "{}")
-      if (saved.contentSamples && Array.isArray(saved.contentSamples)) return saved.contentSamples.slice(0, 5)
+      const nicheVal = localStorage.getItem("jiying_niche_redirect") || saved.niche || ""
+      const savedNiche = saved.niche || ""
+      // 只有当分析结果的赛道名和当前赛道匹配时，才使用其内容样本（否则样本来自旧分析结果，会误导 AI）
+      if (saved.contentSamples && Array.isArray(saved.contentSamples) && nicheVal === savedNiche) {
+        return saved.contentSamples.slice(0, 5)
+      }
     } catch {}
     return []
   })
@@ -197,7 +202,14 @@ export default function DailyContentEngine() {
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="text-[10px] text-[#5A5A72] mb-1 block">内容赛道</label>
-            <select value={niche} onChange={e => setNiche(e.target.value)} className="w-full px-3 py-2 text-xs rounded-xl bg-[#0C0C14] border border-white/10 text-white/60 focus:outline-none">
+            <select value={niche} onChange={e => {
+              const newNiche = e.target.value
+              // 用户手动改赛道时，清除旧赛道的内容样本（避免冲突）
+              if (newNiche !== niche && referenceTexts.length > 0) {
+                setReferenceTexts([])
+              }
+              setNiche(newNiche)
+            }} className="w-full px-3 py-2 text-xs rounded-xl bg-[#0C0C14] border border-white/10 text-white/60 focus:outline-none">
               {NICHE_LIST.map(n => <option key={n}>{n}</option>)}
             </select>
           </div>
