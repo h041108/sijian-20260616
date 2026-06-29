@@ -21,7 +21,18 @@ export default function DailyContentEngine() {
   const [editText, setEditText] = useState("")
   const [platform, setPlatform] = useState("小红书")
   const [error, setError] = useState("")
-  const [referenceTexts, setReferenceTexts] = useState<string[]>(() => []) // 不再自动加载旧分析结果，只由用户手动添加
+  const [referenceTexts, setReferenceTexts] = useState<string[]>(() => {
+    // 从分析结果自动加载用户的内容样本（Tavily 搜到的用户自己的帖子）
+    // 注意：这些是用户账号的真实内容，不是 AI 生成的"自媒体运营"风格的内容
+    // 它们会被传给 AI 作为风格参考，让 AI 模仿用户的真实写作风格
+    try {
+      const saved = JSON.parse(localStorage.getItem("jiying_account_analysis") || "{}")
+      if (saved.contentSamples && Array.isArray(saved.contentSamples) && saved.contentSamples.length > 0) {
+        return saved.contentSamples.slice(0, 3)
+      }
+    } catch {}
+    return []
+  })
   const [showRefInput, setShowRefInput] = useState(false)
   const [refInput, setRefInput] = useState("")
   const fileRef = useRef<HTMLInputElement>(null)
