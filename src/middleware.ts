@@ -16,6 +16,7 @@ const PUBLIC_API_PATHS = [
   "/api/video/assemble", "/api/video/auto-fix",
   "/api/mindspace", "/api/usage",
   "/api/stock",
+  "/api/quality",
 ]
 
 export function middleware(request: NextRequest) {
