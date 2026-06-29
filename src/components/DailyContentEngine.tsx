@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react"
 import { useJiyingUser } from "@/app/jiying/layout"
 import { addGeneratedToMediaLibrary } from "@/lib/media-library"
 import { buildPrompt, buildRewritePrompt, buildDeconstructPromptForSelection, type ViralTemplate } from "@/lib/prompt-engine"
+import ReferenceUrlInput from "./ReferenceUrlInput"
 
 interface ContentOption {
   id: string
@@ -235,6 +236,14 @@ export default function DailyContentEngine() {
             <span className="text-[9px] text-white/30">· 参考素材 {contentSamples.length} 条</span>
           </div>
         )}
+
+        {/* 粘贴竞品链接 → 自动分析 → 注入 */}
+        <ReferenceUrlInput
+          niche={niche || "通用"}
+          platform={platform}
+          onTemplateReady={(template, suggestedOneLiner) => {
+            setViralTemplate(template)
+          }} />
 
         {/* Step 1: 搜爆款 */}
         <button onClick={handleSearchViral} disabled={searchingViral || !niche.trim()}

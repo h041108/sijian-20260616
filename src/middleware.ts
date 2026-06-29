@@ -7,7 +7,15 @@ import type { NextRequest } from "next/server"
 const HAS_SUPABASE = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").length > 0 &&
   (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").length > 0
 
-const PUBLIC_API_PATHS = ["/api/auth", "/api/upload", "/api/video/proxy-image", "/api/account", "/api/agent"]
+const PUBLIC_API_PATHS = [
+  "/api/auth", "/api/upload", "/api/video/proxy-image",
+  "/api/account", "/api/agent", "/api/character",
+  "/api/chat", "/api/cognition", "/api/trends",
+  "/api/viral", "/api/video/frame", "/api/video/seedance",
+  "/api/video/digital-human", "/api/video/tts",
+  "/api/video/assemble", "/api/video/auto-fix",
+  "/api/mindspace", "/api/usage",
+]
 
 export function middleware(request: NextRequest) {
   const hostname = request.headers.get("host") || ""

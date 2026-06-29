@@ -7,6 +7,7 @@ import CharacterCreator from "@/components/CharacterCreator"
 import StoryboardEditor from "@/components/StoryboardEditor"
 import ProductPhotoUpload, { type ProductAssets } from "@/components/ProductPhotoUpload"
 import ViralTrendPanel, { type ViralTemplate } from "@/components/ViralTrendPanel"
+import ReferenceUrlInput from "@/components/ReferenceUrlInput"
 import { loadCharacters, getCharacter, buildReferenceImageUrls, genId, type CharacterTemplate, type StoryboardShot } from "@/lib/character-engine"
 
 // ─── 类型 ─────────────────────────────────────
@@ -199,6 +200,16 @@ function CreateProjectPanel({ genreKey, onBack }: { genreKey: GenreKey; onBack: 
             ))}
           </div>
         </div>
+
+        {/* 粘贴竞品链接 → 自动分析 → 注入流水线 */}
+        <ReferenceUrlInput
+          niche={style}
+          platform={genreKey === "comic" ? "B站" : genreKey === "ad" ? "抖音" : "小红书"}
+          onTemplateReady={(template, suggestedOneLiner) => {
+            setViralTemplate(template)
+            if (!oneLiner.trim()) setOneLiner(suggestedOneLiner)
+          }} />
+
         <button onClick={handleCreate} disabled={!oneLiner.trim()}
           className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-[#0C0C14] text-sm font-bold">🚀 创建</button>
       </div>
