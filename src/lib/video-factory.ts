@@ -466,7 +466,12 @@ export async function executeStage(
           const jimengDesc = jimengLines[i] || ""
           const sceneDesc = jimengDesc || shot.description
 
-          // 无缝衔接：镜头1用T2I，后续镜头用图生图（传到上一帧保证视觉连续）
+          // 收集角色/产品参考图（所有镜头共享，保持一致性）
+          const allRefUrls: string[] = []
+          if (project.characterRefUrls?.length) allRefUrls.push(...project.characterRefUrls)
+          if (project.productImageUrls?.length) allRefUrls.push(...project.productImageUrls)
+
+          // 无缝衔接：镜头1用参考图，后续镜头用上一帧图生图（保证帧间连续）
           const useImageRef = i > 0 && previousImageUrl && !previousImageUrl.includes("placehold.co")
           const continuityNote = useImageRef
             ? `延续上一帧画面，仅改变以下内容：${sceneDesc}。保持角色外观、色调、光影完全不变。`
@@ -474,9 +479,13 @@ export async function executeStage(
           const imagePrompt = continuityNote.slice(0, 380)
 
           const frameBody: any = { prompt: imagePrompt, width: 1920, height: 1080 }
+          // 优先用上一帧（帧间连续性），首帧用角色/产品参考图
           if (useImageRef) {
             frameBody.image = previousImageUrl
-            frameBody.image_strength = 0.35  // seedream 4.5 img2img 强度：低=保留原图多
+            frameBody.image_strength = 0.35
+          } else if (allRefUrls.length > 0) {
+            frameBody.image = allRefUrls[0]
+            frameBody.image_strength = 0.4
           }
 
           const frameRes = await fetch("/api/video/frame", {
