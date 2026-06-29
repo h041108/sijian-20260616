@@ -240,6 +240,63 @@ export const PIPELINE_STAGES: StageAgent[] = [
 ]
 
 // ═══════════════════════════════════════════════════
+// Agent 导演模式：根据类型和内容动态决定流水线阶段
+// ═══════════════════════════════════════════════════
+
+export interface DirectorPlan {
+  stages: PipelineStageId[]
+  mode: "full" | "quick" | "visual_only"
+  label: string
+  description: string
+}
+
+// 各类型的默认流水线配置
+const DIRECTOR_PLANS: Record<string, { full: PipelineStageId[]; quick: PipelineStageId[] }> = {
+  short_drama: {
+    full: ["story_genesis", "script_breakdown", "prompt_engineering", "visual_generation", "audio_production", "final_assembly"],
+    quick: ["story_genesis", "script_breakdown", "visual_generation", "final_assembly"],
+  },
+  comic: {
+    full: ["story_genesis", "script_breakdown", "prompt_engineering", "visual_generation", "audio_production", "final_assembly"],
+    quick: ["story_genesis", "script_breakdown", "visual_generation", "final_assembly"],
+  },
+  tutorial: {
+    full: ["story_genesis", "script_breakdown", "prompt_engineering", "visual_generation", "final_assembly"],
+    quick: ["story_genesis", "visual_generation", "final_assembly"],
+  },
+  ad: {
+    full: ["story_genesis", "script_breakdown", "prompt_engineering", "visual_generation", "final_assembly"],
+    quick: ["story_genesis", "visual_generation", "final_assembly"],
+  },
+  storytelling: {
+    full: ["story_genesis", "script_breakdown", "prompt_engineering", "visual_generation", "audio_production", "final_assembly"],
+    quick: ["story_genesis", "script_breakdown", "visual_generation", "final_assembly"],
+  },
+}
+
+export function getDirectorPlan(genre: string, mode: "full" | "quick" = "full"): DirectorPlan {
+  const plans = DIRECTOR_PLANS[genre] || DIRECTOR_PLANS.short_drama
+  const stages = mode === "quick" ? plans.quick : plans.full
+
+  const labels: Record<string, string> = {
+    full: "完整模式（6阶段）",
+    quick: "快速模式（精简阶段）",
+  }
+
+  const descriptions: Record<string, string> = {
+    full: "故事创世 → 分镜 → 提示词 → 视觉 → 音频 → 合成",
+    quick: "故事创世 → 视觉 → 合成（跳过中间步骤）",
+  }
+
+  return { stages, mode, label: labels[mode] || labels.full, description: descriptions[mode] || descriptions.full }
+}
+
+export function getDirectorModeLabel(genre: string, stagesCount: number): string {
+  const full = (DIRECTOR_PLANS[genre] || DIRECTOR_PLANS.short_drama).full.length
+  return stagesCount >= full ? "🎬 完整导演" : "⚡ 快速导演"
+}
+
+// ═══════════════════════════════════════════════════
 // 视频类型预设
 // ═══════════════════════════════════════════════════
 

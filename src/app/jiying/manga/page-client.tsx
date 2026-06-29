@@ -1,6 +1,6 @@
 "use client"
 import { useState, useCallback, useRef, useEffect } from "react"
-import { createProject, loadProjects, executeStage, PIPELINE_STAGES, type VideoProject, type PipelineStageId } from "@/lib/video-factory"
+import { createProject, loadProjects, executeStage, PIPELINE_STAGES, getDirectorPlan, type VideoProject, type PipelineStageId, type DirectorPlan } from "@/lib/video-factory"
 import { createVoiceDirectorSession, type VoiceDirectorSession, type NarratedScene } from "@/lib/voice-video"
 import { useJiyingUser } from "../layout"
 import CharacterCreator from "@/components/CharacterCreator"
@@ -82,6 +82,7 @@ function CreateProjectPanel({ genreKey, onBack }: { genreKey: GenreKey; onBack: 
   const [productAssets, setProductAssets] = useState<ProductAssets | null>(null)
   const [viralTemplate, setViralTemplate] = useState<ViralTemplate | null>(null)
   const [autoRunning, setAutoRunning] = useState(false)
+  const [directorMode, setDirectorMode] = useState<"full" | "quick">("full")
   const [showSlideRender, setShowSlideRender] = useState(false)
   const [showVideoRender, setShowVideoRender] = useState(false)
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null)
@@ -145,7 +146,8 @@ function CreateProjectPanel({ genreKey, onBack }: { genreKey: GenreKey; onBack: 
   const handleAutoRun = useCallback(async () => {
     if (!activeId || autoRunning) return
     setAutoRunning(true)
-    const stageOrder: PipelineStageId[] = ["story_genesis", "script_breakdown", "prompt_engineering", "visual_generation", "audio_production", "final_assembly"]
+    const plan = getDirectorPlan(genreKey, directorMode)
+    const stageOrder: PipelineStageId[] = plan.stages
     for (const stageId of stageOrder) {
       setRunning(true)
       try {
@@ -169,7 +171,7 @@ function CreateProjectPanel({ genreKey, onBack }: { genreKey: GenreKey; onBack: 
       setRunning(false)
     }
     setAutoRunning(false)
-  }, [activeId, autoRunning])
+  }, [activeId, autoRunning, genreKey, directorMode])
 
   const handleUpdateShot = useCallback((shotId: string, updates: Partial<StoryboardShot>) => {
     setStoryboardShots(prev => prev.map(s => s.id === shotId ? { ...s, ...updates } : s))
@@ -301,10 +303,18 @@ function CreateProjectPanel({ genreKey, onBack }: { genreKey: GenreKey; onBack: 
         <div className="glass rounded-2xl p-5 space-y-3">
           <div className="flex items-center justify-between mb-1">
             <div className="text-xs text-white/40 font-medium">📋 流水线 · {project.oneLiner.slice(0, 30)}</div>
-            <button onClick={handleAutoRun} disabled={autoRunning || running}
+            <div className="flex items-center gap-2">
+              <button onClick={() => setDirectorMode(directorMode === "full" ? "quick" : "full")}
+                className={`px-2 py-1 text-[8px] rounded-lg border transition-all ${
+                  directorMode === "quick" ? "bg-amber-500/15 border-amber-500/25 text-amber-300" : "bg-white/[0.04] text-white/40 border-white/[0.06]"
+                }`}>
+                {directorMode === "quick" ? "⚡ 快速" : "🎬 完整"}
+              </button>
+              <button onClick={handleAutoRun} disabled={autoRunning || running}
               className="px-4 py-1.5 text-[10px] rounded-lg bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-[#0C0C14] font-bold disabled:opacity-40 transition-all">
               {autoRunning ? "🔄 自动运行中..." : "🚀 全自动生成"}
             </button>
+          </div>
           </div>
           {autoRunning && (
             <div className="h-1 bg-[#0C0C14] rounded-full overflow-hidden">
