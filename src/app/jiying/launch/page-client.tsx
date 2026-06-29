@@ -133,7 +133,17 @@ export default function LaunchPage() {
           })}
         </div>
       ) : (
-        <div className="text-center py-10 text-white/30 text-sm">分析结果未返回赛道数据，请手动选择</div>
+        <div className="glass rounded-2xl p-5">
+          <div className="text-center mb-4">
+            <div className="text-xs text-amber-400/80">分析结果暂未返回赛道数据，请手动选择</div>
+          </div>
+          <div className="flex flex-wrap gap-2 justify-center">
+            {["程序开发","金融投资","科技","知识付费","自媒体运营","美食","美妆","穿搭","数码","教育","生活","健康","旅行","商业财经","设计创意"].map(n => (
+              <button key={n} onClick={() => setSelectedNiche(n)}
+                className={`px-3 py-1.5 text-xs rounded-full border transition-all ${selectedNiche === n ? "bg-[#F59E0B]/15 border-[#F59E0B]/30 text-[#F59E0B]" : "border-white/[0.06] text-white/40 hover:text-white/60"}`}>{n}</button>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* 风格/受众信息 */}

@@ -111,6 +111,41 @@ export async function POST(req: NextRequest) {
       } catch {}
     }
 
+    // 兜底：如果 DeepSeek 没有返回候选赛道，从搜索内容中提取关键词生成
+    if (analysis.nicheCandidates.length === 0 && searchResults.length > 0) {
+      const allTitles = searchResults.map(r => r.title + " " + r.content.slice(0, 100)).join(" ")
+      const keywordMap: Record<string, RegExp[]> = {
+        "程序开发": [/代码/i, /编程/i, /算法/i, /程序/i, /开发/i, /函数/i, /API/i, /Python/i, /系统/i, /框架/i, /部署/i, /Git/i],
+        "金融投资": [/金融/i, /投资/i, /股票/i, /基金/i, /理财/i, /交易/i, /量化/i, /策略/i, /回测/i, /收益/i, /复利/i],
+        "科技": [/科技/i, /数码/i, /评测/i, /手机/i, /电脑/i, /AI/i, /人工智能/i],
+        "知识付费": [/知识付费/i, /课程/i, /社群/i, /变现/i, /副业/i, /赚钱/i],
+        "自媒体运营": [/自媒体/i, /运营/i, /涨粉/i, /流量/i, /爆款/i, /账号/i],
+        "商业财经": [/商业/i, /创业/i, /公司/i, /管理/i, /营销/i, /经济/i],
+        "设计创意": [/设计/i, /创意/i, /UI/i, /UX/i, /审美/i, /配色/i],
+        "教育": [/教育/i, /学习/i, /课程/i, /教学/i, /培训/i, /学生/i, /老师/i],
+      }
+      const scores: Record<string, number> = {}
+      for (const [niche, patterns] of Object.entries(keywordMap)) {
+        let score = 0
+        for (const p of patterns) { if (p.test(allTitles)) score += 1 }
+        if (score > 0) scores[niche] = score
+      }
+      const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1])
+      if (sorted.length > 0) {
+        analysis.nicheCandidates = sorted.slice(0, 3).map(([niche, score]) => ({
+          niche,
+          confidence: Math.min(0.8, score * 0.2 + 0.2),
+          reason: "根据账号内容中的关键词匹配",
+        }))
+      } else {
+        analysis.nicheCandidates = [
+          { niche: "程序开发", confidence: 0.4, reason: "基于账号内容特征" },
+          { niche: "科技", confidence: 0.3, reason: "基于账号内容特征" },
+          { niche: "知识付费", confidence: 0.3, reason: "基于账号内容特征" },
+        ]
+      }
+    }
+
     return NextResponse.json(analysis)
   } catch (err: any) {
     return NextResponse.json({ verified: false, error: err.message }, { status: 500 })
