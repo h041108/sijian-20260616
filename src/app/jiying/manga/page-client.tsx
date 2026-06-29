@@ -84,12 +84,30 @@ function CreateProjectPanel({ genreKey, onBack }: { genreKey: GenreKey; onBack: 
   const handleCreate = useCallback(() => {
     if (!oneLiner.trim()) return
     const vt = viralTemplate ? { ...viralTemplate } : undefined
-    const p = createProject(oneLiner.trim(), genreKey, style, duration, aspectRatio, vt, user?.id)
+    // 传入角色/产品参考图，确保多镜头一致性
+    const refUrls = productAssets?.photos?.length
+      ? productAssets.photos
+      : selectedChar ? (() => {
+          const urls: string[] = []
+          if (selectedChar.referenceImages.front) urls.push(selectedChar.referenceImages.front)
+          if (selectedChar.referenceImages.side) urls.push(selectedChar.referenceImages.side)
+          if (selectedChar.referenceImages.back) urls.push(selectedChar.referenceImages.back)
+          return urls
+        })() : undefined
+    const charDesc = selectedChar
+      ? `${selectedChar.appearance.hairStyle}，穿${selectedChar.costume.top}和${selectedChar.costume.bottom}${selectedChar.costume.shoes ? "，脚穿"+selectedChar.costume.shoes : ""}`
+      : undefined
+    const p = createProject(oneLiner.trim(), genreKey, style, duration, aspectRatio, vt, user?.id, {
+      characterRefUrls: genreKey === "short_drama" || genreKey === "comic" ? refUrls : undefined,
+      productImageUrls: genreKey === "ad" ? productAssets?.photos : undefined,
+      charName: selectedChar?.name,
+      charDescription: charDesc,
+    })
     setProject(p)
     setActiveId(p.id)
     setOneLiner("")
     setStoryboardShots([])
-  }, [oneLiner, genreKey, style, duration, aspectRatio, user, viralTemplate])
+  }, [oneLiner, genreKey, style, duration, aspectRatio, user, viralTemplate, selectedChar, productAssets])
 
   const handleRunStage = useCallback(async (stageId: PipelineStageId) => {
     if (!activeId || running) return

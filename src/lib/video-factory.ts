@@ -31,12 +31,12 @@ export interface StageAgent {
 
 export interface VideoProject {
   id: string
-  oneLiner: string           // 用户的一句话
+  oneLiner: string
   genre: "short_drama" | "comic" | "tutorial" | "ad" | "storytelling"
-  style: string              // "日系动漫"/"写实"/"水墨风"/"赛博朋克"/"皮克斯3D"
-  duration: number           // 目标时长（秒），默认60
-  aspectRatio: string        // "16:9" | "9:16" | "1:1"
-  viralTemplate?: {          // 爆款模板（可选，来自 /api/trends/deconstruct）
+  style: string
+  duration: number
+  aspectRatio: string
+  viralTemplate?: {
     hookStyle: string
     scriptStructure: string
     pacing: string
@@ -45,6 +45,11 @@ export interface VideoProject {
     visualStyle: string
     keywords: string[]
   }
+  // 参考图：所有分镜共用，保持角色/产品一致性
+  characterRefUrls?: string[]    // 角色参考图（正面/侧面/背面）
+  productImageUrls?: string[]    // 产品实拍图（广告模式）
+  charName?: string              // 角色名（用于构建 prompt）
+  charDescription?: string       // 角色外貌描述
   createdAt: string
   status: "draft" | "running" | "completed" | "failed"
   stages: PipelineStageResult[]
@@ -307,10 +312,15 @@ export function createProject(
   duration: number = 60, aspectRatio: string = "16:9",
   viralTemplate?: VideoProject["viralTemplate"],
   userId?: string,
+  refs?: { characterRefUrls?: string[]; productImageUrls?: string[]; charName?: string; charDescription?: string },
 ): VideoProject {
   const project: VideoProject = {
     id: `vp_${Date.now()}`,
     oneLiner, genre, style, duration, aspectRatio, viralTemplate,
+    characterRefUrls: refs?.characterRefUrls,
+    productImageUrls: refs?.productImageUrls,
+    charName: refs?.charName,
+    charDescription: refs?.charDescription,
     createdAt: new Date().toISOString(),
     status: "draft",
     stages: PIPELINE_STAGES.map(s => ({
@@ -318,7 +328,6 @@ export function createProject(
       input: "", output: "", modelUsed: s.primaryModel,
     })),
   }
-  // 存储 owner 到 localStorage（Supabase 同步）
   if (userId && typeof window !== "undefined") {
     localStorage.setItem(`sijian_project_owner_${project.id}`, userId)
   }
@@ -430,20 +439,15 @@ export async function executeStage(
       const shots = parseShotsFromScript(prevOutput, sbOutput)
       stage.input = prevOutput.slice(0, 300) || "视觉生成"
 
-      // ── E04引擎：从故事提取角色锚点（所有镜头共享） ──
-      // 从故事创世提取角色名+外貌 → 组装角色锚点行
-      const storyCharMatch = storyOutput.match(/角色名[：:](\S+)/)
-      const charName = storyCharMatch?.[1] || "主角"
+      // ── E04引擎：从角色模板或故事文本提取角色锚点 ──
+      // 优先使用用户创建的角色模板信息（角色参考图+外观描述）
+      // 回退到从故事文本中正则提取
+      const charName = project.charName || (storyOutput.match(/角色名[：:](\S+)/))?.[1] || "主角"
+      const charDesc = project.charDescription || ""
       const storyAppearMatch = storyOutput.match(/外貌[：:]([^\n]+)/)
-      const charAppearance = storyAppearMatch?.[1]?.trim() || ""
-      // 从分镜第一个镜头提取更细颗粒度的外观描述
       const firstShotAppear = sbOutput.match(/画面描述[：:]([^\n]+)/)
-      const firstAppearDesc = firstShotAppear?.[1]?.trim() || ""
-      // 合并角色锚点
-      const characterLook = charAppearance || firstAppearDesc.split(/[,，]/).slice(0, 3).join("，")
-      const shotPrefix = storyCharMatch
-        ? `${project.style}风格，${characterLook ? characterLook + "，" : ""}${charName}`
-        : `${project.style}风格`
+      const characterLook = charDesc || storyAppearMatch?.[1]?.trim() || firstShotAppear?.[1]?.split(/[,，]/).slice(0, 3).join("，") || ""
+      const shotPrefix = `${project.style}风格${charDesc ? "，" + charDesc + "，" + charName : characterLook ? "，" + characterLook + "，" + charName : ""}`
 
       const peStage = project.stages.find(s => s.stageId === "prompt_engineering")
       const jimengLines = peStage?.output
@@ -483,21 +487,28 @@ export async function executeStage(
           const imageUrl = frameData.url || ""
           if (imageUrl && !frameData.placeholder) previousImageUrl = imageUrl
 
+          // 收集参考图（角色+产品）传入 Seedance 保证多镜头一致性
+          const refImageUrls: string[] = []
+          if (project.characterRefUrls?.length) refImageUrls.push(...project.characterRefUrls)
+          if (project.productImageUrls?.length) refImageUrls.push(...project.productImageUrls)
+
           // Seedance: 间隔1秒避免限流，失败重试1次
           if (i > 0) await new Promise(r => setTimeout(r, 1200))
           let seedanceTaskId: string | null = null
           if (imageUrl && !frameData.placeholder) {
             for (let attempt = 0; attempt < 2 && !seedanceTaskId; attempt++) {
               try {
+                const sdBody: any = {
+                  prompt: imagePrompt.slice(0, 400), imageUrl,
+                  model: shot.dialogue && shot.dialogue.length > 5 && shot.dialogue !== "无" ? "seedance-1.5-pro" : "seedance-2.0-fast",
+                  ratio: project.aspectRatio === "9:16" ? "9:16" : "16:9",
+                  duration: 5,
+                  generateAudio: !!shot.dialogue && shot.dialogue.length > 5,
+                }
+                if (refImageUrls.length > 0) sdBody.referenceImageUrls = refImageUrls.slice(0, 9)
                 const sdRes = await fetch("/api/video/seedance", {
                   method: "POST", headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    prompt: imagePrompt.slice(0, 400), imageUrl,
-                    model: shot.dialogue && shot.dialogue.length > 5 && shot.dialogue !== "无" ? "seedance-1.5-pro" : "seedance-2.0-fast",
-                    ratio: project.aspectRatio === "9:16" ? "9:16" : "16:9",
-                    duration: 5,
-                    generateAudio: !!shot.dialogue && shot.dialogue.length > 5,
-                  }),
+                  body: JSON.stringify(sdBody),
                 })
                 const sdData = await sdRes.json()
                 if (sdData.taskId) seedanceTaskId = sdData.taskId
@@ -720,19 +731,22 @@ export async function submitSeedanceTask(opts: {
   ratio?: string
   duration?: number
   generateAudio?: boolean
+  referenceImageUrls?: string[]
 }): Promise<{ taskId: string; pollUrl: string } | null> {
   try {
+    const body: any = {
+      prompt: opts.prompt.slice(0, 400),
+      imageUrl: opts.imageUrl,
+      model: opts.model || "seedance-2.0-fast",
+      ratio: opts.ratio || "9:16",
+      duration: opts.duration || 5,
+      generateAudio: opts.generateAudio ?? false,
+    }
+    if (opts.referenceImageUrls?.length) body.referenceImageUrls = opts.referenceImageUrls.slice(0, 9)
     const res = await fetch("/api/video/seedance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt: opts.prompt.slice(0, 400),
-        imageUrl: opts.imageUrl,
-        model: opts.model || "seedance-2.0-fast",
-        ratio: opts.ratio || "9:16",
-        duration: opts.duration || 5,
-        generateAudio: opts.generateAudio ?? false,
-      }),
+      body: JSON.stringify(body),
     })
     const data = await res.json()
     if (data.taskId) {
