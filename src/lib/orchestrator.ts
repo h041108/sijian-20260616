@@ -10,12 +10,22 @@ export interface ModelProfile {
   id: string
   name: string
   provider: string
-  baseURL: string          // OpenAI-compatible endpoint
-  model: string            // actual model name for API
-  strengths: TaskCategory[] // what this model excels at
-  costPer1kTokens: number  // USD
-  avgLatency: number       // ms, running average
+  baseURL: string
+  model: string
+  strengths: TaskCategory[]
+  costPer1kTokens: number
+  avgLatency: number
   available: boolean
+  // 7维评分（参考 OpenMontage 设计）
+  scores?: {
+    taskFit: number    // 任务匹配度 0-1
+    quality: number    // 输出质量 0-1
+    control: number    // 控制能力 0-1
+    reliability: number // 可靠性 0-1
+    costEfficiency: number // 成本效率 0-1
+    latency: number    // 延迟 0-1
+    continuity: number // 连续性 0-1
+  }
 }
 
 export type TaskCategory =
@@ -46,6 +56,7 @@ export function loadRegistry(): ModelRegistry {
     model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash",
     strengths: ["reasoning","coding","analysis","knowledge"],
     costPer1kTokens: 0.0003, avgLatency: 1200, available: !!dsKey,
+    scores: { taskFit: 0.9, quality: 0.8, control: 0.7, reliability: 0.85, costEfficiency: 0.9, latency: 0.7, continuity: 0.5 },
   })
 
   // Claude (if key configured)
@@ -57,6 +68,7 @@ export function loadRegistry(): ModelRegistry {
       model: process.env.CLAUDE_MODEL || "claude-sonnet-4-20250514",
       strengths: ["creative","conversation","critique","planning"],
       costPer1kTokens: 0.003, avgLatency: 2000, available: true,
+      scores: { taskFit: 0.85, quality: 0.95, control: 0.8, reliability: 0.9, costEfficiency: 0.4, latency: 0.5, continuity: 0.6 },
     })
   } else {
     models.push({
@@ -75,6 +87,7 @@ export function loadRegistry(): ModelRegistry {
       model: process.env.OPENAI_MODEL || "gpt-4o",
       strengths: ["knowledge","creative","compliance","conversation"],
       costPer1kTokens: 0.005, avgLatency: 1500, available: true,
+      scores: { taskFit: 0.85, quality: 0.9, control: 0.85, reliability: 0.85, costEfficiency: 0.3, latency: 0.6, continuity: 0.6 },
     })
   } else {
     models.push({
@@ -136,12 +149,29 @@ export function route(
   const { category, confidence } = classifyTask(message)
   const allModels = [registry.primary, ...registry.secondary].filter(m => m.available)
 
-  // 1. 按任务匹配度打分
+  // 7维评分系统（参考 OpenMontage design）
+  const WEIGHTS = { taskFit: 0.30, quality: 0.20, control: 0.15, reliability: 0.15, costEfficiency: 0.10, latency: 0.05, continuity: 0.05 }
+
   const scored = allModels.map(m => {
-    const strengthMatch = m.strengths.includes(category) ? 2 : 0
-    const latencyScore = m.avgLatency < 1500 ? 1 : 0
-    const costScore = m.costPer1kTokens < 0.001 ? 1 : 0
-    return { model: m, score: strengthMatch + latencyScore * 0.5 + costScore * 0.3 }
+    // 自动计算各维度得分
+    const taskFit = m.strengths.includes(category) ? 0.9 : 0.3
+    const quality = m.scores?.quality ?? (m.provider === "DeepSeek" ? 0.8 : m.provider === "Anthropic" ? 0.9 : 0.7)
+    const control = m.scores?.control ?? 0.7
+    const reliability = m.scores?.reliability ?? 0.8
+    const costEfficiency = m.scores?.costEfficiency ?? Math.min(1, 0.001 / (m.costPer1kTokens || 0.001))
+    const latency = m.scores?.latency ?? Math.min(1, 1500 / (m.avgLatency || 1500))
+    const continuity = m.scores?.continuity ?? 0.5
+
+    const totalScore =
+      taskFit * WEIGHTS.taskFit +
+      quality * WEIGHTS.quality +
+      control * WEIGHTS.control +
+      reliability * WEIGHTS.reliability +
+      costEfficiency * WEIGHTS.costEfficiency +
+      latency * WEIGHTS.latency +
+      continuity * WEIGHTS.continuity
+
+    return { model: m, score: totalScore, details: { taskFit, quality, control, reliability, costEfficiency, latency, continuity } }
   })
 
   scored.sort((a, b) => b.score - a.score)
@@ -149,7 +179,7 @@ export function route(
 
   return {
     model: best.model,
-    reason: `任务分类:${category} | 置信度:${Math.round(confidence*100)}% | 模型匹配度:${best.score.toFixed(1)}`,
+    reason: `任务分类:${category} | 7维评分:${best.score.toFixed(2)} | 模型:${best.model.name} | ${Object.entries(best.details).map(([k, v]) => `${k}:${(v as number).toFixed(2)}`).join("/")}`,
     confidence,
     fallback: scored.slice(1).map(s => s.model),
   }
