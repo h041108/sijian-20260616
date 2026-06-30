@@ -114,7 +114,7 @@ export default function StoryboardVideoRenderer({ shots, genre, title, onRecordi
   renderFrameRef.current = renderFrame
 
   useEffect(() => {
-    if (!loaded) { setProgress(0); return }
+    if (!loaded || recording) { if (!loaded) setProgress(0); return }
     let start = Date.now()
     const animate = () => {
       const elapsed = Date.now() - start
@@ -125,11 +125,12 @@ export default function StoryboardVideoRenderer({ shots, genre, title, onRecordi
     }
     animRef.current = requestAnimationFrame(animate)
     return () => cancelAnimationFrame(animRef.current)
-  }, [loaded, totalDuration])
+  }, [loaded, totalDuration, recording])
 
   // 录制视频
   const handleRecord = useCallback(() => {
     if (!canvasRef.current) return
+    cancelAnimationFrame(animRef.current) // 先停预览循环
     setRecording(true); setDoneBlob(null)
     const canvas = canvasRef.current
     const stream = canvas.captureStream(30)
