@@ -3,6 +3,7 @@ import { useState, useCallback, useRef } from "react"
 import { STUDIO_MODELS, type StudioModel, type AspectRatio, generateImage } from "@/lib/image-studio"
 import { createStudioProject, saveProject, type StudioResult } from "@/lib/image-studio"
 import Link from "next/link"
+import ProductDetailPage from "@/components/ProductDetailPage"
 
 const RATIOS: AspectRatio[] = ["1:1", "4:3", "16:9", "9:16", "3:4"]
 const STYLES = ["写实电影风格", "日系动漫", "国风水墨", "赛博朋克", "皮克斯3D", "油画风格", "极简扁平", "复古胶片"]
