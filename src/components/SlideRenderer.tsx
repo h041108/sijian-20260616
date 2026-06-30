@@ -30,6 +30,7 @@ export default function SlideRenderer({ title, content, onRecordingComplete, wid
   const [slideImages, setSlideImages] = useState<Record<string, string>>({})
   const [recording, setRecording] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [doneBlob, setDoneBlob] = useState<Blob | null>(null)
   const [loadingImages, setLoadingImages] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animFrameRef = useRef<number>(0)
@@ -181,6 +182,7 @@ export default function SlideRenderer({ title, content, onRecordingComplete, wid
       mr.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data) }
       mr.onstop = () => {
         const blob = new Blob(chunks, { type: "video/webm" })
+        setDoneBlob(blob)
         onRecordingComplete?.(blob)
         setRecording(false); setProgress(100)
       }
@@ -200,15 +202,24 @@ export default function SlideRenderer({ title, content, onRecordingComplete, wid
       {loadingImages && !recording && (
         <div className="text-center text-[10px] text-white/30 animate-pulse">🖼️ 正在搜索免费配图...</div>
       )}
-      {!recording ? (
+      {recording ? (
+        <div className="w-full py-2.5 rounded-xl bg-red-500/10 text-red-400 text-xs text-center border border-red-500/20">
+          ⏺ 录制中... 共 {deck.slides.length} 页，约 {deck.totalDuration} 秒
+        </div>
+      ) : doneBlob ? (
+        <div className="flex gap-2">
+          <a href={URL.createObjectURL(doneBlob)} download={`知识讲解_${Date.now()}.webm`}
+            className="flex-1 py-2.5 rounded-xl bg-green-500/15 text-green-400 border border-green-500/20 text-xs font-medium text-center hover:bg-green-500/25">
+            📥 下载视频 (.webm)
+          </a>
+          <button onClick={() => setDoneBlob(null)}
+            className="px-4 py-2.5 rounded-xl bg-white/[0.04] text-white/40 text-xs">重新录制</button>
+        </div>
+      ) : (
         <button onClick={handleRecord} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold hover:from-red-400 hover:to-red-500 transition-all">
           ⏺ 录制为视频（{deck.totalDuration}秒）
           {Object.keys(slideImages).length > 0 ? ` · ${Object.keys(slideImages).length}张实拍图` : ""}
         </button>
-      ) : (
-        <div className="w-full py-2.5 rounded-xl bg-red-500/10 text-red-400 text-xs text-center border border-red-500/20">
-          ⏺ 录制中... 共 {deck.slides.length} 页，约 {deck.totalDuration} 秒
-        </div>
       )}
     </div>
   )
