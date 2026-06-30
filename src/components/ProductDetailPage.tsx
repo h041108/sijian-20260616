@@ -97,27 +97,24 @@ export default function ProductDetailPage({ productName, sellingPoints, productI
   const [templateId, setTemplateId] = useState(DETAIL_TEMPLATES[0].id)
   const [generating, setGenerating] = useState(false)
   const [doneBlob, setDoneBlob] = useState<Blob | null>(null)
-  const [previewUrl, setPreviewUrl] = useState("")
+  const [canvasKey, setCanvasKey] = useState(0)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const template = DETAIL_TEMPLATES.find(t => t.id === templateId) || DETAIL_TEMPLATES[0]
 
   const generate = useCallback(async () => {
     if (!canvasRef.current || !template) return
-    setGenerating(true); setDoneBlob(null); setPreviewUrl("")
+    setGenerating(true); setDoneBlob(null)
 
-    // 预加载所有图片
     const loadImg = (url: string): Promise<HTMLImageElement> => new Promise(resolve => {
       const img = new Image(); img.crossOrigin = "anonymous"
       img.onload = () => resolve(img); img.onerror = () => resolve(img)
       img.src = url
     })
 
-    const [mainImg, ...subImgs] = await Promise.all(
-      productImages.slice(0, 4).map(url => loadImg(url))
-    )
+    const loaded = await Promise.all(productImages.slice(0, 4).map(url => loadImg(url)))
+    const [mainImg, ...subImgs] = loaded
 
-    // 画
     const canvas = canvasRef.current
     canvas.width = template.width; canvas.height = template.height
     const ctx = canvas.getContext("2d")
@@ -127,14 +124,11 @@ export default function ProductDetailPage({ productName, sellingPoints, productI
     const imgs = { main: mainImg, sub: subImgs.filter(Boolean), scene: subImgs[0] }
 
     drawTemplate(ctx, template, values, imgs)
-
-    const dataUrl = canvas.toDataURL("image/png")
-    setPreviewUrl(dataUrl)
     canvas.toBlob(blob => { if (blob) { setDoneBlob(blob); onDone?.(blob) } }, "image/png")
     setGenerating(false)
   }, [template, productName, sellingPoints, productImages, specs, description, onDone])
 
-  useEffect(() => { setDoneBlob(null); setPreviewUrl("") }, [templateId])
+  useEffect(() => { setDoneBlob(null); setCanvasKey(k => k + 1) }, [templateId])
 
   return (
     <div className="space-y-4">
@@ -172,16 +166,12 @@ export default function ProductDetailPage({ productName, sellingPoints, productI
         </button>
       </div>
 
-      {previewUrl && (
-        <div className="glass rounded-2xl p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-white/50">{template.name} · {template.width}×{template.height}</span>
-            {doneBlob && (
-              <a href={URL.createObjectURL(doneBlob)} download={`${productName}_详情页.png`}
-                className="px-4 py-1.5 rounded-lg bg-[#F59E0B]/15 text-[#F59E0B] text-xs border border-[#F59E0B]/20 hover:bg-[#F59E0B]/25">📥 下载 PNG</a>
-            )}
-          </div>
-          <img src={previewUrl} alt="详情页预览" className="w-full max-w-sm mx-auto rounded-xl border border-white/10" />
+      {/* 可见画布 + 下载按钮 */}
+      <canvas ref={canvasRef} className="w-full max-w-sm mx-auto rounded-xl border border-white/10" style={{ display: doneBlob ? "block" : "none" }} />
+      {doneBlob && (
+        <div className="flex justify-center">
+          <a href={URL.createObjectURL(doneBlob)} download={`${productName}_详情页.png`}
+            className="px-6 py-2.5 rounded-xl bg-[#F59E0B]/15 text-[#F59E0B] text-sm font-medium border border-[#F59E0B]/20 hover:bg-[#F59E0B]/25">📥 下载 PNG</a>
         </div>
       )}
     </div>
