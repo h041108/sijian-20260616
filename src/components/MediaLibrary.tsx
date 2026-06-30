@@ -164,9 +164,16 @@ export default function MediaLibrary() {
             {getTemplatesByCategory(tplCategory).map(tpl => (
               <div key={tpl.id} onClick={() => setSelectedTemplate(selectedTemplate === tpl.id ? null : tpl.id)}
                 className={`glass-card rounded-xl p-4 cursor-pointer transition-all border-2 ${selectedTemplate === tpl.id ? "border-[#F59E0B] bg-[#F59E0B]/5" : "border-white/[0.06] hover:border-white/20"}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-2xl">{tpl.icon}</span>
-                  <div><div className="text-sm font-medium text-white/80">{tpl.name}</div><div className="text-[9px] text-white/30">{tpl.category}</div></div>
+                <div className="aspect-video bg-[#0C0C14] rounded-lg overflow-hidden mb-2">
+                  {tpl.previewUrl ? (
+                    <img src={tpl.previewUrl} alt={tpl.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-3xl">{tpl.icon}</div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div><div className="text-sm font-medium text-white/80">{tpl.name}</div></div>
+                  <span className="text-[8px] text-white/30">{tpl.category}</span>
                 </div>
                 <p className="text-[10px] text-white/40 line-clamp-2">{tpl.description}</p>
                 {selectedTemplate === tpl.id && (
