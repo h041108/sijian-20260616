@@ -317,9 +317,9 @@ function TextToVideoPanel() {
 function ProductPanel() {
   const [productName, setProductName] = useState("")
   const [sellingPoints, setSellingPoints] = useState("")
+  const [specs, setSpecs] = useState("")
+  const [descText, setDescText] = useState("")
   const [images, setImages] = useState<string[]>([])
-  const [generating, setGenerating] = useState(false)
-  const [resultUrl, setResultUrl] = useState("")
   const fileRef = useRef<HTMLInputElement>(null)
 
   const handleUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -330,42 +330,34 @@ function ProductPanel() {
     reader.readAsDataURL(file)
   }, [])
 
-  const handleGenerate = useCallback(async () => {
-    if (!productName.trim() || images.length === 0) return
-    setGenerating(true)
-    try {
-      const prompt = `产品"${productName}"的电商详情页设计，卖点：${sellingPoints}，产品图作为主视觉，简洁高端排版，白色背景，电商风格`.slice(0, 380)
-      const res = await fetch("/api/video/frame", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, width: 1080, height: 1920, image: images[0], image_strength: 0.4 }),
-      })
-      const data = await res.json()
-      if (data.url && !data.placeholder) setResultUrl(data.url)
-    } catch {}
-    setGenerating(false)
-  }, [productName, sellingPoints, images])
-
   return (
-    <div className="glass rounded-2xl p-5 space-y-4">
-      <input value={productName} onChange={e => setProductName(e.target.value)}
-        placeholder="产品名称" className="w-full px-3 py-2 text-sm bg-[#0C0C14] border border-white/10 text-white/80 placeholder-white/20 rounded-xl" />
-      <textarea value={sellingPoints} onChange={e => setSellingPoints(e.target.value)}
-        placeholder="核心卖点（一行一个）" rows={3} className="w-full text-sm bg-[#0C0C14] border border-white/10 text-white/80 placeholder-white/20 rounded-xl p-3" />
-      <div className="flex gap-2 flex-wrap">
-        {images.map((url, i) => (
-          <div key={i} className="w-16 h-16 rounded-lg overflow-hidden border border-white/10 relative">
-            <img src={url} alt="" className="w-full h-full object-cover" />
-            <button onClick={() => setImages(p => p.filter((_, j) => j !== i))} className="absolute top-0 right-0 bg-red-500/80 text-white text-[8px] w-4 h-4">✕</button>
-          </div>
-        ))}
-        {images.length < 3 && <button onClick={() => fileRef.current?.click()} className="w-16 h-16 rounded-lg border-2 border-dashed border-white/10 text-white/30 text-xl flex items-center justify-center">+</button>}
-        <input ref={fileRef} type="file" accept="image/*" onChange={handleUpload} hidden />
+    <div className="space-y-4">
+      <div className="glass rounded-2xl p-5 space-y-4">
+        <input value={productName} onChange={e => setProductName(e.target.value)}
+          placeholder="产品名称" className="w-full px-3 py-2 text-sm bg-[#0C0C14] border border-white/10 text-white/80 placeholder-white/20 rounded-xl" />
+        <textarea value={sellingPoints} onChange={e => setSellingPoints(e.target.value)}
+          placeholder="核心卖点（一行一个）" rows={2} className="w-full text-sm bg-[#0C0C14] border border-white/10 text-white/80 placeholder-white/20 rounded-xl p-3" />
+        <textarea value={specs} onChange={e => setSpecs(e.target.value)}
+          placeholder="规格参数（可选，如：颜色：黑/白）" rows={2} className="w-full text-sm bg-[#0C0C14] border border-white/10 text-white/80 placeholder-white/20 rounded-xl p-3" />
+        <textarea value={descText} onChange={e => setDescText(e.target.value)}
+          placeholder="产品描述（可选）" rows={2} className="w-full text-sm bg-[#0C0C14] border border-white/10 text-white/80 placeholder-white/20 rounded-xl p-3" />
+        <div className="flex gap-2 flex-wrap">
+          {images.map((url, i) => (
+            <div key={i} className="w-16 h-16 rounded-lg overflow-hidden border border-white/10 relative">
+              <img src={url} alt="" className="w-full h-full object-cover" />
+              <button onClick={() => setImages(p => p.filter((_, j) => j !== i))} className="absolute top-0 right-0 bg-red-500/80 text-white text-[8px] w-4 h-4">✕</button>
+            </div>
+          ))}
+          {images.length < 5 && <button onClick={() => fileRef.current?.click()} className="w-16 h-16 rounded-lg border-2 border-dashed border-white/10 text-white/30 text-xl flex items-center justify-center">+</button>}
+          <input ref={fileRef} type="file" accept="image/*" onChange={handleUpload} hidden />
+        </div>
       </div>
-      <button onClick={handleGenerate} disabled={generating || !productName.trim() || images.length === 0}
-        className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-[#0C0C14] text-sm font-bold disabled:opacity-40">
-        {generating ? "生成中..." : "📦 生成详情页"}
-      </button>
-      {resultUrl && <img src={resultUrl} alt="" className="max-w-xs mx-auto rounded-xl border border-white/10" />}
+      <ProductDetailPage
+        productName={productName}
+        sellingPoints={sellingPoints.split("\n").filter(Boolean)}
+        productImages={images}
+        specs={specs}
+        description={descText} />
     </div>
   )
 }
