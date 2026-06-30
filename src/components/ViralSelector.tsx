@@ -51,39 +51,24 @@ export default function ViralSelector({ niche, platform, userContentSamples, onT
     setDeconstructing(true)
     try {
       const selected = candidates[idx]
-      // 先尝试用 DeepSeek 拆解
-      const dsRes = await fetch("https://api.deepseek.com/v1/chat/completions", {
+      // 通过服务端 API 拆解（不走浏览器端 API Key）
+      const res = await fetch("/api/viral/deconstruct", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_DEEPSEEK_KEY || ""}`,
-        },
-        body: JSON.stringify({
-          model: "deepseek-chat",
-          messages: [
-            { role: "system", content: "你只输出JSON，不要任何其他文字。" },
-            { role: "user", content: buildDeconstructPromptForSelection(selected) },
-          ],
-          temperature: 0.3,
-          max_tokens: 800,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: selected.title, description: selected.description.slice(0, 300), platform }),
       })
 
       let template: ViralTemplate | null = null
-      if (dsRes.ok) {
-        const dsData = await dsRes.json()
-        const content = dsData.choices?.[0]?.message?.content || ""
-        const jsonMatch = content.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]) as ViralTemplate
-          parsed.sourceTitle = selected.title
-          parsed.sourceLikes = selected.estimatedLikes
-          template = parsed
+      if (res.ok) {
+        const data = await res.json()
+        if (!data._fallback) {
+          template = data as ViralTemplate
+          template.sourceTitle = selected.title
+          template.sourceLikes = selected.estimatedLikes
         }
       }
 
       if (!template) {
-        // 兜底拆解
         template = {
           hookStyle: "反常识/悬念开篇",
           scriptStructure: "问题→解决方案→案例→总结",

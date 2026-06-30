@@ -87,24 +87,16 @@ export default function DailyContentEngine() {
     setDeconstructing(true)
     setContentOptions([])
     try {
-      const dsRes = await fetch("https://api.deepseek.com/v1/chat/completions", {
+      const dsRes = await fetch("/api/viral/deconstruct", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.NEXT_PUBLIC_DEEPSEEK_KEY || ""}` },
-        body: JSON.stringify({
-          model: "deepseek-chat",
-          messages: [
-            { role: "system", content: "你只输出JSON。" },
-            { role: "user", content: buildDeconstructPromptForSelection(candidate) },
-          ],
-          temperature: 0.3, max_tokens: 800,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: candidate.title, description: (candidate.description || "").slice(0, 300), platform }),
       })
       let template: ViralTemplate | null = null
       if (dsRes.ok) {
         const d = await dsRes.json()
-        const m = d.choices?.[0]?.message?.content?.match(/\{[\s\S]*\}/)
-        if (m) {
-          const p = JSON.parse(m[0]) as ViralTemplate
+        if (!d._fallback) {
+          const p = d as ViralTemplate
           p.sourceTitle = candidate.title
           p.sourceLikes = candidate.estimatedLikes
           template = p

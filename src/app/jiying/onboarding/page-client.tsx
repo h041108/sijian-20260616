@@ -93,6 +93,7 @@ export default function OnboardingPage() {
     setPaying(true)
     await new Promise(r => setTimeout(r, 1000))
     us(id, { paid: true })
+    localStorage.setItem("sijian_paid", "true")
     setPaying(false)
     setActivePay(null)
   }
@@ -102,6 +103,7 @@ export default function OnboardingPage() {
     const ns = { ...states }
     Object.keys(ns).forEach(k => { if (ns[k].verified && !ns[k].paid) ns[k] = { ...ns[k], paid: true } })
     setStates(ns)
+    localStorage.setItem("sijian_paid", "true")
     setPaying(false)
     setShowBatchPay(false)
   }
