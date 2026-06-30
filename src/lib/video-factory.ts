@@ -46,10 +46,17 @@ export interface VideoProject {
     keywords: string[]
   }
   // 参考图：所有分镜共用，保持角色/产品一致性
-  characterRefUrls?: string[]    // 角色参考图（正面/侧面/背面）
-  productImageUrls?: string[]    // 产品实拍图（广告模式）
-  charName?: string              // 角色名（用于构建 prompt）
-  charDescription?: string       // 角色外貌描述
+  characterRefUrls?: string[]
+  productImageUrls?: string[]
+  charName?: string
+  charDescription?: string
+  // 电影制作级参数（13项 — 注入到流水线的每个阶段）
+  filmParams?: {
+    visualStyle: string; lensFocal: string; shotScale: string
+    cameraAngle: string; cameraMove: string; lighting: string
+    colorTone: string; environment: string; timeOfDay: string
+    mood: string; actionDesc: string; soundDesign: string; editRhythm: string
+  }
   createdAt: string
   status: "draft" | "running" | "completed" | "failed"
   stages: PipelineStageResult[]
@@ -369,7 +376,7 @@ export function createProject(
   duration: number = 60, aspectRatio: string = "16:9",
   viralTemplate?: VideoProject["viralTemplate"],
   userId?: string,
-  refs?: { characterRefUrls?: string[]; productImageUrls?: string[]; charName?: string; charDescription?: string },
+  refs?: { characterRefUrls?: string[]; productImageUrls?: string[]; charName?: string; charDescription?: string; filmParams?: VideoProject["filmParams"] },
 ): VideoProject {
   const project: VideoProject = {
     id: `vp_${Date.now()}`,
@@ -378,6 +385,7 @@ export function createProject(
     productImageUrls: refs?.productImageUrls,
     charName: refs?.charName,
     charDescription: refs?.charDescription,
+    filmParams: refs?.filmParams,
     createdAt: new Date().toISOString(),
     status: "draft",
     stages: PIPELINE_STAGES.map(s => ({
@@ -692,7 +700,26 @@ export async function executeStage(
     // ── LLM 阶段 ──
     let input = ""
     if (stageId === "story_genesis") {
-      input = `一句话创意：${project.oneLiner}\n风格：${project.style}\n类型：${GENRE_PRESETS[project.genre]?.label || project.genre}`
+      let filmStr = ""
+      const fp = project.filmParams
+      if (fp) {
+        const parts: string[] = []
+        if (fp.visualStyle) parts.push(`视觉风格：${fp.visualStyle}`)
+        if (fp.environment) parts.push(`环境设定：${fp.environment}`)
+        if (fp.timeOfDay) parts.push(`时间背景：${fp.timeOfDay}`)
+        if (fp.lighting) parts.push(`光线设计：${fp.lighting}`)
+        if (fp.colorTone) parts.push(`色彩基调：${fp.colorTone}`)
+        if (fp.cameraAngle) parts.push(`拍摄角度：${fp.cameraAngle}`)
+        if (fp.cameraMove) parts.push(`运镜方式：${fp.cameraMove}`)
+        if (fp.mood) parts.push(`氛围情绪：${fp.mood}`)
+        if (fp.lensFocal) parts.push(`镜头焦段：${fp.lensFocal}`)
+        if (fp.shotScale) parts.push(`景别：${fp.shotScale}`)
+        if (fp.soundDesign) parts.push(`声音设计：${fp.soundDesign}`)
+        if (fp.editRhythm) parts.push(`剪辑节奏：${fp.editRhythm}`)
+        if (fp.actionDesc) parts.push(`动作说明：${fp.actionDesc}`)
+        if (parts.length > 0) filmStr = `\n【导演参数】\n${parts.join("\n")}`
+      }
+      input = `一句话创意：${project.oneLiner}\n风格：${project.style}\n类型：${GENRE_PRESETS[project.genre]?.label || project.genre}${filmStr}`
     } else {
       input = previousStageOutput || stage.input || ""
     }

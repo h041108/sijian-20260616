@@ -130,10 +130,24 @@ export default function StoryboardVideoRenderer({ shots, genre, title, onRecordi
   // 录制视频
   const handleRecord = useCallback(() => {
     if (!canvasRef.current) return
-    cancelAnimationFrame(animRef.current) // 先停预览循环
+    cancelAnimationFrame(animRef.current)
     setRecording(true); setDoneBlob(null)
     const canvas = canvasRef.current
     const stream = canvas.captureStream(30)
+    // 添加静音音频轨道（防止录制无音轨导致播放异常）
+    try {
+      const audioCtx = new AudioContext()
+      const dst = audioCtx.createMediaStreamDestination()
+      const osc = audioCtx.createOscillator()
+      const gain = audioCtx.createGain()
+      gain.gain.value = 0.001 // 近乎静音
+      osc.connect(gain)
+      gain.connect(dst)
+      osc.start()
+      stream.addTrack(dst.stream.getAudioTracks()[0])
+      // 录制结束后关闭 AudioContext
+      setTimeout(() => { try { audioCtx.close() } catch {} }, (totalDuration + 2) * 1000)
+    } catch {}
     const mr = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp9" })
     const chunks: Blob[] = []
     mr.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data) }

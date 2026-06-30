@@ -172,8 +172,12 @@ export default function MediaLibrary() {
                 {selectedTemplate === tpl.id && (
                   <div className="mt-3 space-y-1 text-[9px] text-white/30 bg-[#0C0C14] rounded-lg p-2">
                     <div>🌅 {tpl.params.environment}</div><div>💡 {tpl.params.lighting}</div><div>🎨 {tpl.params.colorTone}</div>
-                    <button onClick={() => navigator.clipboard.writeText(JSON.stringify(tpl.params, null, 2))}
-                      className="mt-2 w-full py-1.5 rounded-lg bg-[#F59E0B]/15 text-[#F59E0B] text-[9px] border border-[#F59E0B]/20 hover:bg-[#F59E0B]/25">📋 复制参数</button>
+                    <button onClick={() => {
+                          localStorage.setItem("sijian_template_params", JSON.stringify(tpl.params));
+                          localStorage.setItem("sijian_template_name", tpl.name);
+                          window.location.href = "/jiying/manga";
+                        }}
+                      className="mt-2 w-full py-1.5 rounded-lg bg-[#F59E0B]/15 text-[#F59E0B] text-[9px] border border-[#F59E0B]/20 hover:bg-[#F59E0B]/25">🎬 应用此模板到影片工厂</button>
                   </div>
                 )}
               </div>
