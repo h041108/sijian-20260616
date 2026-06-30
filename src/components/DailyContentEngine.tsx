@@ -195,6 +195,31 @@ export default function DailyContentEngine() {
     a.click()
   }, [])
 
+  // ─── 一键复制内容到剪贴板（按平台格式） ───
+  const handleCopyToClipboard = useCallback((option: ContentOption) => {
+    const platformFormat: Record<string, string> = {
+      "小红书": "📕 小红书格式已复制",
+      "抖音": "🎵 抖音格式已复制",
+      "B站": "📺 B站格式已复制",
+    }
+    const text = `${option.title}\n\n${option.content}${option.hashtags?.length > 0 ? "\n\n" + option.hashtags.join(" ") : ""}${option.imageUrl ? "\n\n[配图: " + option.imageUrl + "]" : ""}`
+    navigator.clipboard.writeText(text).then(() => {
+      alert(platformFormat[platform] || "✅ 内容已复制，可粘贴发布")
+    }).catch(() => {})
+  }, [platform])
+
+  // ─── 发布记录 ───
+  const [publishLog, setPublishLog] = useState<{ date: string; title: string; platform: string; niche: string }[]>(() => {
+    try { return JSON.parse(localStorage.getItem("sijian_publish_log") || "[]") } catch { return []
+  }})
+  const handlePublish = useCallback((option: ContentOption) => {
+    handleCopyToClipboard(option)
+    const entry = { date: new Date().toISOString().slice(0, 10), title: option.title.slice(0, 30), platform, niche }
+    const updated = [entry, ...publishLog].slice(0, 90)
+    setPublishLog(updated)
+    localStorage.setItem("sijian_publish_log", JSON.stringify(updated))
+  }, [platform, niche, publishLog, handleCopyToClipboard])
+
   if (loading) return <div className="max-w-4xl mx-auto px-4 py-20 text-center"><div className="text-[#9898B0] text-sm animate-pulse">加载中...</div></div>
 
   return (
@@ -315,21 +340,49 @@ export default function DailyContentEngine() {
                     {opt.hashtags?.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">{opt.hashtags.map(h => <span key={h} className="text-[8px] text-[#F59E0B]/50">#{h.replace("#", "")}</span>)}</div>
                     )}
-                    <div className="flex gap-2 mt-2">
+                    <div className="flex gap-1.5 mt-2 flex-wrap">
+                      <button onClick={(e) => { e.stopPropagation(); handlePublish(opt) }}
+                        className="px-2.5 py-1 text-[9px] rounded-lg bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-[#0C0C14] font-bold border border-[#F59E0B]/20">📤 发布到 {platform}</button>
                       <button onClick={(e) => { e.stopPropagation(); handleDownload(opt) }}
-                        className="px-2.5 py-1 text-[9px] rounded-lg bg-blue-500/10 text-blue-300 border border-blue-500/15">📥 下载文案</button>
+                        className="px-2.5 py-1 text-[9px] rounded-lg bg-blue-500/10 text-blue-300 border border-blue-500/15">📥 文案</button>
                       {opt.imageUrl && (
                         <button onClick={(e) => { e.stopPropagation(); handleDownloadImage(opt.imageUrl!, opt.title) }}
-                          className="px-2.5 py-1 text-[9px] rounded-lg bg-purple-500/10 text-purple-300 border border-purple-500/15">🖼️ 下载配图</button>
+                          className="px-2.5 py-1 text-[9px] rounded-lg bg-purple-500/10 text-purple-300 border border-purple-500/15">🖼️ 配图</button>
                       )}
                       {selectedOption === opt.id && generatingImage && <span className="text-[9px] text-[#F59E0B]/60 animate-pulse">🎨 生成配图中...</span>}
-                      {selectedOption === opt.id && opt.imageUrl && <span className="text-[9px] text-green-400">✅ 已选 + 配图就绪</span>}
+                      {selectedOption === opt.id && opt.imageUrl && <span className="text-[9px] text-green-400">✅ 就绪</span>}
                     </div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* ─── 发布日历 ─── */}
+      {publishLog.length > 0 && (
+        <div className="glass rounded-2xl p-5">
+          <details>
+            <summary className="text-xs text-white/50 font-medium cursor-pointer">📅 发布记录 · 共 {publishLog.length} 条</summary>
+            <div className="mt-3 space-y-1 max-h-48 overflow-y-auto">
+              {Array.from(new Set(publishLog.map(e => e.date))).map(date => {
+                const dayEntries = publishLog.filter(e => e.date === date)
+                return (
+                  <div key={date} className="text-[9px]">
+                    <div className="text-white/40 font-medium py-1">{date}</div>
+                    {dayEntries.map((e, i) => (
+                      <div key={i} className="flex items-center gap-2 px-2 py-1 rounded bg-white/[0.02] text-white/30">
+                        <span>📤</span>
+                        <span className="text-white/50 truncate">{e.title}</span>
+                        <span className="ml-auto">{e.platform} · {e.niche}</span>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })}
+            </div>
+          </details>
         </div>
       )}
     </div>
