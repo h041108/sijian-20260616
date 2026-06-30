@@ -97,38 +97,54 @@ export default function ProductDetailPage({ productName, sellingPoints, productI
   const [templateId, setTemplateId] = useState(DETAIL_TEMPLATES[0].id)
   const [generating, setGenerating] = useState(false)
   const [doneBlob, setDoneBlob] = useState<Blob | null>(null)
-  const [canvasKey, setCanvasKey] = useState(0)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const template = DETAIL_TEMPLATES.find(t => t.id === templateId) || DETAIL_TEMPLATES[0]
 
   const generate = useCallback(async () => {
-    if (!canvasRef.current || !template) return
     setGenerating(true); setDoneBlob(null)
+    const W = template.width, H = template.height
 
-    const loadImg = (url: string): Promise<HTMLImageElement> => new Promise(resolve => {
-      const img = new Image(); img.crossOrigin = "anonymous"
-      img.onload = () => resolve(img); img.onerror = () => resolve(img)
-      img.src = url
-    })
-
-    const loaded = await Promise.all(productImages.slice(0, 4).map(url => loadImg(url)))
-    const [mainImg, ...subImgs] = loaded
-
-    const canvas = canvasRef.current
-    canvas.width = template.width; canvas.height = template.height
-    const ctx = canvas.getContext("2d")
+    // 创建离屏 canvas（避免 display:none 问题）
+    const offscreen = document.createElement("canvas")
+    offscreen.width = W; offscreen.height = H
+    const ctx = offscreen.getContext("2d")
     if (!ctx) { setGenerating(false); return }
 
-    const values = { name: productName, price: `¥${(Math.random() * 100 + 10).toFixed(0)}`, points: sellingPoints, specs, desc: description || productName }
-    const imgs = { main: mainImg, sub: subImgs.filter(Boolean), scene: subImgs[0] }
+    // 预加载图片
+    const loadImg = (url: string): Promise<HTMLImageElement | null> => new Promise(resolve => {
+      const img = new Image(); img.crossOrigin = "anonymous"
+      img.onload = () => resolve(img); img.onerror = () => resolve(null)
+      img.src = url
+    })
+    const imgs = await Promise.all(productImages.slice(0, 4).map(url => loadImg(url)))
+    const [mainImg, ...subImgs] = imgs
 
-    drawTemplate(ctx, template, values, imgs)
-    canvas.toBlob(blob => { if (blob) { setDoneBlob(blob); onDone?.(blob) } }, "image/png")
+    // 画
+    const values = { name: productName, price: `¥${99}`, points: sellingPoints, specs, desc: description || productName }
+    drawTemplate(ctx, template, values, {
+      main: mainImg || undefined,
+      sub: subImgs.filter((x): x is HTMLImageElement => x !== null),
+      scene: subImgs[0] || undefined,
+    })
+
+    // 显示到可见 canvas
+    offscreen.toBlob(blob => {
+      if (blob) {
+        setDoneBlob(blob); onDone?.(blob)
+        const cvs = canvasRef.current
+        if (cvs) {
+          cvs.width = W; cvs.height = H
+          const c = cvs.getContext("2d")
+          if (c) c.drawImage(offscreen, 0, 0)
+        }
+      }
+    }, "image/png")
     setGenerating(false)
   }, [template, productName, sellingPoints, productImages, specs, description, onDone])
 
-  useEffect(() => { setDoneBlob(null); setCanvasKey(k => k + 1) }, [templateId])
+  useEffect(() => { setDoneBlob(null) }, [templateId])
 
   return (
     <div className="space-y-4">
@@ -142,36 +158,41 @@ export default function ProductDetailPage({ productName, sellingPoints, productI
       </div>
 
       <div className="glass rounded-2xl p-5 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
+        <div className="grid grid-cols-1 gap-3">
+          <div>
             <label className="text-[10px] text-white/40">产品名称</label>
-            <div className="text-sm text-white/80 px-3 py-2 bg-[#0C0C14] rounded-xl border border-white/10">{productName || "未填写"}</div>
+            <div className="text-sm text-white/80 px-3 py-2 bg-[#0C0C14] rounded-xl border border-white/10 mt-1">{productName || "未填写"}</div>
           </div>
           {productImages.length > 0 && (
-            <div className="space-y-2">
-              <label className="text-[10px] text-white/40">产品图</label>
-              <div className="flex gap-1">
-                {productImages.slice(0, 3).map((url, i) => (
-                  <div key={i} className="w-12 h-12 rounded-lg overflow-hidden border border-white/10">
-                    <img src={url} alt="" className="w-full h-full object-cover" />
-                  </div>
-                ))}
-              </div>
+            <div className="flex gap-1">
+              {productImages.slice(0, 4).map((url, i) => (
+                <div key={i} className="w-12 h-12 rounded-lg overflow-hidden border border-white/10">
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                </div>
+              ))}
             </div>
           )}
         </div>
         <button onClick={generate} disabled={generating || !productName.trim() || productImages.length === 0}
-          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-[#0C0C14] text-sm font-bold disabled:opacity-40">
-          {generating ? "生成中..." : `🎨 生成详情页 - ${template.name}`}
+          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-[#0C0C14] text-sm font-bold disabled:opacity-40 transition-all">
+          {generating ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="w-3 h-3 rounded-full border-2 border-[#0C0C14] border-t-transparent animate-spin" />
+              生成中...
+            </span>
+          ) : `🎨 生成详情页 - ${template.name}`}
         </button>
       </div>
 
-      {/* 可见画布 + 下载按钮 */}
-      <canvas ref={canvasRef} className="w-full max-w-sm mx-auto rounded-xl border border-white/10" style={{ display: doneBlob ? "block" : "none" }} />
+      {/* 预览 canvas — 始终存在，生成后显示内容 */}
+      <div ref={containerRef} className={`rounded-xl overflow-hidden border ${doneBlob ? "border-white/10" : "border-transparent"}`}>
+        <canvas ref={canvasRef} className="w-full" style={{ display: doneBlob ? "block" : "none", aspectRatio: `${template.width}/${template.height}` }} />
+      </div>
+
       {doneBlob && (
         <div className="flex justify-center">
           <a href={URL.createObjectURL(doneBlob)} download={`${productName}_详情页.png`}
-            className="px-6 py-2.5 rounded-xl bg-[#F59E0B]/15 text-[#F59E0B] text-sm font-medium border border-[#F59E0B]/20 hover:bg-[#F59E0B]/25">📥 下载 PNG</a>
+            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-[#0C0C14] text-sm font-bold shadow-lg">📥 下载详情页 PNG</a>
         </div>
       )}
     </div>
