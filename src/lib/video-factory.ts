@@ -134,16 +134,21 @@ export const PIPELINE_STAGES: StageAgent[] = [
     inputFormat: "一句话梗概",
     outputFormat: "完整故事大纲（含场景列表）",
     systemPrompt: `你是一位资深编剧。用户给你一句话的创意，请扩展为完整故事。
+要求：
+- 必须是一个完整闭合的故事：有开头 → 发展 → 冲突 → 高潮 → 结尾
+- 时长{duration}秒，需要足够的剧情内容填充
+- 场景数量：不少于6个，确保故事丰富度
 格式：
 ## 故事标题（≤10字）
 ## 世界观设定（2-3句）
-## 主要角色
-- 角色名：性格、外貌、动机（各1句）
-## 故事梗概（5-8句话，含起承转合）
+## 主要角色（1-2个角色，角色名+性格+外貌）
+## 故事梗概（8-12句话，必须包含完整的起承转合）
 ## 场景列表
-编1-N个场景，每个场景标注：场景名、地点、时间、事件（1-2句）
+场景1 | 地点 | 时间 | 事件（1-2句）
+场景2 | 地点 | 时间 | 事件（1-2句）
+（不少于6个场景）
 
-风格：{style}  时长目标：{duration}秒  类型：{genre}`,
+风格：{style}  类型：{genre}`,
     estimatedTime: 10,
   },
   {
@@ -163,6 +168,8 @@ export const PIPELINE_STAGES: StageAgent[] = [
 3. 动作桥接：镜头之间的主体动作要连贯，用"他继续往前走""她转身面对镜头"等衔接
 4. 画面描述必须包含四要素：主体是谁 + 在做什么动作 + 环境/光线 + 镜头构图（特写/全景/仰拍/逆光等）
 
+⚠️ 总时长必须达到{duration}秒，因此需要足够数量的镜头。每个镜头时长3-8秒，至少需要8个镜头。
+
 每个镜头严格按此格式输出：
 ---
 镜头{N} | 时长{t}秒 | 景别{CU/MS/LS/WS} | 运镜{固定/推/拉/摇/跟}
@@ -172,7 +179,7 @@ export const PIPELINE_STAGES: StageAgent[] = [
 转场：{切/淡入淡出/擦除}
 ---
 
-共生成{sceneCount}个镜头，总时长控制在{duration}秒。风格：{style}。`,
+风格：{style}。共生成8-12个镜头，总时长控制在{duration}秒。`,
     estimatedTime: 15,
   },
   {
@@ -473,7 +480,7 @@ function parseShotsFromScript(scriptText: string, promptText?: string): ParsedSh
     shots.push({ shotNumber: 1, duration: 10, description: (promptText || scriptText).slice(0, 500), dialogue: "" })
   }
 
-  return shots.slice(0, 6)
+  return shots.slice(0, 12)
 }
 
 export async function executeStage(
@@ -512,7 +519,13 @@ export async function executeStage(
       const storyAppearMatch = storyOutput.match(/外貌[：:]([^\n]+)/)
       const firstShotAppear = sbOutput.match(/画面描述[：:]([^\n]+)/)
       const characterLook = charDesc || storyAppearMatch?.[1]?.trim() || firstShotAppear?.[1]?.split(/[,，]/).slice(0, 3).join("，") || ""
-      const shotPrefix = `${project.style}风格${charDesc ? "，" + charDesc + "，" + charName : characterLook ? "，" + characterLook + "，" + charName : ""}`
+      // 注入电影制作级参数到画面描述
+      const fp = project.filmParams
+      const filmStr = fp ? [
+        fp.environment, fp.lighting, fp.colorTone, fp.timeOfDay,
+        fp.visualStyle, fp.mood,
+      ].filter(Boolean).join("，") : ""
+      const shotPrefix = `${project.style}风格${filmStr ? "，" + filmStr : ""}${charDesc ? "，" + charDesc + "，" + charName : characterLook ? "，" + characterLook + "，" + charName : ""}`
 
       const peStage = project.stages.find(s => s.stageId === "prompt_engineering")
       const jimengLines = peStage?.output

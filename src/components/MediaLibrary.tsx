@@ -164,16 +164,14 @@ export default function MediaLibrary() {
             {getTemplatesByCategory(tplCategory).map(tpl => (
               <div key={tpl.id} onClick={() => setSelectedTemplate(selectedTemplate === tpl.id ? null : tpl.id)}
                 className={`glass-card rounded-xl p-4 cursor-pointer transition-all border-2 ${selectedTemplate === tpl.id ? "border-[#F59E0B] bg-[#F59E0B]/5" : "border-white/[0.06] hover:border-white/20"}`}>
-                <div className="aspect-video bg-[#0C0C14] rounded-lg overflow-hidden mb-2">
-                  <img src={tpl.previewUrl || ""} alt={tpl.name} className="w-full h-full object-cover"
-                    loading="lazy"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }} />
+                <div className="aspect-video bg-gradient-to-br from-[#F59E0B]/10 to-[#F97316]/10 rounded-lg overflow-hidden mb-2 flex items-center justify-center text-4xl">
+                  {tpl.icon}
                 </div>
                 <div className="flex items-center gap-2 mb-1">
                   <div><div className="text-sm font-medium text-white/80">{tpl.name}</div></div>
                   <span className="text-[8px] text-white/30">{tpl.category}</span>
                 </div>
-                <p className="text-[10px] text-white/40 line-clamp-2">{tpl.description}</p>
+                <p className="text-[10px] text-white/40 line-clamp-2">{tpl.params.environment}</p>
                 {selectedTemplate === tpl.id && (
                   <div className="mt-3 space-y-1 text-[9px] text-white/30 bg-[#0C0C14] rounded-lg p-2">
                     <div>🌅 {tpl.params.environment}</div><div>💡 {tpl.params.lighting}</div><div>🎨 {tpl.params.colorTone}</div>
