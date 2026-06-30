@@ -1,111 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { DETAIL_TEMPLATES, type DetailTemplate, type DetailSection } from "@/lib/detail-templates"
-
-interface DetailRendererProps {
-  productName: string
-  sellingPoints: string[]
-  productImages: string[]
-  specs: string
-  description: string
-  templateId: string
-}
-
-function drawSection(ctx: CanvasRenderingContext2D, sec: DetailSection, values: Record<string, any>, template: DetailTemplate) {
-  const w = template.width
-  if (sec.type === "productImage" && values.mainImg) {
-    const img = new Image()
-    img.crossOrigin = "anonymous"
-    img.src = values.mainImg
-    try {
-      const scale = (sec.w || w) / img.width
-      ctx.drawImage(img, sec.x, sec.y, sec.w || w, (sec.h || (sec.w || w)) || img.height * scale)
-    } catch {}
-  }
-  if (sec.type === "subImage" && values.subImgs?.length) {
-    const idx = values._subIdx || 0
-    if (values.subImgs[idx]) {
-      const img = new Image()
-      img.crossOrigin = "anonymous"
-      img.src = values.subImgs[idx]
-      try {
-        const scale = (sec.w || 300) / img.width
-        ctx.drawImage(img, sec.x, sec.y, sec.w || 300, (sec.h || 300) || img.height * scale)
-      } catch {}
-    }
-  }
-  if (sec.type === "sceneImage" && values.sceneImg) {
-    const img = new Image()
-    img.crossOrigin = "anonymous"
-    img.src = values.sceneImg
-    try {
-      ctx.drawImage(img, sec.x, sec.y, sec.w || w, sec.h || 540)
-    } catch {}
-  }
-  if (sec.type === "title" && values.name) {
-    ctx.fillStyle = sec.color || "#1a1a1a"
-    ctx.font = `bold ${sec.fontSize || 36}px system-ui`
-    ctx.textAlign = sec.align === "center" ? "center" : "left"
-    const x = sec.align === "center" ? w / 2 : sec.x
-    ctx.fillText(values.name.slice(0, 25), x, sec.y)
-  }
-  if (sec.type === "price" && values.price) {
-    ctx.fillStyle = sec.color || "#E53935"
-    ctx.font = `bold ${sec.fontSize || 36}px system-ui`
-    ctx.textAlign = sec.align === "center" ? "center" : "left"
-    const x = sec.align === "center" ? w / 2 : sec.x
-    ctx.fillText(values.price, x, sec.y)
-  }
-  if (sec.type === "sellingPoint" && values.points?.length) {
-    ctx.fillStyle = sec.color || "#333"
-    ctx.font = `${sec.fontSize || 22}px system-ui`
-    ctx.textAlign = "left"
-    values.points.slice(0, 5).forEach((p: string, i: number) => {
-      ctx.fillText(`• ${p.slice(0, 25)}`, sec.x, sec.y + i * 42)
-    })
-  }
-  if (sec.type === "specs" && values.specs) {
-    ctx.fillStyle = sec.color || "#666"
-    ctx.font = `${sec.fontSize || 18}px system-ui`
-    ctx.textAlign = "left"
-    const lines = values.specs.split("\n").filter((l: string) => l.trim())
-    lines.slice(0, 6).forEach((line: string, i: number) => {
-      ctx.fillText(line.slice(0, 35), sec.x, sec.y + i * 32)
-    })
-  }
-  if (sec.type === "description" && values.desc) {
-    ctx.fillStyle = sec.color || "#999"
-    ctx.font = `${sec.fontSize || 20}px system-ui`
-    ctx.textAlign = "left"
-    let y = sec.y
-    for (const line of values.desc.split("\n").filter((l: string) => l.trim())) {
-      if (y > (sec.y || 0) + 200) break
-      ctx.fillText(line.slice(0, 30), sec.x, y)
-      y += 32
-    }
-  }
-  if (sec.type === "cta") {
-    ctx.fillStyle = sec.bgColor || "#E53935"
-    ctx.beginPath()
-    const r = 12
-    ctx.moveTo(sec.x + r, sec.y)
-    ctx.lineTo(sec.x + (sec.w || 960) - r, sec.y)
-    ctx.quadraticCurveTo(sec.x + (sec.w || 960), sec.y, sec.x + (sec.w || 960), sec.y + r)
-    ctx.lineTo(sec.x + (sec.w || 960), sec.y + (sec.h || 80) - r)
-    ctx.quadraticCurveTo(sec.x + (sec.w || 960), sec.y + (sec.h || 80), sec.x + (sec.w || 960) - r, sec.y + (sec.h || 80))
-    ctx.lineTo(sec.x + r, sec.y + (sec.h || 80))
-    ctx.quadraticCurveTo(sec.x, sec.y + (sec.h || 80), sec.x, sec.y + (sec.h || 80) - r)
-    ctx.lineTo(sec.x, sec.y + r)
-    ctx.quadraticCurveTo(sec.x, sec.y, sec.x + r, sec.y)
-    ctx.closePath()
-    ctx.fill()
-    ctx.fillStyle = sec.color || "#FFFFFF"
-    ctx.font = `bold ${sec.fontSize || 28}px system-ui`
-    ctx.textAlign = "center"
-    ctx.fillText("立即购买", sec.x + (sec.w || 960) / 2, sec.y + (sec.h || 80) / 2 + 10)
-  }
-}
+import { DETAIL_TEMPLATES, type DetailTemplate } from "@/lib/detail-templates"
 
 interface ProductDetailPageProps {
   productName: string; sellingPoints: string[]; productImages: string[]
@@ -113,70 +9,132 @@ interface ProductDetailPageProps {
   onDone?: (blob: Blob) => void
 }
 
+function drawTemplate(
+  ctx: CanvasRenderingContext2D, tmpl: DetailTemplate,
+  values: { name: string; price: string; points: string[]; specs: string; desc: string },
+  imgs: { main?: HTMLImageElement; sub: HTMLImageElement[]; scene?: HTMLImageElement }
+) {
+  const w = tmpl.width; const h = tmpl.height
+  ctx.fillStyle = tmpl.bgColor; ctx.fillRect(0, 0, w, h)
+
+  for (const sec of tmpl.sections) {
+    switch (sec.type) {
+      case "productImage":
+        if (imgs.main) {
+          const s = (sec.w || w) / imgs.main.width
+          ctx.drawImage(imgs.main, sec.x, sec.y, sec.w || w, (sec.h || (sec.w || w)) || imgs.main.height * s)
+        }
+        break
+      case "subImage":
+        if (imgs.sub.length > 0) {
+          // 平分横向空间
+          const count = Math.min(imgs.sub.length, 3)
+          const gap = 20; const totalW = sec.w || (w - sec.x * 2); const cw = (totalW - gap * (count - 1)) / count
+          imgs.sub.slice(0, count).forEach((img, i) => {
+            const sx = sec.x + i * (cw + gap)
+            ctx.drawImage(img, sx, sec.y, cw, sec.h || cw)
+          })
+        }
+        break
+      case "sceneImage":
+        if (imgs.scene) ctx.drawImage(imgs.scene, sec.x, sec.y, sec.w || w, sec.h || 540)
+        break
+      case "title":
+        ctx.fillStyle = sec.color || "#1a1a1a"
+        ctx.font = `bold ${sec.fontSize || 36}px system-ui`
+        ctx.textAlign = sec.align === "center" ? "center" : "left"
+        ctx.fillText(values.name.slice(0, 25), sec.align === "center" ? w / 2 : sec.x, sec.y)
+        break
+      case "price":
+        ctx.fillStyle = sec.color || "#E53935"
+        ctx.font = `bold ${sec.fontSize || 36}px system-ui`
+        ctx.textAlign = sec.align === "center" ? "center" : "left"
+        ctx.fillText(values.price, sec.align === "center" ? w / 2 : sec.x, sec.y)
+        break
+      case "sellingPoint":
+        ctx.fillStyle = sec.color || "#333"
+        ctx.font = `${sec.fontSize || 22}px system-ui`
+        ctx.textAlign = "left"
+        values.points.slice(0, 6).forEach((p, i) => ctx.fillText(`• ${p.slice(0, 25)}`, sec.x, sec.y + i * 42))
+        break
+      case "specs":
+        ctx.fillStyle = sec.color || "#666"
+        ctx.font = `${sec.fontSize || 18}px system-ui`
+        ctx.textAlign = "left"
+        values.specs.split("\n").filter(Boolean).slice(0, 6).forEach((l, i) => ctx.fillText(l.slice(0, 35), sec.x, sec.y + i * 32))
+        break
+      case "description":
+        ctx.fillStyle = sec.color || "#999"
+        ctx.font = `${sec.fontSize || 20}px system-ui`
+        ctx.textAlign = "left"
+        let dy = sec.y
+        for (const l of values.desc.split("\n").filter(Boolean)) {
+          if (dy > sec.y + 200) break
+          ctx.fillText(l.slice(0, 30), sec.x, dy); dy += 32
+        }
+        break
+      case "cta": {
+        ctx.fillStyle = sec.bgColor || "#E53935"
+        const r = 12; const cw = sec.w || 960; const ch = sec.h || 80
+        ctx.beginPath()
+        ctx.moveTo(sec.x + r, sec.y); ctx.lineTo(sec.x + cw - r, sec.y)
+        ctx.quadraticCurveTo(sec.x + cw, sec.y, sec.x + cw, sec.y + r)
+        ctx.lineTo(sec.x + cw, sec.y + ch - r); ctx.quadraticCurveTo(sec.x + cw, sec.y + ch, sec.x + cw - r, sec.y + ch)
+        ctx.lineTo(sec.x + r, sec.y + ch); ctx.quadraticCurveTo(sec.x, sec.y + ch, sec.x, sec.y + ch - r)
+        ctx.lineTo(sec.x, sec.y + r); ctx.quadraticCurveTo(sec.x, sec.y, sec.x + r, sec.y)
+        ctx.closePath(); ctx.fill()
+        ctx.fillStyle = sec.color || "#FFFFFF"
+        ctx.font = `bold ${sec.fontSize || 28}px system-ui`
+        ctx.textAlign = "center"
+        ctx.fillText("立即购买", sec.x + cw / 2, sec.y + ch / 2 + 10)
+        break
+      }
+    }
+  }
+}
+
 export default function ProductDetailPage({ productName, sellingPoints, productImages, specs, description, onDone }: ProductDetailPageProps) {
   const [templateId, setTemplateId] = useState(DETAIL_TEMPLATES[0].id)
   const [generating, setGenerating] = useState(false)
   const [doneBlob, setDoneBlob] = useState<Blob | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string>("")
+  const [previewUrl, setPreviewUrl] = useState("")
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const template = DETAIL_TEMPLATES.find(t => t.id === templateId) || DETAIL_TEMPLATES[0]
 
   const generate = useCallback(async () => {
-    if (!canvasRef.current) return
+    if (!canvasRef.current || !template) return
     setGenerating(true); setDoneBlob(null); setPreviewUrl("")
+
+    // 预加载所有图片
+    const loadImg = (url: string): Promise<HTMLImageElement> => new Promise(resolve => {
+      const img = new Image(); img.crossOrigin = "anonymous"
+      img.onload = () => resolve(img); img.onerror = () => resolve(img)
+      img.src = url
+    })
+
+    const [mainImg, ...subImgs] = await Promise.all(
+      productImages.slice(0, 4).map(url => loadImg(url))
+    )
+
+    // 画
     const canvas = canvasRef.current
+    canvas.width = template.width; canvas.height = template.height
     const ctx = canvas.getContext("2d")
-    if (!ctx) return
+    if (!ctx) { setGenerating(false); return }
 
-    canvas.width = template.width
-    canvas.height = template.height
-    ctx.fillStyle = template.bgColor
-    ctx.fillRect(0, 0, template.width, template.height)
+    const values = { name: productName, price: `¥${(Math.random() * 100 + 10).toFixed(0)}`, points: sellingPoints, specs, desc: description || productName }
+    const imgs = { main: mainImg, sub: subImgs.filter(Boolean), scene: subImgs[0] }
 
-    // 先加载产品图
-    let mainImgLoaded = false
-    const loadPromises: Promise<void>[] = []
-    if (productImages.length > 0) {
-      loadPromises.push(new Promise(resolve => {
-        const img = new Image()
-        img.crossOrigin = "anonymous"
-        img.onload = () => { mainImgLoaded = true; resolve() }
-        img.onerror = () => resolve()
-        img.src = productImages[0]
-      }))
-    }
+    drawTemplate(ctx, template, values, imgs)
 
-    // 等待图片加载
-    if (loadPromises.length > 0) {
-      await Promise.race([...loadPromises, new Promise(r => setTimeout(r, 3000))])
-    }
-
-    // 全部用 Canvas 绘制
-    const values = {
-      name: productName,
-      points: sellingPoints,
-      mainImg: productImages[0],
-      subImgs: productImages.slice(1, 4),
-      sceneImg: productImages.length > 1 ? productImages[1] : undefined,
-      price: "¥" + (Math.random() * 100 + 10).toFixed(0),
-      specs,
-      desc: description || productName,
-    }
-
-    // 分两次绘制：先画图片，再画文字
-    for (const sec of template.sections) {
-      drawSection(ctx, sec, values, template)
-    }
-
-    // 输出预览
     const dataUrl = canvas.toDataURL("image/png")
     setPreviewUrl(dataUrl)
-    canvas.toBlob((blob) => {
-      if (blob) { setDoneBlob(blob); onDone?.(blob) }
-    }, "image/png")
+    canvas.toBlob(blob => { if (blob) { setDoneBlob(blob); onDone?.(blob) } }, "image/png")
     setGenerating(false)
   }, [template, productName, sellingPoints, productImages, specs, description, onDone])
+
+  useEffect(() => { setDoneBlob(null); setPreviewUrl("") }, [templateId])
 
   return (
     <div className="space-y-4">
@@ -208,7 +166,6 @@ export default function ProductDetailPage({ productName, sellingPoints, productI
             </div>
           )}
         </div>
-
         <button onClick={generate} disabled={generating || !productName.trim() || productImages.length === 0}
           className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-[#0C0C14] text-sm font-bold disabled:opacity-40">
           {generating ? "生成中..." : `🎨 生成详情页 - ${template.name}`}
