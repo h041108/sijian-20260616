@@ -181,9 +181,9 @@ function ImageToVideoPanel() {
   const [refUrl, setRefUrl] = useState("")
   const [prompt, setPrompt] = useState("")
   const [loading, setLoading] = useState(false)
-  const [taskId, setTaskId] = useState("")
   const [videoUrl, setVideoUrl] = useState("")
   const [polling, setPolling] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const handleUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,7 +196,7 @@ function ImageToVideoPanel() {
 
   const handleGenerate = useCallback(async () => {
     if (!refUrl) return
-    setLoading(true); setTaskId(""); setVideoUrl("")
+    setLoading(true); setVideoUrl("")
     try {
       const res = await fetch("/api/video/seedance", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -204,28 +204,37 @@ function ImageToVideoPanel() {
       })
       const data = await res.json()
       if (data.taskId) {
-        setTaskId(data.taskId)
         setPolling(true)
-        // 轮询
-        const poll = async () => {
-          for (let i = 0; i < 20; i++) {
-            await new Promise(r => setTimeout(r, 3000))
-            try {
-              const pRes = await fetch(`/api/video/seedance?task_id=${data.taskId}`)
-              const pData = await pRes.json()
-              if (pData.status === "succeeded" && pData.videoUrl) {
-                setVideoUrl(pData.videoUrl); setPolling(false); break
-              }
-              if (pData.status === "failed") { setPolling(false); break }
-            } catch {}
-          }
-          setPolling(false)
+        for (let i = 0; i < 30; i++) {
+          await new Promise(r => setTimeout(r, 3000))
+          try {
+            const pRes = await fetch(`/api/video/seedance?task_id=${data.taskId}`)
+            const pData = await pRes.json()
+            if (pData.status === "succeeded" && pData.videoUrl) { setVideoUrl(pData.videoUrl); setPolling(false); break }
+            if (pData.status === "failed") { setPolling(false); break }
+          } catch {}
         }
-        poll()
+        setPolling(false)
       }
     } catch {}
     setLoading(false)
   }, [refUrl, prompt])
+
+  const handleDownload = useCallback(async () => {
+    if (!videoUrl) return
+    setDownloading(true)
+    try {
+      const res = await fetch(videoUrl)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `视频_${Date.now()}.mp4`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch { alert("下载失败，请右键点击视频另存为") }
+    setDownloading(false)
+  }, [videoUrl])
 
   return (
     <div className="glass rounded-2xl p-5 space-y-4">
@@ -247,11 +256,12 @@ function ImageToVideoPanel() {
           </button>
         </div>
       </div>
-      {polling && <div className="text-center text-[10px] text-white/30 animate-pulse">视频生成中，约30秒...</div>}
+      {polling && <div className="text-center text-[10px] text-white/30 animate-pulse">⏳ 视频生成中，约30秒...</div>}
       {videoUrl && (
         <div className="text-center space-y-2">
           <video src={videoUrl} controls className="max-w-xs mx-auto rounded-xl border border-white/10" />
-          <a href={videoUrl} target="_blank" className="inline-block px-4 py-1.5 rounded-lg bg-[#F59E0B]/15 text-[#F59E0B] text-xs">📥 下载视频</a>
+          <button onClick={handleDownload} disabled={downloading}
+            className="px-4 py-1.5 rounded-lg bg-[#F59E0B]/15 text-[#F59E0B] text-xs border border-[#F59E0B]/20 hover:bg-[#F59E0B]/25">{downloading ? "下载中..." : "📥 下载视频"}</button>
         </div>
       )}
     </div>
@@ -261,13 +271,13 @@ function ImageToVideoPanel() {
 function TextToVideoPanel() {
   const [prompt, setPrompt] = useState("")
   const [loading, setLoading] = useState(false)
-  const [taskId, setTaskId] = useState("")
   const [videoUrl, setVideoUrl] = useState("")
   const [polling, setPolling] = useState(false)
+  const [downloading, setDownloading] = useState(false)
 
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) return
-    setLoading(true); setTaskId(""); setVideoUrl("")
+    setLoading(true); setVideoUrl("")
     try {
       const res = await fetch("/api/video/seedance", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -275,24 +285,35 @@ function TextToVideoPanel() {
       })
       const data = await res.json()
       if (data.taskId) {
-        setTaskId(data.taskId); setPolling(true)
-        const poll = async () => {
-          for (let i = 0; i < 20; i++) {
-            await new Promise(r => setTimeout(r, 3000))
-            try {
-              const pRes = await fetch(`/api/video/seedance?task_id=${data.taskId}`)
-              const pData = await pRes.json()
-              if (pData.status === "succeeded" && pData.videoUrl) { setVideoUrl(pData.videoUrl); setPolling(false); break }
-              if (pData.status === "failed") { setPolling(false); break }
-            } catch {}
-          }
-          setPolling(false)
+        setPolling(true)
+        for (let i = 0; i < 30; i++) {
+          await new Promise(r => setTimeout(r, 3000))
+          try {
+            const pRes = await fetch(`/api/video/seedance?task_id=${data.taskId}`)
+            const pData = await pRes.json()
+            if (pData.status === "succeeded" && pData.videoUrl) { setVideoUrl(pData.videoUrl); setPolling(false); break }
+            if (pData.status === "failed") { setPolling(false); break }
+          } catch {}
         }
-        poll()
+        setPolling(false)
       }
     } catch {}
     setLoading(false)
   }, [prompt])
+
+  const handleDownload = useCallback(async () => {
+    if (!videoUrl) return
+    setDownloading(true)
+    try {
+      const res = await fetch(videoUrl)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url; a.download = `视频_${Date.now()}.mp4`; a.click()
+      URL.revokeObjectURL(url)
+    } catch { alert("下载失败，请右键点击视频另存为") }
+    setDownloading(false)
+  }, [videoUrl])
 
   return (
     <div className="glass rounded-2xl p-5 space-y-4">
@@ -303,11 +324,12 @@ function TextToVideoPanel() {
         className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-[#0C0C14] text-sm font-bold disabled:opacity-40">
         {loading ? "提交中..." : "📽️ 文生视频"}
       </button>
-      {polling && <div className="text-center text-[10px] text-white/30 animate-pulse">视频生成中，约30秒...</div>}
+      {polling && <div className="text-center text-[10px] text-white/30 animate-pulse">⏳ 视频生成中，约30秒...</div>}
       {videoUrl && (
         <div className="text-center space-y-2">
           <video src={videoUrl} controls className="max-w-xs mx-auto rounded-xl border border-white/10" />
-          <a href={videoUrl} target="_blank" className="inline-block px-4 py-1.5 rounded-lg bg-[#F59E0B]/15 text-[#F59E0B] text-xs">📥 下载视频</a>
+          <button onClick={handleDownload} disabled={downloading}
+            className="px-4 py-1.5 rounded-lg bg-[#F59E0B]/15 text-[#F59E0B] text-xs border border-[#F59E0B]/20 hover:bg-[#F59E0B]/25">{downloading ? "下载中..." : "📥 下载视频"}</button>
         </div>
       )}
     </div>
