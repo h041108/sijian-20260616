@@ -605,7 +605,7 @@ export async function executeStage(
     }
   }
 
-  // ── 最终合成：返回多镜头组装指令（含音频） ──
+  // ── 最终合成：轮询 Seedance 视频结果 + 组装 ──
   if (stageId === "final_assembly") {
     try {
       const visStage = project.stages.find(s => s.stageId === "visual_generation")
@@ -619,38 +619,65 @@ export async function executeStage(
           const vo = JSON.parse(visStage.output)
           if (vo.frames) {
             frames = vo.frames
-            seedanceTaskIds = frames.filter((f: any) => f.seedanceTaskId).map((f: any) => f.seedanceTaskId as string)
+            seedanceTaskIds = vo.frames.filter((f: any) => f.seedanceTaskId).map((f: any) => f.seedanceTaskId as string)
           } else if (vo.url) {
             frames = [{ shotNumber: 1, duration: project.duration || 10, imageUrl: vo.url, description: "", dialogue: "", seedanceTaskId: vo.seedance?.taskId || null }]
           }
         } catch {}
       }
-      stage.input = frames.length > 0 ? `准备合成 ${frames.length} 个镜头` : "等待视觉生成"
-      const videoClips = frames
-        .filter(f => f.imageUrl)
-        .map((f, idx) => ({
-          url: f.imageUrl,
+      stage.input = frames.length > 0 ? `合成 ${frames.length} 个镜头` : "等待视觉生成"
+
+      // 轮询所有 Seedance 任务（前端环境通过 window.location 构造完整 URL）
+      const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://jiying.cc.cd"
+      const resolvedVideos: { taskId: string; videoUrl: string; shotNumber: number }[] = []
+
+      for (const f of frames) {
+        if (!f.seedanceTaskId) continue
+        const taskId = f.seedanceTaskId
+        for (let attempt = 0; attempt < 10; attempt++) {
+          await new Promise(r => setTimeout(r, 3000))
+          try {
+            const res = await fetch(`${baseUrl}/api/video/seedance?task_id=${taskId}`)
+            if (res.ok) {
+              const data = await res.json()
+              if (data.status === "succeeded" && data.videoUrl) {
+                resolvedVideos.push({ taskId, videoUrl: data.videoUrl, shotNumber: f.shotNumber })
+                break
+              }
+              if (data.status === "failed" || data.status === "expired") break
+            }
+          } catch {}
+        }
+      }
+
+      project.status = "completed"
+      const videoClips = frames.filter(f => f.imageUrl).map((f, idx) => {
+        const found = resolvedVideos.find(v => v.taskId === f.seedanceTaskId)
+        return {
+          url: found?.videoUrl || f.imageUrl,
           startTime: frames.slice(0, idx).reduce((s, p) => s + p.duration, 0),
           endTime: frames.slice(0, idx + 1).reduce((s, p) => s + p.duration, 0),
-          index: idx,
-          shotNumber: f.shotNumber,
-          description: f.description,
-          dialogue: f.dialogue,
+          shotNumber: f.shotNumber, description: f.description, dialogue: f.dialogue,
           seedanceTaskId: f.seedanceTaskId,
-        }))
+          videoUrl: found?.videoUrl || null,
+        }
+      })
       const totalDuration = videoClips.length > 0 ? videoClips[videoClips.length - 1].endTime : 10
       stage.output = JSON.stringify({
-        status: videoClips.length > 0 ? "ready" : "no_frames",
+        status: "done",
         frames: videoClips,
-        totalDuration,
-        seedanceTaskIds,
-        message: videoClips.length > 0
-          ? `${videoClips.length} 个镜头 · 约 ${totalDuration} 秒 · 点击每个镜头下载 Seedance 视频`
-          : "请先运行视觉生成阶段",
+        totalDuration, seedanceTaskIds,
+        resolvedVideoCount: resolvedVideos.length,
+        videoUrls: resolvedVideos.map(v => ({ shotNumber: v.shotNumber, url: v.videoUrl })),
+        message: resolvedVideos.length > 0
+          ? `${resolvedVideos.length}/${seedanceTaskIds.length} 个视频已就绪`
+          : videoClips.length > 0
+          ? `${videoClips.length} 个镜头（图片模式）`
+          : "无镜头数据",
       })
       stage.status = "done"
       stage.completedAt = new Date().toISOString()
-      stage.modelUsed = "client_canvas"
+      stage.modelUsed = "seedance"
       saveProjects(projects)
       return stage
     } catch (err: any) {
