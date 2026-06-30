@@ -709,6 +709,56 @@ export async function executeStage(
     }
   }
 
+  // ── 音频制作：调用 TTS 为有对白的镜头配音 ──
+  if (stageId === "audio_production") {
+    try {
+      // 从分镜脚本中提取对白
+      const sbStage = project.stages.find(s => s.stageId === "script_breakdown")
+      const sbOutput = sbStage?.output || ""
+      const dialLines: { shotNumber: number; text: string }[] = []
+      const dialRegex = /镜头(\d+)[\s\S]*?(?:对白|旁白)[：:]([^\n]+)/gi
+      let m
+      while ((m = dialRegex.exec(sbOutput)) !== null) {
+        const text = m[2].trim()
+        if (text && text !== "无" && text.length > 2) {
+          dialLines.push({ shotNumber: parseInt(m[1]), text })
+        }
+      }
+
+      const audioClips: { shotNumber: number; audioBase64: string }[] = []
+      for (const dl of dialLines.slice(0, 10)) {
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || "https://jiying.cc.cd"}/api/video/tts`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: dl.text.slice(0, 200), voice: "zh-CN-XiaoxiaoNeural", speed: 1.0 }),
+          })
+          if (res.ok) {
+            const data = await res.json()
+            if (data.audio) audioClips.push({ shotNumber: dl.shotNumber, audioBase64: data.audio })
+          }
+        } catch {}
+      }
+
+      stage.input = `为 ${dialLines.length} 段对白生成配音`
+      stage.output = JSON.stringify({
+        totalDialogue: dialLines.length,
+        generatedAudio: audioClips.length,
+        audioClips,
+        message: audioClips.length > 0
+          ? `${audioClips.length}/${dialLines.length} 段配音已生成`
+          : "无配音需求或配音生成失败",
+      })
+      stage.status = "done"
+      stage.completedAt = new Date().toISOString()
+      stage.modelUsed = "edge-tts"
+      saveProjects(projects)
+      return stage
+    } catch (err: any) {
+      stage.status = "failed"; stage.error = err.message; saveProjects(projects); return stage
+    }
+  }
+
   try {
     // ── LLM 阶段 ──
     let input = ""
