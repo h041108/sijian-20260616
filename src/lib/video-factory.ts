@@ -371,6 +371,17 @@ export function loadProjects(): VideoProject[] {
 export function saveProjects(projects: VideoProject[]) {
   if (typeof window === "undefined") return
   localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects))
+  // 异步同步到 Supabase（不阻塞 UI）
+  try {
+    const latest = projects[0]
+    if (latest) {
+      fetch("/api/sync/project", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ project: latest }),
+      }).catch(() => {})
+    }
+  } catch {}
 }
 
 export function deleteProject(projectId: string) {

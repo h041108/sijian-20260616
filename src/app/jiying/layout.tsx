@@ -33,6 +33,7 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
   const [isPaid, setIsPaid] = useState(false)
 
   useEffect(() => {
+    // 从 localStorage 恢复（本地优先）
     const raw = localStorage.getItem("sijian_session")
     if (raw) {
       try {
@@ -42,6 +43,30 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
     }
     const paid = localStorage.getItem("sijian_paid") === "true"
     setIsPaid(paid)
+
+    // 尝试从 Supabase 恢复 session（不阻塞 UI）
+    import("@/lib/supabase").then(m => {
+      const supabase = m.supabase
+      supabase.auth.getSession().then(({ data }: any) => {
+        if (data?.session?.user) {
+          const s = data.session.user
+          const u: SijianUser = {
+            id: s.id, openid: s.id,
+            nickname: s.email?.split("@")[0] || "用户",
+            avatar: "#F59E0B", role: "student",
+            email: s.email || "", createdAt: s.created_at || "",
+          }
+          setUser(u)
+          localStorage.setItem("sijian_session", JSON.stringify(u))
+          supabase.from("subscriptions").select("plan_id").eq("user_id", s.id).single().then(({ data: subData }: any) => {
+            if (subData?.plan_id && subData.plan_id !== "free") {
+              setIsPaid(true)
+              localStorage.setItem("sijian_paid", "true")
+            }
+          }).catch(() => {})
+        }
+      }).catch(() => {})
+    }).catch(() => {})
   }, [])
 
   return (

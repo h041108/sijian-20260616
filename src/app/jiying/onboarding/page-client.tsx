@@ -88,12 +88,28 @@ export default function OnboardingPage() {
   // 每次 state 变化时同步写入 bound accounts（供 launch 页读取）
   useEffect(() => { writeBoundAccounts() }, [writeBoundAccounts])
 
-  // 支付
+  // 支付（localStorage + 异步 Supabase 同步）
+  const syncPaidToSupabase = () => {
+    import("@/lib/supabase").then(m => {
+      const sb = m.supabase
+      sb.auth.getSession().then(({ data }: any) => {
+        if (data?.session?.user) {
+          sb.from("subscriptions").upsert({
+            user_id: data.session.user.id,
+            plan_id: "pro",
+            start_date: new Date().toISOString().slice(0, 10),
+          }, { onConflict: "user_id" }).catch(() => {})
+        }
+      }).catch(() => {})
+    }).catch(() => {})
+  }
+
   const handlePay = async (id: string) => {
     setPaying(true)
     await new Promise(r => setTimeout(r, 1000))
     us(id, { paid: true })
     localStorage.setItem("sijian_paid", "true")
+    syncPaidToSupabase()
     setPaying(false)
     setActivePay(null)
   }
@@ -104,6 +120,7 @@ export default function OnboardingPage() {
     Object.keys(ns).forEach(k => { if (ns[k].verified && !ns[k].paid) ns[k] = { ...ns[k], paid: true } })
     setStates(ns)
     localStorage.setItem("sijian_paid", "true")
+    syncPaidToSupabase()
     setPaying(false)
     setShowBatchPay(false)
   }

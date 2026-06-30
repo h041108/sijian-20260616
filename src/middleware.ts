@@ -17,6 +17,7 @@ const PUBLIC_API_PATHS = [
   "/api/mindspace", "/api/usage",
   "/api/stock",
   "/api/quality",
+  "/api/sync",
 ]
 
 export function middleware(request: NextRequest) {
