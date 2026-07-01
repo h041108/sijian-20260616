@@ -220,20 +220,16 @@ function ImageToVideoPanel() {
     setLoading(false)
   }, [refUrl, prompt])
 
-  const handleDownload = useCallback(async () => {
+  const handleDownload = useCallback(() => {
     if (!videoUrl) return
-    setDownloading(true)
-    try {
-      const res = await fetch(videoUrl)
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `视频_${Date.now()}.mp4`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch { alert("下载失败，请右键点击视频另存为") }
-    setDownloading(false)
+    // 直接在新标签页打开，浏览器会处理下载或播放
+    // 火山引擎的临时URL无法 fetch 跨域，所以直接用 a 标签
+    const a = document.createElement("a")
+    a.href = videoUrl
+    a.download = `视频_${Date.now()}.mp4`
+    a.target = "_blank"
+    a.rel = "noopener"
+    a.click()
   }, [videoUrl])
 
   return (
@@ -260,8 +256,8 @@ function ImageToVideoPanel() {
       {videoUrl && (
         <div className="text-center space-y-2">
           <video src={videoUrl} controls className="max-w-xs mx-auto rounded-xl border border-white/10" />
-          <button onClick={handleDownload} disabled={downloading}
-            className="px-4 py-1.5 rounded-lg bg-[#F59E0B]/15 text-[#F59E0B] text-xs border border-[#F59E0B]/20 hover:bg-[#F59E0B]/25">{downloading ? "下载中..." : "📥 下载视频"}</button>
+          <a href={videoUrl} download={`视频_${Date.now()}.mp4`}
+            className="inline-block px-4 py-1.5 rounded-lg bg-[#F59E0B]/15 text-[#F59E0B] text-xs border border-[#F59E0B]/20 hover:bg-[#F59E0B]/25">📥 下载视频</a>
         </div>
       )}
     </div>
@@ -273,7 +269,6 @@ function TextToVideoPanel() {
   const [loading, setLoading] = useState(false)
   const [videoUrl, setVideoUrl] = useState("")
   const [polling, setPolling] = useState(false)
-  const [downloading, setDownloading] = useState(false)
 
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) return
@@ -301,20 +296,6 @@ function TextToVideoPanel() {
     setLoading(false)
   }, [prompt])
 
-  const handleDownload = useCallback(async () => {
-    if (!videoUrl) return
-    setDownloading(true)
-    try {
-      const res = await fetch(videoUrl)
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url; a.download = `视频_${Date.now()}.mp4`; a.click()
-      URL.revokeObjectURL(url)
-    } catch { alert("下载失败，请右键点击视频另存为") }
-    setDownloading(false)
-  }, [videoUrl])
-
   return (
     <div className="glass rounded-2xl p-5 space-y-4">
       <textarea value={prompt} onChange={e => setPrompt(e.target.value)}
@@ -328,8 +309,8 @@ function TextToVideoPanel() {
       {videoUrl && (
         <div className="text-center space-y-2">
           <video src={videoUrl} controls className="max-w-xs mx-auto rounded-xl border border-white/10" />
-          <button onClick={handleDownload} disabled={downloading}
-            className="px-4 py-1.5 rounded-lg bg-[#F59E0B]/15 text-[#F59E0B] text-xs border border-[#F59E0B]/20 hover:bg-[#F59E0B]/25">{downloading ? "下载中..." : "📥 下载视频"}</button>
+          <a href={videoUrl} download={`视频_${Date.now()}.mp4`}
+            className="inline-block px-4 py-1.5 rounded-lg bg-[#F59E0B]/15 text-[#F59E0B] text-xs border border-[#F59E0B]/20 hover:bg-[#F59E0B]/25">📥 下载视频</a>
         </div>
       )}
     </div>
