@@ -160,7 +160,7 @@ export default function JiyingAuth({ onUserChange }: JiyingAuthProps) {
 
       {/* 登录/注册弹窗 — 居中显示 — 全实心不透 */}
       {showLogin && (
-        <div className="fixed inset-0 bg-black/85 z-[100] flex items-center justify-center p-4" onClick={() => setShowLogin(false)}>
+        <div className="fixed inset-0 bg-black/85 z-[100] flex items-start justify-center p-4 pt-[15vh] overflow-y-auto" onClick={() => setShowLogin(false)}>
           <div className="relative bg-[#1A1A2E] rounded-2xl p-8 shadow-2xl w-full max-w-sm border border-[#F59E0B]/15 backdrop-blur-none" onClick={e => e.stopPropagation()}>
             {/* 关闭按钮 */}
             <button onClick={() => setShowLogin(false)}
