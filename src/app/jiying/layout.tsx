@@ -101,16 +101,16 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
               </Link>
             )}
             <details className="md:hidden relative">
-              <summary className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#0C0C14] text-[#9898B0] cursor-pointer">☰</summary>
-              <div className="absolute right-0 top-full mt-2 w-52 bg-[#1A1A2E] rounded-xl border border-white/[0.06] shadow-lg p-2 z-50">
+              <summary className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#0C0C14] text-[#9898B0] cursor-pointer hover:text-[#FBBF24] transition-colors">☰</summary>
+              <div className="fixed right-4 top-14 w-56 bg-[#1A1A2E] rounded-xl border border-[#F59E0B]/20 shadow-2xl p-2 z-[999]">
                 {NAV_ITEMS.map(item => (
                   <Link key={item.href} href={item.href}
-                    className="block px-3 py-2 rounded-xl text-sm text-[#9898B0] hover:text-[#FBBF24] hover:bg-[#F59E0B]/8">
+                    className="block px-3 py-2.5 rounded-xl text-sm font-semibold text-[#E8E8F0] hover:text-[#FBBF24] hover:bg-[#F59E0B]/15 transition-all">
                     {item.label}
                   </Link>
                 ))}
-                <hr className="my-1 border-white/[0.06]" />
-                <Link href="/" className="block px-3 py-2 rounded-xl text-sm text-[#5A5A72] hover:text-[#FBBF24] hover:bg-[#F59E0B]/8">← 思见首页</Link>
+                <hr className="my-1.5 border-white/[0.06]" />
+                <Link href="/" className="block px-3 py-2.5 rounded-xl text-sm text-[#5A5A72] hover:text-[#FBBF24] hover:bg-[#F59E0B]/8">← 思见首页</Link>
               </div>
             </details>
           </div>
