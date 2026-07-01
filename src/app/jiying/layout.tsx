@@ -31,6 +31,7 @@ function isMemberOnly(path: string): boolean {
 export default function JiyingLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SijianUser | null>(null)
   const [isPaid, setIsPaid] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     // 从 localStorage 恢复（本地优先）
@@ -100,19 +101,26 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
                 <span className="hidden sm:inline">{user.nickname}</span>
               </Link>
             )}
-            <details className="md:hidden relative">
-              <summary className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#0C0C14] text-[#9898B0] cursor-pointer hover:text-[#FBBF24] transition-colors">☰</summary>
-              <div className="fixed right-4 top-14 w-56 bg-[#1A1A2E] rounded-xl border border-[#F59E0B]/20 shadow-2xl p-2 z-[999]">
+            {mobileMenuOpen && (
+              <div className="fixed inset-0 z-[998]" onClick={() => setMobileMenuOpen(false)} />
+            )}
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg bg-[#0C0C14] text-[#9898B0] hover:text-[#FBBF24] transition-colors">
+              {mobileMenuOpen ? "✕" : "☰"}
+            </button>
+            {mobileMenuOpen && (
+              <div className="fixed right-4 top-14 w-56 bg-[#1A1A2E] rounded-xl border border-[#F59E0B]/20 shadow-2xl p-2 z-[999]" onClick={e => e.stopPropagation()}>
                 {NAV_ITEMS.map(item => (
                   <Link key={item.href} href={item.href}
-                    className="block px-3 py-2.5 rounded-xl text-sm font-semibold text-[#E8E8F0] hover:text-[#FBBF24] hover:bg-[#F59E0B]/15 transition-all">
+                    className="block px-3 py-2.5 rounded-xl text-sm font-semibold text-[#E8E8F0] hover:text-[#FBBF24] hover:bg-[#F59E0B]/15 transition-all"
+                    onClick={() => setMobileMenuOpen(false)}>
                     {item.label}
                   </Link>
                 ))}
                 <hr className="my-1.5 border-white/[0.06]" />
                 <Link href="/" className="block px-3 py-2.5 rounded-xl text-sm text-[#5A5A72] hover:text-[#FBBF24] hover:bg-[#F59E0B]/8">← 思见首页</Link>
               </div>
-            </details>
+            )}
           </div>
         </div>
       </header>
