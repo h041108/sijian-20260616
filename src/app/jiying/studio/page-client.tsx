@@ -1,9 +1,40 @@
 "use client"
 import { useState, useCallback, useRef } from "react"
-import { STUDIO_MODELS, type StudioModel, type AspectRatio, generateImage } from "@/lib/image-studio"
-import { createStudioProject, saveProject, type StudioResult } from "@/lib/image-studio"
 import Link from "next/link"
 import ProductDetailPage from "@/components/ProductDetailPage"
+
+// ─── 图片工作室类型（内联，原 image-studio.ts 已合并到 video-factory.ts）───
+type StudioModel = "jimeng" | "midjourney" | "flux" | "dalle3" | "gpt_image"
+type AspectRatio = "1:1" | "4:3" | "16:9" | "9:16" | "3:4"
+
+const ASPECT_PIXELS: Record<AspectRatio, { w: number; h: number }> = {
+  "1:1": { w: 1920, h: 1920 }, "4:3": { w: 1920, h: 1440 },
+  "16:9": { w: 1920, h: 1080 }, "9:16": { w: 1080, h: 1920 }, "3:4": { w: 1440, h: 1920 },
+}
+
+interface StudioResult { url: string; score: number; model: StudioModel; prompt: string; seed?: number }
+interface StudioProject {
+  id: string; prompt: string; optimizedPrompt?: string; referenceImages: string[]
+  style: string; model: StudioModel; aspectRatio: AspectRatio; results: StudioResult[]
+  selectedIndex?: number; createdAt: string
+}
+
+function createStudioProject(prompt: string): StudioProject {
+  return { id: `studio_${Date.now()}`, prompt, referenceImages: [], style: "写实电影风格", model: "jimeng", aspectRatio: "16:9", results: [], createdAt: new Date().toISOString() }
+}
+
+async function generateImage(prompt: string, model: StudioModel, aspectRatio: AspectRatio, existingImageUrl?: string): Promise<{ url: string; seed?: number }> {
+  const pixels = ASPECT_PIXELS[aspectRatio] || { w: 1920, h: 1080 }
+  if (model === "jimeng") {
+    const body: any = { prompt, width: pixels.w, height: pixels.h }
+    if (existingImageUrl) { body.image = existingImageUrl; body.image_strength = 0.35 }
+    const res = await fetch("/api/video/frame", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+    const data = await res.json()
+    if (data.url && !data.placeholder) return { url: data.url, seed: data.seed }
+    throw new Error(data.message || "生成失败")
+  }
+  throw new Error("该模型的API尚未配置")
+}
 
 const RATIOS: AspectRatio[] = ["1:1", "4:3", "16:9", "9:16", "3:4"]
 const STYLES = ["写实电影风格", "日系动漫", "国风水墨", "赛博朋克", "皮克斯3D", "油画风格", "极简扁平", "复古胶片"]
@@ -67,8 +98,8 @@ function TextToImagePanel() {
           rows={3} className="w-full text-sm bg-[#0C0C14] border border-white/10 text-white/80 placeholder-white/20 rounded-xl p-3" />
         <div className="flex gap-2">
           <select value={project.style} onChange={e => setProject(p => ({ ...p, style: e.target.value }))}
-            className="flex-1 bg-[#0C0C14] border border-white/10 text-white/60 text-xs rounded-xl px-3 py-2">
-            {STYLES.map(s => <option key={s}>{s}</option>)}
+            className="flex-1 bg-[#1A1A2E] border border-white/10 text-white/80 text-xs rounded-xl px-3 py-2 appearance-none">
+            {STYLES.map(s => <option key={s} className="bg-[#1A1A2E] text-white">{s}</option>)}
           </select>
           <div className="flex gap-1">
             {RATIOS.map(r => (

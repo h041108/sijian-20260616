@@ -153,16 +153,59 @@ export function buildDeconstructPromptForSelection(selected: ViralCandidate): st
 }
 
 // ═══════════════════════════════════════════════════
-// 改写 prompt
+// 改写 prompt（含人设注入 + 赛道适配 + 敏感词规避提示）
 // ═══════════════════════════════════════════════════
+
+export interface PersonaProfile {
+  tags: string[]
+  description: string
+  tone: string
+  contentStyle: string
+  visualStyle: string
+  catchphrases: string[]
+  targetAudience: string
+}
+
+/** 从 agent_02 原始输出中解析人设信息 */
+export function parsePersonaFromAgent02(rawOutput: string): PersonaProfile {
+  const extract = (label: string): string => {
+    const re = new RegExp(`${label}[：:]\\s*(.+?)(?:\\n|$)`, "i")
+    const m = rawOutput.match(re)
+    return m ? m[1].trim() : ""
+  }
+  const extractList = (label: string): string[] => {
+    const val = extract(label)
+    return val ? val.split(/[,，、]/).map(s => s.trim()).filter(Boolean) : []
+  }
+  return {
+    tags: extractList("人设标签"),
+    description: extract("人设方案") || rawOutput.slice(0, 200),
+    tone: extract("语气风格"),
+    contentStyle: extract("内容调性"),
+    visualStyle: extract("视觉风格"),
+    catchphrases: extractList("招牌语言"),
+    targetAudience: extract("目标粉丝"),
+  }
+}
 
 export function buildRewritePrompt(
   userSamples: string[],
   viralDeconstruction: ViralTemplate,
   niche: string,
   platform: string,
+  persona?: PersonaProfile,
 ): string {
   let p = `你是${platform}平台的${niche}领域创作者。`
+
+  if (persona) {
+    p += `\n\n你的创作者人设：`
+    if (persona.tags.length > 0) p += `\n- 人设标签：${persona.tags.join("、")}`
+    if (persona.tone) p += `\n- 语气风格：${persona.tone}`
+    if (persona.contentStyle) p += `\n- 内容调性：${persona.contentStyle}`
+    if (persona.catchphrases.length > 0) p += `\n- 招牌语言：${persona.catchphrases.join("、")}`
+    if (persona.targetAudience) p += `\n- 你的粉丝画像：${persona.targetAudience}`
+    p += `\n\n创作时保持这个人设，让你的粉丝感到亲切和一致。`
+  }
 
   if (userSamples.length > 0) {
     p += `\n\n你已有的内容风格（新内容必须保持这个风格）：`
@@ -175,6 +218,14 @@ export function buildRewritePrompt(
   p += `\n节奏控制：${viralDeconstruction.pacing}`
   p += `\n情绪曲线：${viralDeconstruction.emotionalCurve}`
   p += `\n转化话术：${viralDeconstruction.conversionTactic}`
+
+  p += `\n\n合规提醒（避免以下内容以通过${platform}平台审核）：`
+  p += `\n- 不要出现微信号、QQ号、手机号等直接联系方式`
+  p += `\n- 不要使用「免费领取」「点击下载」等诱导性表述`
+  p += `\n- 不要使用「治愈」「根治」等绝对化医疗用语`
+  p += `\n- 不要使用「稳赚」「零风险」等金融违规词`
+  p += `\n- 引导互动时用「评论区见」「私信我」等自然表达`
+
   p += `\n\n写出标题+正文（300-500字）+话题标签，适合${platform}平台。`
 
   return p

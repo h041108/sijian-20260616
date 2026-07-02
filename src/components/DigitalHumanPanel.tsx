@@ -12,6 +12,10 @@ export default function DigitalHumanPanel() {
   const [statusMsg, setStatusMsg] = useState("")
   const [recording, setRecording] = useState(false)
   const [recordingSec, setRecordingSec] = useState(0)
+  const [ttsText, setTtsText] = useState("")
+  const [ttsGenerating, setTtsGenerating] = useState(false)
+  const [uploadedVideo, setUploadedVideo] = useState<string | null>(null)
+  const [useLocalVideo, setUseLocalVideo] = useState(false)
   const streamRef = useRef<MediaStream | null>(null)
   const mrRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -117,6 +121,47 @@ export default function DigitalHumanPanel() {
     }
   }, [recording])
 
+  // ── TTS 文本生成音频 ──
+  const handleTTSGenerate = useCallback(async () => {
+    if (!ttsText.trim()) return
+    setTtsGenerating(true)
+    try {
+      const res = await fetch("/api/video/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: ttsText.trim().slice(0, 500) }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.audio && !data.fallback) {
+          // 将 base64 转为 Blob
+          const byteChars = atob(data.audio)
+          const byteNums = new Array(byteChars.length)
+          for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i)
+          const byteArr = new Uint8Array(byteNums)
+          const blob = new Blob([byteArr], { type: `audio/${data.format || "mp3"}` })
+          setAudioBlob(blob)
+          setAudioUrl(URL.createObjectURL(blob))
+          setStatusMsg(`✅ TTS 生成成功 (${data.source})`)
+        } else if (data.fallback) {
+          setStatusMsg(`⚠️ TTS 回退: ${data.message}`)
+        }
+      }
+    } catch (err: any) {
+      setStatusMsg(`❌ TTS 失败: ${err.message}`)
+    }
+    setTtsGenerating(false)
+  }, [ttsText])
+
+  // ── 本地上传视频 ──
+  const handleVideoUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    setUploadedVideo(url)
+    setUseLocalVideo(true)
+  }, [])
+
   const handleGenerate = useCallback(async () => {
     if (!portrait || !audioBlob) return
     setGenerating(true); setResultUrl(null); setProgress(0); setStatusMsg("正在上传素材...")
@@ -192,24 +237,90 @@ export default function DigitalHumanPanel() {
   }, [resultUrl])
 
   return (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-br from-purple-900/90 to-indigo-900/90 rounded-2xl border border-purple-700 p-8 text-center">
-        <div className="text-6xl mb-4">🎭</div>
-        <h2 className="text-xl font-bold text-white mb-2">数字人口播</h2>
-        <p className="text-sm text-purple-300 mb-1">一张照片 + 一段音频 → 会说话的数字人</p>
-        <p className="text-xs text-purple-400">Canvas 合成 · 音频驱动唇动 + 头部微晃</p>
+    <div className="space-y-5">
+      {/* ── 顶部介绍 ── */}
+      <div className="bg-gradient-to-br from-purple-900/50 to-indigo-900/50 rounded-2xl border border-purple-500/20 p-6 text-center">
+        <div className="text-5xl mb-3">🎭</div>
+        <h2 className="text-lg font-bold text-white/90 mb-1">数字人口播</h2>
+        <p className="text-xs text-purple-300/70">一张照片 + 一段音频 → 会说话的数字人 · OmniHuman 1.5</p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-[#e8e5df] p-6">
-        <div className="grid grid-cols-2 gap-6">
+      {/* ── TTS 文案输入区 ── */}
+      <div className="glass rounded-2xl p-5 space-y-3">
+        <h4 className="text-sm font-semibold text-white/80">📝 文案转语音（TTS）</h4>
+        <textarea
+          value={ttsText}
+          onChange={e => setTtsText(e.target.value)}
+          rows={3}
+          style={{ color: "#E8E8F0", background: "#1A1A2E" }}
+          className="w-full rounded-xl border border-white/10 p-3 text-sm placeholder-white/30 focus:outline-none focus:border-purple-500/40 resize-none"
+          placeholder="输入口播文案，将自动生成配音（最长500字）..."
+        />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleTTSGenerate}
+            disabled={!ttsText.trim() || ttsGenerating}
+            className="rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 text-xs font-medium transition-all hover:from-purple-700 hover:to-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {ttsGenerating ? "⏳ 生成中..." : "🎙️ 生成配音"}
+          </button>
+          <span className="text-[10px] text-white/30">火山引擎 → Edge-TTS 双引擎</span>
+        </div>
+        {audioUrl && ttsText && (
+          <div className="p-3 bg-purple-500/10 rounded-xl border border-purple-500/20">
+            <p className="text-[10px] text-purple-300 mb-1">✅ 配音已就绪</p>
+            <audio src={audioUrl} controls className="w-full h-8" />
+          </div>
+        )}
+      </div>
+
+      {/* ── 本地上传视频 ── */}
+      <div className="glass rounded-2xl p-5 space-y-3">
+        <h4 className="text-sm font-semibold text-white/80">📹 本地上传个人视频（可选）</h4>
+        <label className={`block w-full rounded-xl border-2 border-dashed p-4 text-center cursor-pointer transition-all ${
+          uploadedVideo ? "border-teal-500/30 bg-teal-500/5" : "border-white/10 bg-[#0C0C14] hover:border-teal-500/30"
+        }`}>
+          {uploadedVideo ? (
+            <div>
+              <span className="text-2xl">📹</span>
+              <p className="text-xs text-teal-300 mt-1">视频已上传，点击可更换</p>
+              <video src={uploadedVideo} controls className="mt-2 mx-auto w-full max-w-[300px] max-h-[200px] rounded-lg" />
+            </div>
+          ) : (
+            <div className="text-white/30">
+              <span className="text-3xl mb-2 block">📹</span>
+              <span className="text-sm">点击上传个人视频</span>
+              <span className="text-[10px] block mt-1 text-white/15">作为数字人口播的视频素材</span>
+            </div>
+          )}
+          <input type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
+        </label>
+        {uploadedVideo && (
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={useLocalVideo}
+                onChange={e => setUseLocalVideo(e.target.checked)}
+                className="rounded accent-purple-500"
+              />
+              <span className="text-[10px] text-white/40">使用本地视频作为数字人素材</span>
+            </label>
+          </div>
+        )}
+      </div>
+
+      {/* ── 照片 + 音频上传 ── */}
+      <div className="glass rounded-2xl p-5 space-y-4">
+        <div className="grid grid-cols-2 gap-5">
           <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">📷 上传照片</h4>
-            <label className="block w-full aspect-[4/3] rounded-xl border-2 border-dashed border-gray-200 hover:border-purple-300 cursor-pointer overflow-hidden transition-all bg-gray-50">
+            <h4 className="text-sm font-semibold text-white/80 mb-3">📷 上传照片</h4>
+            <label className="block w-full aspect-[4/3] rounded-xl border-2 border-dashed border-white/10 hover:border-purple-500/30 cursor-pointer overflow-hidden transition-all bg-[#0C0C14]">
               {portrait
                 ? <img src={portrait} alt="" className="w-full h-full object-cover" />
-                : <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
-                    <span className="text-4xl mb-2">📷</span>
-                    <span className="text-sm">点击上传照片</span>
+                : <div className="w-full h-full flex flex-col items-center justify-center text-white/30">
+                    <span className="text-3xl mb-2">📷</span>
+                    <span className="text-xs">点击上传照片</span>
                   </div>
               }
               <input type="file" accept="image/*" onChange={handlePortrait} className="hidden" />
@@ -217,47 +328,47 @@ export default function DigitalHumanPanel() {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">🎙️ 上传音频</h4>
-            <label className={`block w-full rounded-xl border-2 border-dashed p-4 text-center cursor-pointer hover:border-purple-300 transition-all min-h-[100px] flex flex-col items-center justify-center ${
-              audioUrl ? "border-purple-400 bg-purple-50" : "border-gray-200 bg-gray-50"
+            <h4 className="text-sm font-semibold text-white/80 mb-3">🎙️ 上传音频</h4>
+            <label className={`block w-full rounded-xl border-2 border-dashed p-4 text-center cursor-pointer hover:border-purple-500/30 transition-all min-h-[100px] flex flex-col items-center justify-center ${
+              audioUrl ? "border-purple-500/30 bg-purple-500/5" : "border-white/10 bg-[#0C0C14]"
             }`}>
               {audioUrl
                 ? <div className="w-full">
-                    <span className="text-2xl">🎵</span>
-                    <p className="text-xs text-purple-600 mt-1">音频已就绪，点击可更换</p>
+                    <span className="text-xl">🎵</span>
+                    <p className="text-xs text-purple-300 mt-1">音频已就绪，点击可更换</p>
                     <audio src={audioUrl} controls className="mt-2 mx-auto w-full max-w-[180px] h-8" />
                   </div>
-                : <div className="text-gray-400">
-                    <span className="text-4xl mb-2 block">🎙️</span>
-                    <span className="text-sm">点击上传音频文件</span>
-                    <span className="text-[10px] block mt-1 text-gray-300">建议用手机录音 App 先录好</span>
+                : <div className="text-white/30">
+                    <span className="text-3xl mb-2 block">🎙️</span>
+                    <span className="text-xs">点击上传音频文件</span>
+                    <span className="text-[10px] block mt-1 text-white/15">建议用手机录音 App 先录好</span>
                   </div>
               }
               <input type="file" accept="audio/*" onChange={handleAudioFile} className="hidden" />
             </label>
 
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-px bg-gray-100" />
-              <span className="text-[10px] text-gray-300">或者</span>
-              <div className="flex-1 h-px bg-gray-100" />
+            <div className="flex items-center gap-2 mt-2">
+              <div className="flex-1 h-px bg-white/[0.06]" />
+              <span className="text-[10px] text-white/20">或者</span>
+              <div className="flex-1 h-px bg-white/[0.06]" />
             </div>
 
             <button onClick={handleRecord}
               className={`w-full rounded-xl py-3 text-sm font-medium transition-all ${
                 recording
                   ? "bg-red-600 text-white animate-pulse"
-                  : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  : "bg-[#1A1A2E] hover:bg-[#252540] text-white/60 hover:text-white/80 border border-white/10"
               }`}>
               {recording ? `🔴 录音中 ${recordingSec}s · 点击停止（最长120s）` : "🎤 直接录音"}
             </button>
-            <p className="text-[10px] text-gray-400 text-center">
+            <p className="text-[10px] text-white/20 text-center">
               点击开始录音，说完点停止，自动就绪
             </p>
           </div>
         </div>
 
         <button onClick={handleGenerate} disabled={!portrait || !audioBlob || generating}
-          className="w-full mt-6 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white py-4 text-base font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+          className="w-full mt-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white py-4 text-base font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed">
           {generating
             ? <span className="flex items-center justify-center gap-2">
                 <span className="animate-spin">⏳</span> {statusMsg || "正在合成..."}
@@ -268,7 +379,7 @@ export default function DigitalHumanPanel() {
         </button>
 
         {!portrait || !audioBlob ? (
-          <div className="mt-3 text-[10px] text-gray-300 text-center">
+          <div className="mt-2 text-[10px] text-white/20 text-center">
             {!portrait && "👆 请先上传照片  "}
             {!portrait && !audioBlob && "·  "}
             {!audioBlob && "👆 请先上传音频"}
@@ -277,11 +388,11 @@ export default function DigitalHumanPanel() {
       </div>
 
       {resultUrl && (
-        <div className="bg-white rounded-2xl border-2 border-green-200 p-6">
+        <div className="glass rounded-2xl p-5 border border-green-500/20">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-700">✅ 生成结果</h3>
+            <h3 className="text-sm font-semibold text-white/80">✅ 生成结果</h3>
             <button onClick={handleDownload}
-              className="rounded-xl bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 text-xs font-medium">
+              className="rounded-xl bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 text-xs font-medium transition-all">
               📥 下载视频
             </button>
           </div>

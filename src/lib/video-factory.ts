@@ -2,8 +2,6 @@
 // 多模型协作流水线：一句话 → 故事 → 分镜 → 画面 → 视频 → 成品
 // 架构：Orchestrator → Stage Agents → Model Registry → Output
 
-import { loadRegistry, classifyTask, route } from "./orchestrator"
-
 // ═══════════════════════════════════════════════════
 // 流水线阶段定义
 // ═══════════════════════════════════════════════════
@@ -305,11 +303,6 @@ export function getDirectorPlan(genre: string, mode: "full" | "quick" = "full"):
   return { stages, mode, label: labels[mode] || labels.full, description: descriptions[mode] || descriptions.full }
 }
 
-export function getDirectorModeLabel(genre: string, stagesCount: number): string {
-  const full = (DIRECTOR_PLANS[genre] || DIRECTOR_PLANS.short_drama).full.length
-  return stagesCount >= full ? "🎬 完整导演" : "⚡ 快速导演"
-}
-
 // ═══════════════════════════════════════════════════
 // 视频类型预设
 // ═══════════════════════════════════════════════════
@@ -530,11 +523,12 @@ export async function executeStage(
       const storyAppearMatch = storyOutput.match(/外貌[：:]([^\n]+)/)
       const firstShotAppear = sbOutput.match(/画面描述[：:]([^\n]+)/)
       const characterLook = charDesc || storyAppearMatch?.[1]?.trim() || firstShotAppear?.[1]?.split(/[,，]/).slice(0, 3).join("，") || ""
-      // 注入电影制作级参数到画面描述
+      // 注入全部13项电影制作级参数到画面描述
       const fp = project.filmParams
       const filmStr = fp ? [
-        fp.environment, fp.lighting, fp.colorTone, fp.timeOfDay,
-        fp.visualStyle, fp.mood,
+        fp.visualStyle, fp.lensFocal, fp.shotScale, fp.cameraAngle,
+        fp.cameraMove, fp.lighting, fp.colorTone, fp.environment,
+        fp.timeOfDay, fp.mood, fp.actionDesc,
       ].filter(Boolean).join("，") : ""
       const shotPrefix = `${project.style}风格${filmStr ? "，" + filmStr : ""}${charDesc ? "，" + charDesc + "，" + charName : characterLook ? "，" + characterLook + "，" + charName : ""}`
 
@@ -569,12 +563,13 @@ export async function executeStage(
 
           const frameBody: any = { prompt: imagePrompt, width: 1920, height: 1080 }
           // 优先用上一帧（帧间连续性），首帧用角色/产品参考图
+          // image_strength 提高到 0.55 确保更强的一致性约束
           if (useImageRef) {
             frameBody.image = previousImageUrl
-            frameBody.image_strength = 0.35
+            frameBody.image_strength = 0.55
           } else if (allRefUrls.length > 0) {
             frameBody.image = allRefUrls[0]
-            frameBody.image_strength = 0.4
+            frameBody.image_strength = 0.5
           }
 
           const frameRes = await fetch("/api/video/frame", {
@@ -660,7 +655,7 @@ export async function executeStage(
       stage.input = frames.length > 0 ? `合成 ${frames.length} 个镜头` : "等待视觉生成"
 
       // 轮询所有 Seedance 任务（前端环境通过 window.location 构造完整 URL）
-      const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://jiying.cc.cd"
+      const baseUrl = typeof window !== "undefined" ? window.location.origin : (process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000")
       const resolvedVideos: { taskId: string; videoUrl: string; shotNumber: number }[] = []
 
       for (const f of frames) {
@@ -739,7 +734,8 @@ export async function executeStage(
       const audioClips: { shotNumber: number; audioBase64: string }[] = []
       for (const dl of dialLines.slice(0, 10)) {
         try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || "https://jiying.cc.cd"}/api/video/tts`, {
+          const ttsBase = typeof window !== "undefined" ? window.location.origin : (process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000")
+          const res = await fetch(`${ttsBase}/api/video/tts`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text: dl.text.slice(0, 200), voice: "zh-CN-XiaoxiaoNeural", speed: 1.0 }),
@@ -801,10 +797,7 @@ export async function executeStage(
     stage.input = input.slice(0, 300)
 
     // 构建prompt — 优先从 Skill 引擎加载，回退硬编码
-    const skillPrompt = typeof window !== "undefined"
-      ? (() => { try { return require("./skill-engine").getSkill(`pipeline_${stageId}`)?.systemPrompt } catch { return null } })()
-      : null
-    const basePrompt = skillPrompt || stageConfig.systemPrompt
+    const basePrompt = stageConfig.systemPrompt
     const fullPrompt = basePrompt
       .replace("{style}", project.style)
       .replace("{duration}", String(project.duration))
@@ -917,41 +910,7 @@ export function getAvailableModels(): { byType: Record<string, VideoModel[]>; to
 
 export { VIDEO_MODELS }
 
-// Seedance video generation helper
-export async function submitSeedanceTask(opts: {
-  prompt: string
-  imageUrl?: string
-  model?: string
-  ratio?: string
-  duration?: number
-  generateAudio?: boolean
-  referenceImageUrls?: string[]
-}): Promise<{ taskId: string; pollUrl: string } | null> {
-  try {
-    const body: any = {
-      prompt: opts.prompt.slice(0, 400),
-      imageUrl: opts.imageUrl,
-      model: opts.model || "seedance-2.0-fast",
-      ratio: opts.ratio || "9:16",
-      duration: opts.duration || 5,
-      generateAudio: opts.generateAudio ?? false,
-    }
-    if (opts.referenceImageUrls?.length) body.referenceImageUrls = opts.referenceImageUrls.slice(0, 9)
-    const res = await fetch("/api/video/seedance", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    })
-    const data = await res.json()
-    if (data.taskId) {
-      return { taskId: data.taskId, pollUrl: `/api/video/seedance?task_id=${data.taskId}` }
-    }
-    return null
-  } catch {
-    return null
-  }
-}
-
+// Seedance 轮询辅助函数
 export async function pollSeedanceTask(taskId: string): Promise<{
   status: string
   videoUrl?: string

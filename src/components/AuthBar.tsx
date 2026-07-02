@@ -57,7 +57,7 @@ export default function AuthBar({ user, onLogin, onLogout, onRoleChange }: AuthB
 
       {/* 登录弹窗 */}
       {showPanel && panelMode === "login" && (
-        <div className="fixed inset-0 bg-black/50 z-[100] flex items-start justify-center p-4 pt-[15vh] overflow-y-auto" onClick={() => setShowPanel(false)}>
+        <div className="fixed inset-0 bg-black/50 z-[9999] flex items-start justify-center p-4 pt-[15vh] overflow-y-auto" onClick={() => setShowPanel(false)}>
           <div className="bg-white rounded-2xl p-6 shadow-2xl w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
             <div className="text-center mb-5">
               <div className="text-3xl mb-2">💬</div>
@@ -96,7 +96,7 @@ export default function AuthBar({ user, onLogin, onLogout, onRoleChange }: AuthB
 
       {/* 邀请码弹窗 */}
       {showPanel && panelMode === "invite" && (
-        <div className="fixed inset-0 bg-black/50 z-[100] flex items-start justify-center p-4 pt-[15vh] overflow-y-auto" onClick={() => setShowPanel(false)}>
+        <div className="fixed inset-0 bg-black/50 z-[9999] flex items-start justify-center p-4 pt-[15vh] overflow-y-auto" onClick={() => setShowPanel(false)}>
           <div className="bg-white rounded-2xl p-6 shadow-2xl w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-semibold text-gray-700">🔗 输入邀请码</h3>

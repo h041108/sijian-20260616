@@ -67,4 +67,4 @@ export function clearExperiments(): void {
   localStorage.removeItem(EXP_KEY)
 }
 
-function genId(): string { return `exp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}` }
+// genId removed — unused internal function

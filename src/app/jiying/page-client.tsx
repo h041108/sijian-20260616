@@ -50,14 +50,15 @@ export default function JiyingHome() {
         </div>
       </section>
 
-      {/* ─── 4大核心 ─── */}
+      {/* ─── 4大核心 — 20元开公司完整链路 ─── */}
       <section className="max-w-6xl mx-auto px-6 -mt-8 relative z-10">
+        <h2 className="text-center text-sm text-[#5A5A72] mb-4 tracking-wider">四步开启你的自媒体公司</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { t: "📱", title: "账户设立", desc: "15+平台开户", h: "/jiying/onboarding" },
-            { t: "⚡", title: "AI智能启动", desc: "Agent组合推荐", h: "/jiying/launch" },
-            { t: "✅", title: "每天30秒审核", desc: "快捷审核发布", h: "/jiying/review" },
-            { t: "🤖", title: "AI持续运营", desc: "运营工作台", h: "/jiying/agents" },
+            { t: "📱", title: "① 公司设立", desc: "绑定平台账号", h: "/jiying/onboarding" },
+            { t: "⚡", title: "② AI智能启动", desc: "赛道分析诊断", h: "/jiying/launch" },
+            { t: "✅", title: "③ 每天审核", desc: "30秒审核发布", h: "/jiying/review" },
+            { t: "🤖", title: "④ AI持续运营", desc: "智能调度工作台", h: "/jiying/orchestrator" },
           ].map(s => (
             <Link key={s.title} href={s.h}
               className="glass-card p-5 text-center hover:shadow-hover transition-all group">

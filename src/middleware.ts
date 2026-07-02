@@ -14,7 +14,6 @@ const PUBLIC_API_PATHS = [
   "/api/viral", "/api/video/frame", "/api/video/seedance",
   "/api/video/digital-human", "/api/video/tts",
   "/api/video/assemble", "/api/video/auto-fix",
-  "/api/mindspace", "/api/usage",
   "/api/stock",
   "/api/quality",
   "/api/sync",
