@@ -90,7 +90,7 @@ const PARAM_GROUPS = [
 ]
 
 const CATEGORY_MAP: Record<string, string> = {
-  visualStyle: "visual", environment: "visual",
+  visualStyle: "visual",
   lensFocal: "camera", shotScale: "camera", cameraAngle: "camera", cameraMove: "camera",
   lighting: "light", colorTone: "light", timeOfDay: "light",
   mood: "atmosphere", actionDesc: "atmosphere", environment: "atmosphere",
