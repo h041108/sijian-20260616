@@ -93,8 +93,8 @@ const CATEGORY_MAP: Record<string, string> = {
   visualStyle: "visual",
   lensFocal: "camera", shotScale: "camera", cameraAngle: "camera", cameraMove: "camera",
   lighting: "light", colorTone: "light", timeOfDay: "light",
-  mood: "atmosphere", actionDesc: "atmosphere", environment: "atmosphere",
-  soundDesign: "rhythm", editRhythm: "rhythm",
+  mood: "atmosphere", actionDesc: "atmosphere",
+soundDesign: "rhythm", editRhythm: "rhythm",
 }
 
 interface FilmParametersProps {
