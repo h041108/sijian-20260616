@@ -4,10 +4,10 @@ import { useEffect } from "react"
 import { useJiyingUser } from "./layout"
 
 const FAQ = [
-  { q: "20ÔªÕæµÄ¿ÉÒÔ¿ªÒ»¼Ò×ÔÃ½Ìå¹«Ë¾Âð£¿", a: "ÊÇµÄ¡£20ÔªÊÇ7ÌìÌåÑé¼Û¡£AIÕï¶ÏÈüµÀ¡¢½¨Á¢ÈËÉè¡¢Ã¿ÈÕ×Ô¶¯Éú³ÉÄÚÈÝ¡£ÄãÖ»ÐèÒªÓÐ×Ô¼ºµÄÕËºÅ£¬Ê£ÏÂµÄ½»¸øÎÒÃÇ¡£" },
-  { q: "ÎÒÐèÒª×öÊ²Ã´£¿", a: "Á½²½£º¢Ù 3·ÖÖÓÆ«ºÃÎÊ¾í ¢Ú Ã¿Ìì30ÃëÉóºË·¢²¼¡£Ñ¡Ìâ¡¢ÎÄ°¸¡¢ÊÓÆµ¡¢ÆÀÂÛ»Ø¸´¡¢Êý¾Ý·ÖÎö¡ª¡ªAIÈ«×Ô¶¯¡£" },
-  { q: "ÎÒÊÊºÏ×öÊ²Ã´·½Ïò£¿", a: "ÏµÍ³×Ô¶¯Æ¥Åä¡£´©´î¡úÐ¡ºìÊé¡¢ÃÀÊ³¡ú¶¶Òô¡¢Ä¸Ó¤¡úºÃÎïÍÆ¼ö¡¢ÓÎÏ·¡úBÕ¾¡¢ÑøÉú¡úÊÓÆµºÅ¡£Æ¥Åä¶ÈµÍÓÚ85%×Ô¶¯µ÷Õû¡£" },
-  { q: "ºÍ´úÔËÓª¹«Ë¾±ÈÓÐÊ²Ã´ÓÅÊÆ£¿", a: "´úÔËÓª£¤3000-15000/ÔÂ£¬¼´Ó°£¤20Æð²½¡£AI²»ÐÝÏ¢¡¢²»Çë¼Ù¡¢²»ÕÇ¼Û¡£ÄÚÈÝ²úÁ¿10±¶£¬³É±¾1/100¡£" },
+  { q: "20Ôªï¿½ï¿½Ä¿ï¿½ï¿½Ô¿ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Ã½ï¿½å¹«Ë¾ï¿½ï¿½", a: "ï¿½ÇµÄ¡ï¿½20Ôªï¿½ï¿½7ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Û¡ï¿½AIï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½è¡¢Ã¿ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¡ï¿½ï¿½ï¿½Ö»ï¿½ï¿½Òªï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½ï¿½ËºÅ£ï¿½Ê£ï¿½ÂµÄ½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¡ï¿½" },
+  { q: "ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½Ê²Ã´ï¿½ï¿½", a: "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 3ï¿½ï¿½ï¿½ï¿½Æ«ï¿½ï¿½ï¿½Ê¾ï¿½ ï¿½ï¿½ Ã¿ï¿½ï¿½30ï¿½ï¿½ï¿½ï¿½Ë·ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½â¡¢ï¿½Ä°ï¿½ï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½ï¿½ï¿½ï¿½Û»Ø¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½AIÈ«ï¿½Ô¶ï¿½ï¿½ï¿½" },
+  { q: "ï¿½ï¿½ï¿½Êºï¿½ï¿½ï¿½Ê²Ã´ï¿½ï¿½ï¿½ï¿½", a: "ÏµÍ³ï¿½Ô¶ï¿½Æ¥ï¿½ä¡£ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½ï¿½é¡¢ï¿½ï¿½Ê³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¸Ó¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ¼ï¿½ï¿½ï¿½ï¿½ï¿½Ï·ï¿½ï¿½BÕ¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æµï¿½Å¡ï¿½Æ¥ï¿½ï¿½Èµï¿½ï¿½ï¿½85%ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" },
+  { q: "ï¿½Í´ï¿½ï¿½ï¿½Óªï¿½ï¿½Ë¾ï¿½ï¿½ï¿½ï¿½Ê²Ã´ï¿½ï¿½ï¿½Æ£ï¿½", a: "ï¿½ï¿½ï¿½ï¿½Óªï¿½ï¿½3000-15000/ï¿½Â£ï¿½ï¿½ï¿½Ó°ï¿½ï¿½20ï¿½ð²½¡ï¿½AIï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù¡ï¿½ï¿½ï¿½ï¿½Ç¼Û¡ï¿½ï¿½ï¿½ï¿½Ý²ï¿½ï¿½ï¿½10ï¿½ï¿½ï¿½ï¿½ï¿½É±ï¿½1/100ï¿½ï¿½" },
 ]
 
 export default function JiyingHome() {
@@ -21,12 +21,12 @@ export default function JiyingHome() {
   }, [])
 
 
-  // ¶ÀÁ¢Ä£Ê½µ¼º½×´Ì¬
+  // ï¿½ï¿½ï¿½ï¿½Ä£Ê½ï¿½ï¿½ï¿½ï¿½×´Ì¬
   const [user, setUser] = useState<any>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [usageCount, setUsageCount] = useState(0)
   const [usageLimit, setUsageLimit] = useState(3)
-  const [userLevel, setUserLevel] = useState("ÇàÍ­")
+  const [userLevel, setUserLevel] = useState("ï¿½ï¿½Í­")
   const [quotaPlan, setQuotaPlan] = useState("free")
   const [isPaid, setIsPaid] = useState(false)
 
@@ -35,17 +35,17 @@ export default function JiyingHome() {
     if (raw) try { setUser(JSON.parse(raw)) } catch {}
     setIsPaid(localStorage.getItem("sijian_paid") === "true")
     try { const u = parseInt(localStorage.getItem("jiying_usage_count") || "0", 10); if (!isNaN(u)) setUsageCount(u) } catch {}
-    try { const l = localStorage.getItem("jiying_level") || "ÇàÍ­"; setUserLevel(l) } catch {}
+    try { const l = localStorage.getItem("jiying_level") || "ï¿½ï¿½Í­"; setUserLevel(l) } catch {}
   }, [])
 
   const NAV_ITEMS_HOME = [
-    { href: "/jiying/agents", label: "?? AIÒýÇæ" },
-    { href: "/jiying/daily-content", label: "?? Ã¿ÈÕÄÚÈÝ" },
-    { href: "/jiying/manga", label: "?? ¼´¿ÌÓ°Æ¬¹¤³§" },
-    { href: "/jiying/digital-human", label: "??? Êý×ÖÈË¿Ú²¥" },
-    { href: "/jiying/studio", label: "??? ³¬¼¶Í¼Æ¬Éç" },
-    { href: "/jiying/media-library", label: "??? ËØ²Ä¿â" },
-    { href: "/jiying/portfolio", label: "??? ×÷Æ·Õ¹Ê¾" },
+    { href: "/jiying/agents", label: "?? AIï¿½ï¿½ï¿½ï¿½" },
+    { href: "/jiying/daily-content", label: "?? Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" },
+    { href: "/jiying/manga", label: "?? ï¿½ï¿½ï¿½ï¿½Ó°Æ¬ï¿½ï¿½ï¿½ï¿½" },
+    { href: "/jiying/digital-human", label: "??? ï¿½ï¿½ï¿½ï¿½ï¿½Ë¿Ú²ï¿½" },
+    { href: "/jiying/studio", label: "??? ï¿½ï¿½ï¿½ï¿½Í¼Æ¬ï¿½ï¿½" },
+    { href: "/jiying/media-library", label: "??? ï¿½Ø²Ä¿ï¿½" },
+    { href: "/jiying/portfolio", label: "??? ï¿½ï¿½Æ·Õ¹Ê¾" },
   ]
 
   return (
@@ -53,7 +53,7 @@ export default function JiyingHome() {
       <header className="relative z-10 bg-[#0C0C14]/80 backdrop-blur-xl border-b border-black/[0.04]">
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <Link href="/jiying" className="flex items-center gap-2.5">?? ¼´Ó°</Link>
+            <Link href="/jiying" className="flex items-center gap-2.5">?? ï¿½ï¿½Ó°</Link>
             <nav className="hidden md:flex items-center gap-0.5">
               {NAV_ITEMS_HOME.map(item => (
                 <Link key={item.href} href={item.href} className="px-3 py-1.5 text-sm text-[#9898B0] hover:text-[#FBBF24] rounded-lg">{item.label}</Link>
@@ -62,19 +62,19 @@ export default function JiyingHome() {
           </div>
           <div className="flex items-center gap-2">
             {user && <span className="text-[10px] text-[#5A5A72] bg-[#0C0C14] px-2.5 py-1 rounded-lg">{usageLimit-usageCount}/{usageLimit}</span>}
-            {user && !isPaid && <Link href="/jiying/pricing" className="px-3 py-1 text-[10px] font-bold text-[#0C0C14] bg-gradient-to-r from-[#F59E0B] to-[#F97316] rounded-full">? Éý¼¶</Link>}
-            {user ? <button onClick={()=>{localStorage.clear();setUser(null)}} className="text-[10px] text-[#5A5A72]">ÍË³ö</button> : <Link href="/jiying" className="text-[10px] text-[#F59E0B]">µÇÂ¼</Link>}
+            {user && !isPaid && <Link href="/jiying/pricing" className="px-3 py-1 text-[10px] font-bold text-[#0C0C14] bg-gradient-to-r from-[#F59E0B] to-[#F97316] rounded-full">? ï¿½ï¿½ï¿½ï¿½</Link>}
+            {user ? <button onClick={()=>{localStorage.clear();setUser(null)}} className="text-[10px] text-[#5A5A72]">ï¿½Ë³ï¿½</button> : <Link href="/jiying" className="text-[10px] text-[#F59E0B]">ï¿½ï¿½Â¼</Link>}
             <button onClick={()=>setMobileOpen(!mobileOpen)} className="md:hidden">{mobileOpen?"?":"?"}</button>
           </div>
         </div>
       </header>
       {user && !isPaid && (
         <div className="bg-gradient-to-r from-[#F59E0B]/10 to-[#F97316]/10 border-b border-[#F59E0B]/20 px-4 py-2 text-center">
-          <Link href="/jiying/pricing" className="text-xs text-[#F59E0B]">?? »¨20Ôª¿ªÆôÄãµÄ×ÔÃ½Ìå¹«Ë¾</Link>
+          <Link href="/jiying/pricing" className="text-xs text-[#F59E0B]">?? ï¿½ï¿½20Ôªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã½ï¿½å¹«Ë¾</Link>
         </div>
       )}
-      <div className="pb-24">
-      {/* ©¤©¤©¤ HERO ©¤©¤©¤ */}
+      <div classNa
+      {/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ HERO ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */}
       <section className="relative overflow-hidden pt-20 pb-16">
         <div className="absolute inset-0 bg-gradient-to-br from-[#F59E0B]/3 via-transparent to-[#F97316]/3 animate-gradient" style={{backgroundSize:'200% 200%'}} />
         <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[70%] rounded-full bg-[#F59E0B]/8 blur-[150px]" />
@@ -82,35 +82,35 @@ export default function JiyingHome() {
         <div className="relative max-w-6xl mx-auto px-6 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#18182A] border border-[#F59E0B]/15 text-xs text-[#F59E0B] mb-6 shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-pulse" />
-            ¼´Ó° ¡¤ AI×ÔÃ½Ìå¹¤³§
+            ï¿½ï¿½Ó° ï¿½ï¿½ AIï¿½ï¿½Ã½ï¿½å¹¤ï¿½ï¿½
           </div>
           <h1 className="text-4xl md:text-7xl font-extrabold leading-[1.05] tracking-tight mb-6">
-            <span className="bg-gradient-to-r from-[#E8E8F0] via-[#F59E0B] to-[#F97316] bg-clip-text text-transparent animate-gradient">20Ôª¿ªÆôÄãµÄ</span>
+            <span className="bg-gradient-to-r from-[#E8E8F0] via-[#F59E0B] to-[#F97316] bg-clip-text text-transparent animate-gradient">20Ôªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½</span>
             <br />
-            <span className="bg-gradient-to-r from-[#F59E0B] via-[#FBBF24] to-[#F97316] bg-clip-text text-transparent animate-gradient" style={{ backgroundSize: '200% 100%', animation: 'gradient 4s ease infinite' }}>×ÔÃ½Ìå¹«Ë¾</span>
+            <span className="bg-gradient-to-r from-[#F59E0B] via-[#FBBF24] to-[#F97316] bg-clip-text text-transparent animate-gradient" style={{ backgroundSize: '200% 100%', animation: 'gradient 4s ease infinite' }}>ï¿½ï¿½Ã½ï¿½å¹«Ë¾</span>
           </h1>
           <p className="text-base md:text-lg text-[#9898B0] max-w-2xl mx-auto mb-10 leading-relaxed">
-            15¸öAI×¨¼Ò ¡¤ ÖÇÄÜÂ·ÓÉÒýÇæ ¡¤ Ã¿ÈÕ×Ô¶¯Éú³ÉÄÚÈÝ<br className="hidden sm:block" />
-            Ò»Õ¾Ê½AI¸³ÄÜ£¬´Ó0µ½1´òÔì¸öÈËÆ·ÅÆ
+            15ï¿½ï¿½AI×¨ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ Ã¿ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½<br className="hidden sm:block" />
+            Ò»Õ¾Ê½AIï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½0ï¿½ï¿½1ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ·ï¿½ï¿½
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/jiying/onboarding" className="btn-primary px-8 py-3.5 rounded-xl text-sm font-semibold">?? Á¢¼´¿ªÆô</Link>
+            <Link href="/jiying/onboarding" className="btn-primary px-8 py-3.5 rounded-xl text-sm font-semibold">?? ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½</Link>
             <Link href="/jiying/agents/agent-14"
-              className="btn-ghost px-8 py-3.5 rounded-xl text-sm font-medium">Ãâ·ÑÌåÑé±êÇ©SEO</Link>
+              className="btn-ghost px-8 py-3.5 rounded-xl text-sm font-medium">ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç©SEO</Link>
           </div>
-          <p className="text-xs text-[#5A5A72] mt-6">ÎÞÐè×¢²á¹«Ë¾ ¡¤ ÎÞÐè¹ÍÓ¶ÍÅ¶Ó ¡¤ È«×Ô¶¯ÔËÓª ¡¤ ËæÊ±¿ÉÍ£</p>
+          <p className="text-xs text-[#5A5A72] mt-6">ï¿½ï¿½ï¿½ï¿½×¢ï¿½á¹«Ë¾ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ó¶ï¿½Å¶ï¿½ ï¿½ï¿½ È«ï¿½Ô¶ï¿½ï¿½ï¿½Óª ï¿½ï¿½ ï¿½ï¿½Ê±ï¿½ï¿½Í£</p>
         </div>
       </section>
 
-      {/* ©¤©¤©¤ 4´óºËÐÄ ¡ª 20Ôª¿ª¹«Ë¾ÍêÕûÁ´Â· ©¤©¤©¤ */}
+      {/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 4ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ 20Ôªï¿½ï¿½ï¿½ï¿½Ë¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â· ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */}
       <section className="max-w-6xl mx-auto px-6 -mt-8 relative z-10">
-        <h2 className="text-center text-sm text-[#5A5A72] mb-4 tracking-wider">ËÄ²½¿ªÆôÄãµÄ×ÔÃ½Ìå¹«Ë¾</h2>
+        <h2 className="text-center text-sm text-[#5A5A72] mb-4 tracking-wider">ï¿½Ä²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã½ï¿½å¹«Ë¾</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { t: "??", title: "¢Ù ¹«Ë¾ÉèÁ¢", desc: "°ó¶¨Æ½Ì¨ÕËºÅ", h: "/jiying/onboarding" },
-            { t: "?", title: "¢Ú AIÖÇÄÜÆô¶¯", desc: "ÈüµÀ·ÖÎöÕï¶Ï", h: "/jiying/launch" },
-            { t: "?", title: "¢Û Ã¿ÌìÉóºË", desc: "30ÃëÉóºË·¢²¼", h: "/jiying/review" },
-            { t: "??", title: "¢Ü AI³ÖÐøÔËÓª", desc: "ÖÇÄÜµ÷¶È¹¤×÷Ì¨", h: "/jiying/orchestrator" },
+            { t: "??", title: "ï¿½ï¿½ ï¿½ï¿½Ë¾ï¿½ï¿½ï¿½ï¿½", desc: "ï¿½ï¿½Æ½Ì¨ï¿½Ëºï¿½", h: "/jiying/onboarding" },
+            { t: "?", title: "ï¿½ï¿½ AIï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½", desc: "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½", h: "/jiying/launch" },
+            { t: "?", title: "ï¿½ï¿½ Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½", desc: "30ï¿½ï¿½ï¿½ï¿½Ë·ï¿½ï¿½ï¿½", h: "/jiying/review" },
+            { t: "??", title: "ï¿½ï¿½ AIï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Óª", desc: "ï¿½ï¿½ï¿½Üµï¿½ï¿½È¹ï¿½ï¿½ï¿½Ì¨", h: "/jiying/orchestrator" },
           ].map(s => (
             <Link key={s.title} href={s.h}
               className="glass-card p-5 text-center hover:shadow-hover transition-all group">
@@ -122,13 +122,13 @@ export default function JiyingHome() {
         </div>
       </section>
 
-      {/* ©¤©¤©¤ ¸¶³övsµÃµ½ ©¤©¤©¤ */}
+      {/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½vsï¿½Ãµï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */}
       <section className="max-w-6xl mx-auto px-6 py-24">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="glass-card p-8">
-          <h3 className="text-sm font-semibold bg-gradient-to-r from-[#9A9AB0] to-[#F59E0B] bg-clip-text text-transparent mb-5 tracking-wider">ÄãÖ»ÐèÒª¸¶³ö</h3>
+          <h3 className="text-sm font-semibold bg-gradient-to-r from-[#9A9AB0] to-[#F59E0B] bg-clip-text text-transparent mb-5 tracking-wider">ï¿½ï¿½Ö»ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½</h3>
             <ul className="space-y-4">
-              {["20Ôª£¨7ÌìÌåÑé£©","Ã¿Ìì30ÃëÉóºË","3·ÖÖÓÌîÎÊ¾í","ÏÂÔØ¡úÕ³Ìù¡ú·¢²¼"].map(item => (
+              {["20Ôªï¿½ï¿½7ï¿½ï¿½ï¿½ï¿½ï¿½é£©","Ã¿ï¿½ï¿½30ï¿½ï¿½ï¿½ï¿½ï¿½","3ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½","ï¿½ï¿½ï¿½Ø¡ï¿½Õ³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½"].map(item => (
                 <li key={item} className="flex items-center gap-3 text-sm text-[#9898B0]">
                   <span className="w-5 h-5 rounded-full border border-[#2A2A38] flex items-center justify-center text-[10px] text-[#5A5A72] shrink-0">?</span>
                   {item}
@@ -137,9 +137,9 @@ export default function JiyingHome() {
             </ul>
           </div>
           <div className="glass-card p-8 border-[#F59E0B]/15 bg-[#F59E0B]/[0.04]">
-            <h3 className="text-sm font-semibold bg-gradient-to-r from-[#F59E0B] to-[#EA580C] bg-clip-text text-transparent mb-5 tracking-wider">Äã½«µÃµ½</h3>
+            <h3 className="text-sm font-semibold bg-gradient-to-r from-[#F59E0B] to-[#EA580C] bg-clip-text text-transparent mb-5 tracking-wider">ï¿½ã½«ï¿½Ãµï¿½</h3>
             <ul className="space-y-4">
-              {["15¸öAI×¨¼Ò24Ð¡Ê±¹¤×÷","Ã¿ÈÕ3ÌõÎÄ°¸+1ÌõÊÓÆµ","AIÖÇÄÜ¿Í·þ»Ø¸´ÆÀÂÛ","Êý¾Ý¸´ÅÌ+²ßÂÔÓÅ»¯","±äÏÖÂ·¾¶×Ô¶¯Æ¥Åä"].map(item => (
+              {["15ï¿½ï¿½AI×¨ï¿½ï¿½24Ð¡Ê±ï¿½ï¿½ï¿½ï¿½","Ã¿ï¿½ï¿½3ï¿½ï¿½ï¿½Ä°ï¿½+1ï¿½ï¿½ï¿½ï¿½Æµ","AIï¿½ï¿½ï¿½Ü¿Í·ï¿½ï¿½Ø¸ï¿½ï¿½ï¿½ï¿½ï¿½","ï¿½ï¿½ï¿½Ý¸ï¿½ï¿½ï¿½+ï¿½ï¿½ï¿½ï¿½ï¿½Å»ï¿½","ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½Ô¶ï¿½Æ¥ï¿½ï¿½"].map(item => (
                 <li key={item} className="flex items-center gap-3 text-sm text-[#E8E8F0]">
                   <span className="w-5 h-5 rounded-full bg-gradient-to-br from-[#F59E0B] to-[#EA580C] flex items-center justify-center text-[10px] text-white shrink-0">?</span>
                   {item}
@@ -150,33 +150,33 @@ export default function JiyingHome() {
         </div>
       </section>
 
-      {/* ©¤©¤©¤ ¾ºÆ·¶Ô±È ©¤©¤©¤ */}
+      {/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Æ·ï¿½Ô±ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */}
       <section className="max-w-6xl mx-auto px-6 py-12">
-        <h2 className="text-xl font-bold text-center bg-gradient-to-r from-[#E8E8F0] via-[#F59E0B] to-[#F97316] bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient mb-8">¼´Ó° vs ÆäËû·½°¸</h2>
+        <h2 className="text-xl font-bold text-center bg-gradient-to-r from-[#E8E8F0] via-[#F59E0B] to-[#F97316] bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient mb-8">ï¿½ï¿½Ó° vs ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½</h2>
         <div className="glass-card overflow-x-auto">
           <table className="w-full text-xs min-w-[520px] md:min-w-0">
             <thead>
               <tr className="bg-[#18182A] border-b border-[#2A2A38]">
-                <th className="text-left px-4 py-3 font-semibold text-[#9898B0]">¶Ô±ÈÎ¬¶È</th>
-                <th className="text-center px-4 py-3 font-semibold text-[#5A5A72]">´úÔËÓª¹«Ë¾</th>
+                <th className="text-left px-4 py-3 font-semibold text-[#9898B0]">ï¿½Ô±ï¿½Î¬ï¿½ï¿½</th>
+                <th className="text-center px-4 py-3 font-semibold text-[#5A5A72]">ï¿½ï¿½ï¿½ï¿½Óªï¿½ï¿½Ë¾</th>
                 <th className="text-center px-4 py-3 font-semibold text-[#5A5A72]">MoneyPrinter</th>
-                <th className="text-center px-4 py-3 font-semibold text-[#F59E0B] bg-[#F59E0B]/8">¼´Ó°</th>
+                <th className="text-center px-4 py-3 font-semibold text-[#F59E0B] bg-[#F59E0B]/8">ï¿½ï¿½Ó°</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E8E8EE]">
               {[
-                ["Æð²½¼Û¸ñ","£¤3000-15000/ÔÂ","Ãâ·Ñ£¨Ðè¼¼Êõ£©","£¤20"],
-                ["Æô¶¯Á÷³Ì","¿ª»áÇ©ºÏÍ¬","×°Python»·¾³","É¨Âë¸¶20Ôª"],
-                ["Ð¡°×¿ÉÓÃ","?","?","?"],
-                ["ÄÚÈÝ´´×÷","?","?ÊÓÆµ","?Í¼ÎÄ+ÊÓÆµ+Âþ¾ç"],
-                ["·âÃæÉè¼Æ","?","?","? 3°æ¶Ô±È"],
-                ["BGM+ÒôÐ§","?","?","?"],
-                ["Êý¾Ý¸´ÅÌ","?","?","? Ã¿ÈÕÍÆËÍ"],
-                ["AIÖÇÄÜ¿Í·þ","?","?","? ×Ô¶¯»Ø¸´"],
-                ["Ë½ÓòÒýÁ÷","?? ÁíÊÕ·Ñ","?","? ×Ô¶¯Òýµ¼"],
-                ["¶Ô±ê·ÖÎö","?","?","? ×Ô¶¯²ð½â"],
-                ["ÈËÉè½¨Ä£","?","?","? 15¸öAgent"],
-                ["Ã¿ÌìºÄÊ±","1-2Ð¡Ê±¹µÍ¨","1Ð¡Ê±µ÷ÊÔ","30ÃëÉóºË"],
+                ["ï¿½ð²½¼Û¸ï¿½","ï¿½ï¿½3000-15000/ï¿½ï¿½","ï¿½ï¿½Ñ£ï¿½ï¿½è¼¼ï¿½ï¿½ï¿½ï¿½","ï¿½ï¿½20"],
+                ["ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½","ï¿½ï¿½ï¿½ï¿½Ç©ï¿½ï¿½Í¬","×°Pythonï¿½ï¿½ï¿½ï¿½","É¨ï¿½ë¸¶20Ôª"],
+                ["Ð¡ï¿½×¿ï¿½ï¿½ï¿½","?","?","?"],
+                ["ï¿½ï¿½ï¿½Ý´ï¿½ï¿½ï¿½","?","?ï¿½ï¿½Æµ","?Í¼ï¿½ï¿½+ï¿½ï¿½Æµ+ï¿½ï¿½ï¿½ï¿½"],
+                ["ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½","?","?","? 3ï¿½ï¿½Ô±ï¿½"],
+                ["BGM+ï¿½ï¿½Ð§","?","?","?"],
+                ["ï¿½ï¿½ï¿½Ý¸ï¿½ï¿½ï¿½","?","?","? Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½"],
+                ["AIï¿½ï¿½ï¿½Ü¿Í·ï¿½","?","?","? ï¿½Ô¶ï¿½ï¿½Ø¸ï¿½"],
+                ["Ë½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½","?? ï¿½ï¿½ï¿½Õ·ï¿½","?","? ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½"],
+                ["ï¿½Ô±ï¿½ï¿½ï¿½ï¿½","?","?","? ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½"],
+                ["ï¿½ï¿½ï¿½è½¨Ä£","?","?","? 15ï¿½ï¿½Agent"],
+                ["Ã¿ï¿½ï¿½ï¿½Ê±","1-2Ð¡Ê±ï¿½ï¿½Í¨","1Ð¡Ê±ï¿½ï¿½ï¿½ï¿½","30ï¿½ï¿½ï¿½ï¿½ï¿½"],
               ].map((row, i) => (
                 <tr key={i} className={i % 2 === 0 ? "bg-[#18182A]" : "bg-[#18182A]/50"}>
                   <td className="px-4 py-2.5 text-[#E8E8F0] font-medium">{row[0]}</td>
@@ -190,15 +190,15 @@ export default function JiyingHome() {
         </div>
       </section>
 
-      {/* ©¤©¤©¤ ¶¨¼Û ©¤©¤©¤ */}
+      {/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */}
       <section className="max-w-6xl mx-auto px-6 py-10">
-        <h2 className="text-xl font-bold text-center bg-gradient-to-r from-[#E8E8F0] via-[#F59E0B] to-[#F97316] bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient mb-10">¶¨¼Û</h2>
+        <h2 className="text-xl font-bold text-center bg-gradient-to-r from-[#E8E8F0] via-[#F59E0B] to-[#F97316] bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient mb-10">ï¿½ï¿½ï¿½ï¿½</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { n: "ÌåÑé¿¨", p: "£¤20", u: "Ò»´ÎÐÔ", d: "7ÌìÈ«¹¦ÄÜ", b: "ÒýÁ÷¼Û", c: "from-[#F59E0B] to-[#EA580C]" },
-            { n: "ÔÂ¿¨", p: "£¤99", u: "/ÔÂ", d: "Ã¿ÈÕ3ÎÄ+1Âþ¾ç", b: "Ö÷Á¦", c: "from-[#EA580C] to-[#F59E0B]" },
-            { n: "Äê¿¨", p: "£¤799", u: "/Äê", d: "¡Ö£¤66/ÔÂ", b: "×î»®Ëã", c: "from-[#F97316] to-[#F59E0B]" },
-            { n: "Pro", p: "£¤299", u: "/ÔÂ", d: "¶àÕËºÅ¡Ü5¸ö", b: "¹¤×÷ÊÒ", c: "from-[#1E1E2E] to-[#3A3A52]" },
+            { n: "ï¿½ï¿½ï¿½é¿¨", p: "ï¿½ï¿½20", u: "Ò»ï¿½ï¿½ï¿½ï¿½", d: "7ï¿½ï¿½È«ï¿½ï¿½ï¿½ï¿½", b: "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½", c: "from-[#F59E0B] to-[#EA580C]" },
+            { n: "ï¿½Â¿ï¿½", p: "ï¿½ï¿½99", u: "/ï¿½ï¿½", d: "Ã¿ï¿½ï¿½3ï¿½ï¿½+1ï¿½ï¿½ï¿½ï¿½", b: "ï¿½ï¿½ï¿½ï¿½", c: "from-[#EA580C] to-[#F59E0B]" },
+            { n: "ï¿½ê¿¨", p: "ï¿½ï¿½799", u: "/ï¿½ï¿½", d: "ï¿½Ö£ï¿½66/ï¿½ï¿½", b: "ï¿½î»®ï¿½ï¿½", c: "from-[#F97316] to-[#F59E0B]" },
+            { n: "Pro", p: "ï¿½ï¿½299", u: "/ï¿½ï¿½", d: "ï¿½ï¿½ï¿½ËºÅ¡ï¿½5ï¿½ï¿½", b: "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½", c: "from-[#1E1E2E] to-[#3A3A52]" },
           ].map(c => (
             <div key={c.n} className="glass-card p-6 text-center hover:shadow-hover transition-all relative">
               <span className={`absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-gradient-to-r ${c.c} text-[9px] font-medium text-white`}>{c.b}</span>
@@ -210,15 +210,15 @@ export default function JiyingHome() {
         </div>
       </section>
 
-      {/* ©¤©¤©¤ FAQ ©¤©¤©¤ */}
+      {/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ FAQ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */}
       <section className="max-w-3xl mx-auto px-6 py-10">
-        <h2 className="text-xl font-bold text-center bg-gradient-to-r from-[#E8E8F0] via-[#F59E0B] to-[#F97316] bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient mb-8">³£¼ûÎÊÌâ</h2>
+        <h2 className="text-xl font-bold text-center bg-gradient-to-r from-[#E8E8F0] via-[#F59E0B] to-[#F97316] bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient mb-8">ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½</h2>
         <div className="space-y-2">
           {FAQ.map((item, i) => (
             <details key={i} className="glass-card overflow-hidden group">
               <summary className="px-5 py-3.5 text-sm bg-gradient-to-r from-[#E8E8F0] via-[#F59E0B] to-[#E8E8F0] bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient cursor-pointer hover:from-[#F59E0B] hover:to-[#F97316] transition-all flex items-center justify-between">
                 <span>{item.q}</span>
-                <span className="text-[#5A5A72] group-open:rotate-180 transition-transform text-xs">¨‹</span>
+                <span className="text-[#5A5A72] group-open:rotate-180 transition-transform text-xs">ï¿½ï¿½</span>
               </summary>
               <div className="px-5 pb-4 text-xs text-[#9898B0] leading-relaxed border-t border-[#2A2A38] pt-3">{item.a}</div>
             </details>
@@ -227,17 +227,17 @@ export default function JiyingHome() {
       </section>
 
 
-      {/* ©¤©¤©¤ CTA ©¤©¤©¤ */}
+      {/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ CTA ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */}
       <section className="max-w-3xl mx-auto px-6 text-center pt-8">
         <div className="glass-card p-10">
           <div className="text-4xl mb-4">??</div>
-          <h2 className="text-xl font-bold bg-gradient-to-r from-[#1A1A2E] to-[#F59E0B] bg-clip-text text-transparent mb-2">ÏÖÔÚ¾Í¿ªÆôÄãµÄ×ÔÃ½Ìå¹«Ë¾</h2>
-          <p className="text-sm text-[#9898B0] mb-6">20ÔªÌåÑé7Ìì ¡¤ ²»ÂúÒâËæÊ±Í£ ¡¤ ÎÞÐèÈÎºÎ³ÐÅµ</p>
+          <h2 className="text-xl font-bold bg-gradient-to-r from-[#1A1A2E] to-[#F59E0B] bg-clip-text text-transparent mb-2">ï¿½ï¿½ï¿½Ú¾Í¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã½ï¿½å¹«Ë¾</h2>
+          <p className="text-sm text-[#9898B0] mb-6">20Ôªï¿½ï¿½ï¿½ï¿½7ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±Í£ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ÎºÎ³ï¿½Åµ</p>
           <Link href="/jiying/onboarding"
-            className="btn-primary inline-block px-8 py-3 rounded-xl text-sm font-semibold">?? »¨20Ôª¿ª¹«Ë¾</Link>
+            className="btn-primary inline-block px-8 py-3 rounded-xl text-sm font-semibold">?? ï¿½ï¿½20Ôªï¿½ï¿½ï¿½ï¿½Ë¾</Link>
         </div>
         <div className="mt-6">
-          <div className="text-xs text-[#F59E0B] font-medium mt-2">¼´Ó° ¡¤ ¼´¿Ì×ö³ö×Ô¼ºµÄÓ°Æ¬</div>        </div>
+          <div className="text-xs text-[#F59E0B] font-medium mt-2">ï¿½ï¿½Ó° ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½Ó°Æ¬</div>        </div>
       </section>
     </div>
   )
