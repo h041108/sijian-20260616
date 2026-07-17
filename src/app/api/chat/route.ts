@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server"
-import { chat, chatStream } from "@/lib/deepseek"
+﻿import { NextRequest, NextResponse } from "next/server"
+import { chat, chatStream, determineSearchIntent } from "@/lib/deepseek"
 import { deepSearch } from "@/lib/search"
 import { detectThinkingLines } from "@/lib/thinking-lines"
 import { fullCognitionAnalysis } from "@/lib/cognition"
@@ -142,25 +142,32 @@ export async function POST(req: NextRequest) {
 
     const lastUserMsg = messages[messages.length - 1]?.content || ""
 
-    // Search enhancement
-    const searchPatterns = [
-      /下载/, /试卷/, /真题/, /考题/, /试题/, /高考/, /考卷/, /历年/,
-      /中考/, /考研/, /考公/, /模拟/, /真题卷/, /真题答案/,
-      /最新的/, /今年/, /2024/, /2025/, /2026/, /今天/, /新闻/, /最新/,
-      /搜索/, /帮我查/, /帮我找/, /帮我搜/, /网上/, /查一下/,
-      /找一下/, /现在/, /当前/, /最近/, /现在/, /目前/,
-    ]
-    const needsSearch = searchPatterns.some(p => p.test(lastUserMsg))
+    // Search enhancement — DeepSeek intent analysis (replaces regex)
+    let needsSearch = false
+    let searchQuery = lastUserMsg.slice(0, 100)
+    let searchReason = ""
+    try {
+      const intent = await determineSearchIntent(lastUserMsg)
+      needsSearch = intent.needsSearch
+      if (intent.query) searchQuery = intent.query
+      searchReason = intent.reason || ""
+    } catch {
+      // Fallback to simple regex
+      const pattern = /[\u4e2d\u8003]|[\u7814]|[\u516c]|\u6a21\u62df|\u771f\u9898|\u8003\u5377|\u5386\u5e74|\u65b0\u95fb|\u6700\u65b0|\u641c\u7d22|\u67e5\u4e00\u4e0b|202\d/
+      needsSearch = pattern.test(lastUserMsg)
+    }
 
     let enhancedMessages = messages
 
     if (needsSearch) {
-      const searchQuery = lastUserMsg
-        .replace(/请|帮我|给我|能不能|可以|下载下来|下载|/g, "")
-        .replace(/\s+/g, " ").trim().slice(0, 100)
+      // Use DeepSeek-extracted query, fallback to regex extraction
+      if (!searchQuery) {
+        searchQuery = lastUserMsg
+          .replace(/请|帮我|给我|能不能|可以|下载下来|下载|/g, "")
+          .replace(/\s+/g, " ").trim().slice(0, 100)
+      }
 
       const searchContent = await deepSearch(searchQuery, 3)
-
       if (searchContent.length > 80) {
         enhancedMessages = messages.map((m: any, i: number) => {
           if (i === messages.length - 1 && m.role === "user") {

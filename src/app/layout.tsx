@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "思见 — 所思即所见",
-  description: "帮人看清自己怎么想，而不是给人答案。",
+  title: "即影 — 即刻做出自己的影片",
+  description: "20元让一个人拥有一家王炸级自媒体公司。",
 }
 
 export const viewport: Viewport = {

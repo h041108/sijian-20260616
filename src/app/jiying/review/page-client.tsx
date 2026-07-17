@@ -67,12 +67,44 @@ export default function ReviewPage() {
 
   const status = getReviewStatus(log.items)
 
+    // 首次加载：从真实 API 获取今日内容，失败则回退到本地 mock
   useEffect(() => {
     if (log.items.length === 0) {
-      const mockItems = generateMockDailyItems()
-      const newLog = { ...log, items: mockItems }
-      setLog(newLog)
-      saveDailyContent(newLog)
+      (async () => {
+        try {
+          const res = await fetch("/api/daily-content/auto-generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ niche: "默认赛道", platform: "小红书", autoMode: true }),
+          })
+          if (res.ok) {
+            const data = await res.json()
+            const items = (data.items || data.results || []).map((item: any, i: number) => ({
+              id: "daily_" + Date.now() + "_" + i,
+              date: new Date().toISOString().slice(0, 10),
+              type: item.type || "text",
+              title: item.title || "AI自动生成",
+              content: item.content || item.text || "",
+              mediaUrl: item.imageUrl || "",
+              hashtags: item.hashtags || [],
+              suggestedTime: item.suggestedTime || "08:00",
+              platform: item.platform || "小红书",
+              action: "pending" as const,
+              createdAt: new Date().toISOString(),
+            }))
+            if (items.length > 0) {
+              const newLog = { ...log, items }
+              setLog(newLog)
+              saveDailyContent(newLog)
+              return
+            }
+          }
+        } catch {}
+        // fallback：API 不可用时用本地 mock
+        const mockItems = generateMockDailyItems()
+        setLog({ ...log, items: mockItems })
+        saveDailyContent({ ...log, items: mockItems })
+      })()
     }
   }, [log])
 

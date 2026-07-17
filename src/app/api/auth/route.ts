@@ -1,4 +1,4 @@
-// ─── POST /api/auth ──────────────────────────────────
+﻿// ─── POST /api/auth ──────────────────────────────────
 // Supabase Auth 代理：登录/注册/登出
 // 注册后自动确认邮箱（supabase auth email confirm 绕过）
 
@@ -125,3 +125,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
+

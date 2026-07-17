@@ -23,6 +23,14 @@ export default function MindReviewCard({ sessionId, onClose }: Props) {
   const nickname = user?.nickname || "用户"
 
   useEffect(() => {
+    ;(async () => {
+      try {
+        const { loadCognitionLogsAsync } = await import("@/lib/cognition")
+        if (userId !== "anonymous") {
+          await loadCognitionLogsAsync(userId).catch(() => {})
+        }
+      } catch {}
+    })()
     const m = generateThinkingMirror(userId, nickname)
     setMirror(m)
 

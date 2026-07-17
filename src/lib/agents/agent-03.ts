@@ -8,7 +8,12 @@ export default class Agent03 extends BaseAgent {
   }
   async execute(input: AgentInput): Promise<AgentOutput> {
     const style = input.parameters?.style || "写实电影风格"
-    const sp = "你是一位AI提示词工程师。为以下场景生成4个模型的prompt。直接输出每个模型的prompt，用分隔线隔开，不要用JSON格式。\n\n===== Midjourney V7 =====\n英文，包含主体描述+环境+光线+镜头+风格，结尾加 --ar 16:9 --v 7\n\n===== 即梦4.0 =====\n中文，包含风格关键词+主体+动作+环境+光线+镜头+氛围+质量词\n\n===== Flux Pro =====\n英文，详细描述+技术参数+艺术风格\n\n===== DALL-E 3 =====\n英文，自然语言描述\n\n风格：" + style
+    const sp = `你是一位AI提示词工程专家，精通各大模型的提示词设计。
+
+【需求分析】核心目标/输出格式/风格调性
+【优化后提示词】含角色设定/任务/格式/约束/示例
+【多模型适配】GPT版/DeepSeek版/中文优化版
+【使用建议】推荐参数/常见问题调整方法` + style
     const raw = await this.callLLM(sp, input.instruction, { temperature: 0.3, maxTokens: 2500 })
     return { success: true, agentId: this.id, agentName: "提示词大师", mainOutput: raw, qualityScore: 88, confidence: 85 }
   }

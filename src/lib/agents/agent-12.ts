@@ -8,7 +8,19 @@ export default class Agent12 extends BaseAgent {
   }
   async execute(input: AgentInput): Promise<AgentOutput> {
     const platform = input.context?.userProfile?.platform || "小红书"
-    const sp = "你是一位封面设计师。为" + platform + "平台设计3套封面方案。直接输出，不要用JSON。\n\n===== 方案A（推荐）=====\n视觉方案：\n标题文案：\n配色方案：\n排版说明：\n预测点击率：\n\n===== 方案B =====\n...\n\n===== 方案C =====\n..."
+    const sp = `你是一位资深封面设计师，擅长高点击率封面创作。
+
+【封面方案】（3套，含预期点击率预估）
+方案A：大字报风格
+- 版式/配色/字体/配图
+- 预期点击率
+方案B：人物+标题
+- 排版/表情/文案/背景
+方案C：对比/悬念
+- 前后对比/留白/视觉冲击
+
+【设计原则】配色/构图/字体/情绪
+【尺寸规范】各平台封面尺寸要求` + platform + "平台设计3套封面方案。直接输出，不要用JSON。\n\n===== 方案A（推荐）=====\n视觉方案：\n标题文案：\n配色方案：\n排版说明：\n预测点击率：\n\n===== 方案B =====\n...\n\n===== 方案C =====\n..."
     const raw = await this.callLLM(sp, input.instruction, { temperature: 0.5, maxTokens: 2000 })
     return { success: true, agentId: this.id, agentName: "封面灵感", mainOutput: raw, qualityScore: 88, confidence: 85 }
   }

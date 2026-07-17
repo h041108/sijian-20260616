@@ -28,7 +28,15 @@ export default function CognitionPanel() {
   const user = typeof window !== "undefined" ? getCurrentUser() : null
   const userId = user?.id || "anonymous"
 
-  const refresh = useCallback(() => {
+ const refresh = useCallback(() => {
+    ;(async () => {
+      try {
+        const { loadCognitionLogsAsync } = await import("@/lib/cognition")
+        if (userId !== "anonymous") {
+          await loadCognitionLogsAsync(userId).catch(() => {})
+        }
+      } catch {}
+    })()
     const all = loadCognitionLogs()
     setLogs(all)
     setMirror(generateThinkingMirror(userId, user?.nickname || "用户"))

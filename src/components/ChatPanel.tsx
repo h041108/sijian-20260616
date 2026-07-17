@@ -462,17 +462,24 @@ function ThinkingDiary() {
   const [logs, setLogs] = useState<any[]>([])
   const [mirror, setMirror] = useState<any>(null)
 
-  useEffect(() => {
-    const { loadCognitionLogs } = require("@/lib/cognition")
-    const { generateThinkingMirror } = require("@/lib/cognition")
-    const { getCurrentUser } = require("@/lib/sijian-user")
+ useEffect(() => {
+    ;(async () => {
+      const { loadCognitionLogs, loadCognitionLogsAsync } = await import("@/lib/cognition")
+      const { generateThinkingMirror } = await import("@/lib/cognition")
+      const { getCurrentUser } = await import("@/lib/sijian-user")
 
-    const all = loadCognitionLogs()
-    const user = getCurrentUser()
-    const userId = user?.id || "anonymous"
-    const nickname = user?.nickname || "访客"
-    setLogs(all.slice(-10).reverse())
-    setMirror(generateThinkingMirror(userId, nickname))
+      const user = getCurrentUser()
+      const userId = user?.id || "anonymous"
+      const nickname = user?.nickname || "访客"
+
+      // 优先从 Supabase 拉取，回退到 localStorage
+      if (userId !== "anonymous") {
+        await loadCognitionLogsAsync(userId).catch(() => {})
+      }
+      const all = loadCognitionLogs()
+      setLogs(all.slice(-10).reverse())
+      setMirror(generateThinkingMirror(userId, nickname))
+    })()
   }, [])
 
   const hasData = logs.length > 0

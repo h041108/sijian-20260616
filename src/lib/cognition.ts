@@ -1,4 +1,4 @@
-// ─── 思见意识识别引擎：四层架构 ──────────────────────
+﻿// ─── 思见意识识别引擎：四层架构 ──────────────────────
 // L1 思维状态追踪 · L2 认知意图理解 · L3 情绪+认知负荷 · L4 个性化思维镜像
 
 import { detectThinkingLines, ThinkingLineId } from "./thinking-lines"
@@ -327,20 +327,51 @@ export function saveCognitionLog(entry: CognitionLogEntry): void {
     const logs = JSON.parse(localStorage.getItem(MIRROR_LOG_KEY) || "[]") as CognitionLogEntry[]
     logs.push(entry)
     localStorage.setItem(MIRROR_LOG_KEY, JSON.stringify(logs.slice(-500)))
-    // 异步尝试服务端保存
-    try {
-      fetch("/api/cognition", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(entry),
-      }).catch(() => {})
-    } catch {}
+    // 异步通过 API 持久化到 Supabase
+    saveCognitionLogAsync(entry).catch(() => {})
   } catch {}
 }
 
 export function loadCognitionLogs(): CognitionLogEntry[] {
   if (typeof window === "undefined") return []
   try { return JSON.parse(localStorage.getItem(MIRROR_LOG_KEY) || "[]") } catch { return [] }
+}
+
+// ─── Async 持久化（localStorage 即时 + Supabase 后台同步）───
+
+export async function saveCognitionLogAsync(entry: CognitionLogEntry): Promise<void> {
+  try {
+    // 直接调用 API，由服务端写入 Supabase
+    await fetch("/api/cognition", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "log", ...entry }),
+    }).catch(() => {
+      // 降级：客户端直连 Supabase
+      import("./data-persistence").then(m => m.saveCognitionLogEntry(entry.userId, entry)).catch(() => {})
+    })
+  } catch {}
+}
+
+export async function loadCognitionLogsAsync(userId: string): Promise<CognitionLogEntry[]> {
+  try {
+    const { loadCognitionLogs: loadRemoteLogs } = await import("./data-persistence")
+    const remote = await loadRemoteLogs(userId, 200)
+    if (remote.length > 0) {
+      // 合并：远程 + 本地，远程优先覆盖
+      const local = loadCognitionLogs()
+      const merged = new Map<string, CognitionLogEntry>()
+      for (const c of remote) merged.set(c.timestamp, c)
+      for (const c of local) if (!merged.has(c.timestamp)) merged.set(c.timestamp, c)
+      const mergedArr = Array.from(merged.values()).sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      )
+      // 回写 localStorage 缓存
+      try { localStorage.setItem(MIRROR_LOG_KEY, JSON.stringify(mergedArr.slice(-500))) } catch {}
+      return mergedArr
+    }
+  } catch {}
+  return loadCognitionLogs()
 }
 
 export function generateThinkingMirror(userId: string, nickname: string): ThinkingMirror {
@@ -515,3 +546,4 @@ export function emotionLabel(e: EmotionState): string {
   }
   return m[e] || e
 }
+

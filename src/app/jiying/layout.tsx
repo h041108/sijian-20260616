@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import Link from "next/link"
 import { useState, useEffect, createContext, useContext } from "react"
 import { createPortal } from "react-dom"
@@ -9,6 +9,8 @@ export const JiyingUserContext = createContext<{ user: SijianUser | null; setUse
 })
 export const useJiyingUser = () => useContext(JiyingUserContext)
 
+import JiyingSearch from "@/components/JiyingSearch"
+import NotificationBell from "@/components/NotificationBell"
 import PhoneAuth from "@/components/PhoneAuth"
 
 // Portal 登录弹窗 — 始终渲染到 body 最顶层
@@ -116,6 +118,7 @@ const NAV_ITEMS = [
   { href: "/jiying/studio", label: "🖼️ 超级图片社" },
   { href: "/jiying/media-library", label: "🗂️ 素材库" },
   { href: "/jiying/portfolio", label: "🖼️ 作品展示" },
+  { href: "/jiying/drama", label: "🎭 短剧工坊" },
 ]
 
 export default function JiyingLayout({ children }: { children: React.ReactNode }) {
@@ -129,6 +132,10 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [usageCount, setUsageCount] = useState(0)
+  const [usageLimit, setUsageLimit] = useState(3)
+  const [userLevel, setUserLevel] = useState("青铜")
+  const [quotaPlan, setQuotaPlan] = useState("free")
 
   useEffect(() => {
     const raw = localStorage.getItem("sijian_session")
@@ -136,6 +143,33 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
       try { const u = JSON.parse(raw) as SijianUser; setUser(u) } catch {}
     }
     setIsPaid(localStorage.getItem("sijian_paid") === "true")
+      try { const u = parseInt(localStorage.getItem("jiying_usage_count") || "0", 10); if (!isNaN(u)) setUsageCount(u) } catch {}
+      try { const l = localStorage.getItem("jiying_level") || "青铜"; setUserLevel(l) } catch {}
+
+    // 从后端 API 获取真实配额和等级（失败时保留 localStorage 降级数据）
+    const fetchQuotaAndLevel = async () => {
+      try {
+        const [quotaRes, levelRes] = await Promise.all([
+          fetch("/api/user/quota"),
+          fetch("/api/user/level"),
+        ])
+        if (quotaRes.ok) {
+          const q = await quotaRes.json()
+          setUsageCount(q.used)
+          setUsageLimit(q.limit)
+          setQuotaPlan(q.plan)
+          if (q.level) setUserLevel(q.level)
+        }
+        if (levelRes.ok) {
+          const lv = await levelRes.json()
+          setUserLevel(lv.level)
+        }
+      } catch {
+        // 静默降级到 localStorage 值
+      }
+    }
+    fetchQuotaAndLevel()
+
     import("@/lib/supabase").then(m => {
       const sb = m.supabase
       sb.auth.getSession().then(({ data }: any) => {
@@ -149,6 +183,8 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
           sb.from("subscriptions").select("plan_id").eq("user_id", s.id).single().then(({ data: sd }: any) => {
             if (sd?.plan_id && sd.plan_id !== "free") { setIsPaid(true); localStorage.setItem("sijian_paid", "true") }
           }).catch(() => {})
+          // 订阅确认后刷新配额和等级
+          fetchQuotaAndLevel()
         }
       }).catch(() => {})
     }).catch(() => {})
@@ -199,8 +235,28 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
             </nav>
           </div>
           <div className="flex items-center gap-2">
+            <JiyingSearch />
+            <NotificationBell />
+            {user && (
+              <div className="flex items-center gap-1.5 text-[10px] text-[#5A5A72] bg-[#0C0C14] px-2.5 py-1 rounded-lg border border-[#2A2A38]">
+                <span className={"w-1.5 h-1.5 rounded-full " + (usageCount < usageLimit ? "bg-green-400" : "bg-red-400")} />
+                <span className="font-medium text-[#9898B0]">{usageLimit - usageCount}</span>
+                <span className="text-[#5A5A72]">/ {usageLimit}</span>
+              </div>
+            )}
+            {user && (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-medium text-[#F59E0B]/80 bg-[#F59E0B]/8 px-2 py-1 rounded-lg border border-[#F59E0B]/15">
+                {userLevel === "青铜" ? "🥉" : userLevel === "白银" ? "🥈" : "🥇"} {userLevel}
+              </span>
+            )}
+            {user && !isPaid && (
+              <Link href="/jiying/pricing"
+                className="hidden sm:inline-flex items-center gap-1 px-3 py-1 text-[10px] font-bold text-[#0C0C14] bg-gradient-to-r from-[#F59E0B] to-[#F97316] rounded-full hover:shadow-lg hover:shadow-[#F59E0B]/20 transition-all">
+                ⬆ 升级
+              </Link>
+            )}
             {user ? (
-              <button onClick={() => { localStorage.removeItem("sijian_session"); localStorage.removeItem("sijian_paid"); setUser(null); setIsPaid(false) }}
+              <button onClick={() => { localStorage.removeItem("sijian_session"); localStorage.removeItem("sijian_paid"); setUser(null); setIsPaid(false); setUsageCount(0); setUserLevel("青铜") }}
                 className="text-[10px] text-[#5A5A72] hover:text-[#EF4444] px-2 py-1 rounded-lg border border-[#2A2A38] hover:border-[#EF4444]/30 hover:bg-[#EF4444]/8">
                 退出
               </button>
@@ -229,7 +285,7 @@ export default function JiyingLayout({ children }: { children: React.ReactNode }
 
       {user && !isPaid && (
         <div className="relative z-10 bg-gradient-to-r from-[#F59E0B]/10 to-[#F97316]/10 border-b border-[#F59E0B]/20 px-4 py-2 text-center">
-          <Link href="/jiying" className="text-xs text-[#F59E0B] hover:text-[#FBBF24]">💎 花20元开启你的自媒体公司 — 点击解锁全部功能 →</Link>
+          <Link href="/jiying/pricing" className="text-xs text-[#F59E0B] hover:text-[#FBBF24]">💎 花20元开启你的自媒体公司 — 选套餐扫码支付 →</Link>
         </div>
       )}
 

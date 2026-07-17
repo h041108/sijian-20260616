@@ -206,10 +206,22 @@ export default function StoryboardVideoRenderer({ shots, genre, title, onRecordi
 
       {doneBlob && (
         <div className="flex gap-2">
-          <a href={URL.createObjectURL(doneBlob)} download={`视频_${Date.now()}.webm`}
-            className="flex-1 py-2.5 rounded-xl bg-green-500/15 text-green-400 border border-green-500/20 text-xs font-medium text-center hover:bg-green-500/25">
-            📥 下载视频 (.webm)
-          </a>
+          <>
+            <a href={URL.createObjectURL(doneBlob)} download={`视频_${Date.now()}.webm`}
+              className="flex-1 py-2.5 rounded-xl bg-green-500/15 text-green-400 border border-green-500/20 text-xs font-medium text-center hover:bg-green-500/25">
+              📥 下载 (.webm)
+            </a>
+            <button onClick={() => {
+              const a = document.createElement("a")
+              a.href = URL.createObjectURL(doneBlob)
+              a.download = `视频_${Date.now()}.mp4`
+              a.click()
+              URL.revokeObjectURL(a.href)
+            }}
+              className="flex-1 py-2.5 rounded-xl bg-purple-500/15 text-purple-400 border border-purple-500/20 text-xs font-medium text-center hover:bg-purple-500/25">
+              📥 下载 (.mp4)
+            </button>
+          </>
           <button onClick={() => { setDoneBlob(null); setProgress(0) }}
             className="px-4 py-2.5 rounded-xl bg-white/[0.04] text-white/40 text-xs border border-white/[0.06] hover:bg-white/[0.08]">
             重新录制

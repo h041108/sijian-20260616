@@ -1,4 +1,4 @@
-import type { AIResponse, MindNode, MindEdge } from "./types"
+﻿import type { AIResponse, MindNode, MindEdge } from "./types"
 import { detectThinkingLines, ThinkingLineId } from "./thinking-lines"
 
 type ExtractResult = { nodes: MindNode[]; edges: MindEdge[]; frameType?: string; domainType?: string }
@@ -288,4 +288,72 @@ function reasoningToNodes(reasoning: string): any[] {
     parentIds: [],
     anchors: [],
   }))
+}
+
+// ─── 搜索意图分析（DeepSeek-based，替代正则匹配）───
+
+export async function determineSearchIntent(userInput: string): Promise<{
+  needsSearch: boolean
+  query: string
+  reason?: string
+}> {
+  const fallback = () => ({ needsSearch: false, query: "" })
+  if (!userInput?.trim()) return fallback()
+
+  const apiKey = process.env.DEEPSEEK_API_KEY || ""
+  if (!apiKey) return fallback()
+
+  const base = process.env.DEEPSEEK_API_BASE || "https://api.deepseek.com/v1"
+  const model = process.env.DEEPSEEK_INTENT_MODEL || process.env.DEEPSEEK_MODEL || "deepseek-v4-flash"
+
+  const systemPrompt = `你是一个搜索意图分析器。判断用户输入是否需要在联网搜索实时/最新信息。
+返回纯JSON（不要markdown），格式：{"needsSearch":boolean,"query":"搜索词","reason":"简短原因"}
+
+需要搜索的场景（needsSearch=true）：
+- 询问最新新闻、事件、数据、价格、天气
+- 需要下载、查询试卷/真题/考试资料
+- 询问当前时间、日期、或包含今年/年份的信息
+- 明确说"搜索/查一下/帮我找/网上查"
+- 询问某个领域的最新趋势、政策变化
+- 需要验证一个事实、引用来源
+
+不需要搜索的场景（needsSearch=false）：
+- 普通问答、闲聊、情感倾诉
+- 编程帮助、代码调试、技术问题（除非要最新API文档）
+- 创意写作、翻译、润色
+- 数学题/推理题（用已有知识即可）
+- 让AI分析、总结、讨论观点
+
+query字段：如果needsSearch=true，提取核心搜索词（10字以内）。如果needsSearch=false，query为空。
+reason字段：用一句话说明为什么需要或不需要搜索。`
+
+  try {
+    const res = await fetch(base + "/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userInput },
+        ],
+        temperature: 0.1,
+        max_tokens: 150,
+      }),
+    })
+    if (!res.ok) return fallback()
+
+    const data = await res.json()
+    const raw = data.choices?.[0]?.message?.content?.trim() || ""
+    // 提取 JSON（可能被 markdown 包裹）
+    const jsonStr = raw.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "")
+    const parsed = JSON.parse(jsonStr)
+    return {
+      needsSearch: !!parsed.needsSearch,
+      query: (parsed.query || "").trim(),
+      reason: parsed.reason || "",
+    }
+  } catch {
+    return fallback()
+  }
 }

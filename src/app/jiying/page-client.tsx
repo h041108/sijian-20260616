@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import Link from "next/link"
 import { useEffect } from "react"
 import { useJiyingUser } from "./layout"
@@ -20,8 +20,60 @@ export default function JiyingHome() {
     }
   }, [])
 
+
+  // 独立模式导航状态
+  const [user, setUser] = useState<any>(null)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [usageCount, setUsageCount] = useState(0)
+  const [usageLimit, setUsageLimit] = useState(3)
+  const [userLevel, setUserLevel] = useState("青铜")
+  const [quotaPlan, setQuotaPlan] = useState("free")
+  const [isPaid, setIsPaid] = useState(false)
+
+  useEffect(() => {
+    const raw = localStorage.getItem("sijian_session")
+    if (raw) try { setUser(JSON.parse(raw)) } catch {}
+    setIsPaid(localStorage.getItem("sijian_paid") === "true")
+    try { const u = parseInt(localStorage.getItem("jiying_usage_count") || "0", 10); if (!isNaN(u)) setUsageCount(u) } catch {}
+    try { const l = localStorage.getItem("jiying_level") || "青铜"; setUserLevel(l) } catch {}
+  }, [])
+
+  const NAV_ITEMS_HOME = [
+    { href: "/jiying/agents", label: "🤖 AI引擎" },
+    { href: "/jiying/daily-content", label: "📋 每日内容" },
+    { href: "/jiying/manga", label: "🎬 即刻影片工厂" },
+    { href: "/jiying/digital-human", label: "🎙️ 数字人口播" },
+    { href: "/jiying/studio", label: "🖼️ 超级图片社" },
+    { href: "/jiying/media-library", label: "🗂️ 素材库" },
+    { href: "/jiying/portfolio", label: "🖼️ 作品展示" },
+  ]
+
   return (
-    <div className="pb-24">
+    <div className="min-h-screen bg-[#0C0C14]">
+      <header className="relative z-10 bg-[#0C0C14]/80 backdrop-blur-xl border-b border-black/[0.04]">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <Link href="/jiying" className="flex items-center gap-2.5">🎬 即影</Link>
+            <nav className="hidden md:flex items-center gap-0.5">
+              {NAV_ITEMS_HOME.map(item => (
+                <Link key={item.href} href={item.href} className="px-3 py-1.5 text-sm text-[#9898B0] hover:text-[#FBBF24] rounded-lg">{item.label}</Link>
+              ))}
+            </nav>
+          </div>
+          <div className="flex items-center gap-2">
+            {user && <span className="text-[10px] text-[#5A5A72] bg-[#0C0C14] px-2.5 py-1 rounded-lg">{usageLimit-usageCount}/{usageLimit}</span>}
+            {user && !isPaid && <Link href="/jiying/pricing" className="px-3 py-1 text-[10px] font-bold text-[#0C0C14] bg-gradient-to-r from-[#F59E0B] to-[#F97316] rounded-full">⬆ 升级</Link>}
+            {user ? <button onClick={()=>{localStorage.clear();setUser(null)}} className="text-[10px] text-[#5A5A72]">退出</button> : <Link href="/jiying" className="text-[10px] text-[#F59E0B]">登录</Link>}
+            <button onClick={()=>setMobileOpen(!mobileOpen)} className="md:hidden">{mobileOpen?"✕":"☰"}</button>
+          </div>
+        </div>
+      </header>
+      {user && !isPaid && (
+        <div className="bg-gradient-to-r from-[#F59E0B]/10 to-[#F97316]/10 border-b border-[#F59E0B]/20 px-4 py-2 text-center">
+          <Link href="/jiying/pricing" className="text-xs text-[#F59E0B]">💎 花20元开启你的自媒体公司</Link>
+        </div>
+      )}
+      <div className="pb-24">
       {/* ─── HERO ─── */}
       <section className="relative overflow-hidden pt-20 pb-16">
         <div className="absolute inset-0 bg-gradient-to-br from-[#F59E0B]/3 via-transparent to-[#F97316]/3 animate-gradient" style={{backgroundSize:'200% 200%'}} />
@@ -185,10 +237,15 @@ export default function JiyingHome() {
             className="btn-primary inline-block px-8 py-3 rounded-xl text-sm font-semibold">🚀 花20元开公司</Link>
         </div>
         <div className="mt-6">
-          <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-[#5A5A72] hover:text-[#F59E0B] transition-colors">← 返回思见</Link>
-          <p className="text-xs text-[#5A5A72] mt-2">有事问思见</p>
-        </div>
+          <div className="text-xs text-[#F59E0B] font-medium mt-2">即影 · 即刻做出自己的影片</div>        </div>
       </section>
     </div>
+  )
+}
+</div>
+    </>
+  )
+</div>
+    </>
   )
 }
