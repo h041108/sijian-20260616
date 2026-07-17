@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useCallback, useEffect } from "react"
 import { useJiyingUser } from "@/app/jiying/layout"
@@ -332,8 +332,57 @@ export default function DailyContentEngine() {
 
   // ─── 发布记录 ───
   const [publishLog, setPublishLog] = useState<{ date: string; title: string; platform: string; niche: string }[]>(() => {
+
+  // ⭐ 实体店模式：描述生意 → AI生成方案
+  const [businessDesc, setBusinessDesc] = useState('')
+  const [industryType, setIndustryType] = useState('')
+  const [generatedTemplates, setGeneratedTemplates] = useState([])
+  const [selectedTemplate, setSelectedTemplate] = useState(null)
+  const [templateLoading, setTemplateLoading] = useState(false)
+  const [templateError, setTemplateError] = useState('')
+  const [contentHistory, setContentHistory] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('jiying_content_history') || '[]') } catch { return [] }
+  })
     try { return JSON.parse(localStorage.getItem("sijian_publish_log") || "[]") } catch { return [] }
   })
+
+  const handleGenerateTemplates = useCallback(async () => {
+    if (!businessDesc.trim() || templateLoading) return
+    setTemplateLoading(true); setTemplateError(''); setGeneratedTemplates([]); setSelectedTemplate(null)
+    try {
+      const r = await fetch('/api/daily-content/generate-templates', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: businessDesc, platform, history: contentHistory.slice(-3) }),
+      })
+      const d = await r.json()
+      if (d.templates?.length > 0) {
+        setGeneratedTemplates(d.templates); setIndustryType(d.industryType || '')
+        localStorage.setItem('jiying_industry_type', d.industryType || '')
+      } else { setTemplateError(d.error || '生成失败') }
+    } catch(e) { setTemplateError(String(e)) }
+    setTemplateLoading(false)
+  }, [businessDesc, platform, templateLoading, contentHistory])
+
+  const handleSelectAndGenerate = useCallback(async (template, idx) => {
+    setSelectedTemplate(template.name)
+    const entry = { templateName: template.name, industryType, timestamp: new Date().toISOString() }
+    const updated = [entry, ...contentHistory].slice(0, 20)
+    setContentHistory(updated); localStorage.setItem('jiying_content_history', JSON.stringify(updated))
+    setGenerating(true)
+    try {
+      const r = await fetch('/api/agent/agent_13', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instruction: '为以下生意生成爆款视频文案：\\n生意：' + businessDesc + '\\n方案：' + template.name + '\\n钩子：' + template.hook + '\\n脚本：' + template.script + '\\n节奏：' + template.pacing + '\\n平台：' + platform + '\\n\\n要求：口语化、有感染力、真实自然、合规'
+        }),
+      })
+      const d = await r.json()
+      if (d.mainOutput) {
+        setContentOptions([{ id: 'store_' + Date.now(), title: template.name, content: d.mainOutput, hashtags: ['#' + (industryType || '实体店')] }])
+      }
+    } catch {}
+    setGenerating(false)
+  }, [businessDesc, platform, industryType, contentHistory])
   const handlePublish = useCallback((option: ContentOption) => {
     handleCopyToClipboard(option)
     const entry = { date: new Date().toISOString().slice(0, 10), title: option.title.slice(0, 30), platform, niche }
@@ -444,6 +493,64 @@ export default function DailyContentEngine() {
       )}
 
       {/* 参数 */}
+      {/* ═══ 实体店模式：描述你的生意 → AI生成爆款方案 ═══ */}
+      <div className="glass rounded-2xl p-5 space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">🏪</span>
+          <span className="text-xs text-white/50 font-medium">实体店模式 · 说说你的生意，AI为你生成爆款视频方案</span>
+        </div>
+        <textarea
+          value={businessDesc}
+          onChange={e => setBusinessDesc(e.target.value)}
+          placeholder={"说说你的店铺是做什么的？有什么特色？\n例如：我开了家重庆火锅店，人均80，特色是手工炒料和屠场毛肚"}
+          rows={3}
+          className="w-full px-4 py-3 text-sm rounded-xl bg-[#0C0C14] border border-white/10 text-white/60 focus:outline-none focus:border-[#F59E0B]/40 resize-none placeholder-white/20"
+        />
+        <button onClick={handleGenerateTemplates} disabled={templateLoading || !businessDesc.trim()}
+          className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-sm font-bold disabled:opacity-40 hover:from-purple-400 hover:to-indigo-400 transition-all">
+          {templateLoading ? "🤖 AI正在分析行业并生成方案..." : generateResult ? "🔄 重新生成" : "⚡ AI生成爆款视频方案"}
+        </button>
+        {templateError && <div className="text-xs text-red-400 bg-red-500/10 rounded-xl px-3 py-2">{templateError}</div>}
+      </div>
+
+      {/* ═══ 生成的爆款方案列表 ═══ */}
+      {generatedTemplates.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-white/50 font-medium">🎯 识别行业：{industryType} · 推荐以下 {generatedTemplates.length} 条爆款方案</span>
+            <span className="text-[9px] text-white/30">点击选择 → 生成完整文案</span>
+          </div>
+          {generatedTemplates.map((t, i) => (
+            <div key={i}
+              className={`rounded-2xl border-2 p-5 cursor-pointer transition-all ${selectedTemplate === t.name ? "bg-purple-500/10 border-purple-500/30 ring-2 ring-purple-500" : "bg-[#1A1A2E] border-white/[0.06] hover:border-white/20"}`}
+              onClick={() => handleSelectAndGenerate(t, i)}>
+              <div className="flex items-start gap-3">
+                <span className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 bg-purple-500/20 text-purple-300">#{i + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-medium text-white/80">{t.name}</div>
+                    <span className="text-[9px] text-white/30 bg-white/5 px-1.5 py-0.5 rounded">{t.estimatedDuration}秒</span>
+                  </div>
+                  <div className="text-[10px] text-white/50 mt-1.5">🎣 钩子：{t.hook}</div>
+                  <div className="text-[9px] text-white/30 mt-1 line-clamp-2">{t.script}</div>
+                  {t.suitablePlatforms?.length > 0 && (
+                    <div className="flex gap-1.5 mt-2">
+                      {t.suitablePlatforms.map((p: string) => <span key={p} className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 text-white/40">{p}</span>)}
+                    </div>
+                  )}
+                  {t.complianceWarnings?.length > 0 && (
+                    <div className="mt-2 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/20">
+                      <span className="text-[8px] text-amber-400/80">⚠️ 合规注意：{t.complianceWarnings.join(" · ")}</span>
+                    </div>
+                  )}
+                  {selectedTemplate === t.name && <div className="mt-2 text-[9px] text-purple-400 animate-pulse">🔄 正在生成文案...</div>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="glass rounded-2xl p-5 space-y-4">
         <div className="grid grid-cols-2 gap-2">
           <div>
